@@ -156,6 +156,12 @@ input {
   font-size: 26px;
 }
 
+.metric-card small {
+  display: block;
+  margin-top: 8px;
+  color: #6b7280;
+}
+
 .wide {
   grid-column: 1 / -1;
 }
@@ -296,6 +302,32 @@ input {
   border-color: #e5e7eb;
   background: #f3f4f6;
   color: #6b7280;
+}
+
+.analytics-view {
+  display: grid;
+  gap: 16px;
+}
+
+.ranking-list,
+.reservation-bars {
+  display: grid;
+  gap: 12px;
+}
+
+.ranking-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.reservation-bars label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #374151;
 }
 
 .scan-button {

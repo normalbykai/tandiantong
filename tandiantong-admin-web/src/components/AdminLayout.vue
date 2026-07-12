@@ -30,6 +30,7 @@
       <OrderRefundView v-else-if="domain === 'TENANT' && active === 'orders'" />
       <ReservationView v-else-if="domain === 'TENANT' && active === 'reservations'" />
       <VerificationCenter v-else-if="domain === 'TENANT' && active === 'verification'" />
+      <AnalyticsView v-else-if="domain === 'TENANT' && active === 'analytics'" />
       <PlaceholderPanel v-else :title="currentTitle" />
     </main>
   </div>
@@ -46,6 +47,7 @@ import CatalogInventoryView from './CatalogInventoryView.vue'
 import OrderRefundView from './OrderRefundView.vue'
 import ReservationView from './ReservationView.vue'
 import VerificationCenter from './VerificationCenter.vue'
+import AnalyticsView from './AnalyticsView.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
 import type { Domain, Merchant, MerchantDraft } from '../types'
 
@@ -66,6 +68,7 @@ const tenantMenu = [
   { key: 'orders', label: '订单与退款', icon: ReceiptText },
   { key: 'reservations', label: '服务与预约', icon: CalendarDays },
   { key: 'verification', label: '核销中心', icon: QrCode },
+  { key: 'analytics', label: '经营数据', icon: BarChart3 },
   { key: 'staff', label: '员工与角色', icon: Users },
   { key: 'settings', label: '商户设置', icon: Settings }
 ]
