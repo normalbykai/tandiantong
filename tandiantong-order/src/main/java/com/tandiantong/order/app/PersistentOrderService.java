@@ -4,6 +4,7 @@ import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
 import com.tandiantong.integration.wechatpay.WechatPayClient;
 import com.tandiantong.integration.wechatpay.WechatPrepayResult;
+import com.tandiantong.verification.app.VerificationPersistenceService;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.Instant;
@@ -19,10 +20,12 @@ public class PersistentOrderService {
 
     private final JdbcTemplate jdbcTemplate;
     private final WechatPayClient wechatPayClient;
+    private final VerificationPersistenceService verificationPersistenceService;
 
-    public PersistentOrderService(JdbcTemplate jdbcTemplate, WechatPayClient wechatPayClient) {
+    public PersistentOrderService(JdbcTemplate jdbcTemplate, WechatPayClient wechatPayClient, VerificationPersistenceService verificationPersistenceService) {
         this.jdbcTemplate = jdbcTemplate;
         this.wechatPayClient = wechatPayClient;
+        this.verificationPersistenceService = verificationPersistenceService;
     }
 
     @Transactional
@@ -45,7 +48,7 @@ public class PersistentOrderService {
         }
         jdbcTemplate.update("insert into business_idempotency_record (tenant_id, idempotency_key, business_type, business_no, result_status) values (?, ?, 'ORDER_CREATE', ?, 'SUCCESS')",
                 scope.tenantId(), command.idempotencyKey(), orderNo);
-        return new PersistentOrderResult(orderNo, amountCent, "PENDING_PAYMENT", prepay.prepayId(), prepay.payNonce());
+        return new PersistentOrderResult(orderNo, amountCent, "PENDING_PAYMENT", prepay.prepayId(), prepay.payNonce(), null, null);
     }
 
     @Transactional
@@ -55,7 +58,7 @@ public class PersistentOrderService {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "微信支付回调验签失败");
         }
         if (order.status().equals("PENDING_VERIFY")) {
-            return new PersistentOrderResult(orderNo, order.amountCent(), order.status(), order.prepayId(), "");
+            return new PersistentOrderResult(orderNo, order.amountCent(), order.status(), order.prepayId(), "", null, null);
         }
         if (!order.status().equals("PENDING_PAYMENT") || order.amountCent() != amountCent) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "订单支付状态或金额不正确");
@@ -73,7 +76,8 @@ public class PersistentOrderService {
             jdbcTemplate.update("insert into inventory_record (tenant_id, store_id, sku_id, change_type, quantity, available_after, locked_after, business_no, reason, operator_user_id) select tenant_id, store_id, id, 'PAYMENT_DEDUCT', ?, available_stock, locked_stock, ?, '支付确认扣减', 0 from product_sku where id=? and tenant_id=? and store_id=?",
                     line.quantity(), orderNo, line.skuId(), order.tenantId(), order.storeId());
         }
-        return findCreatedOrder(order.tenantId(), orderNo);
+        var credential = verificationPersistenceService.issueOrderCredential(order.tenantId(), order.storeId(), orderNo, "商品订单 " + orderNo);
+        return new PersistentOrderResult(orderNo, amountCent, "PENDING_VERIFY", order.prepayId(), "", credential.pickupNo(), credential.token());
     }
 
     private OrderLine lockAndPrice(Scope scope, PersistentOrderLineCommand line, String orderNo) {
@@ -115,7 +119,7 @@ public class PersistentOrderService {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
         }
         OrderRow row = rows.getFirst();
-        return new PersistentOrderResult(row.orderNo(), row.amountCent(), row.status(), row.prepayId(), "");
+        return new PersistentOrderResult(row.orderNo(), row.amountCent(), row.status(), row.prepayId(), "", null, null);
     }
 
     private OrderRow findOrder(String orderNo) {
@@ -137,7 +141,7 @@ public class PersistentOrderService {
 
     public record PersistentCreateOrderCommand(String idempotencyKey,String contactMobile,String pickupTimeText,List<PersistentOrderLineCommand> lines) {}
     public record PersistentOrderLineCommand(Long skuId,int quantity) {}
-    public record PersistentOrderResult(String orderNo,int payAmountCent,String status,String prepayId,String paymentParameters) {}
+    public record PersistentOrderResult(String orderNo,int payAmountCent,String status,String prepayId,String paymentParameters,String pickupNo,String verificationToken) {}
     private record Scope(Long tenantId,Long storeId) {}
     private record PersistedResult(String businessNo,String status) {}
     private record OrderRow(Long tenantId,Long storeId,String orderNo,String status,int amountCent,String prepayId) {}
