@@ -8,13 +8,15 @@ import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+import org.springframework.http.ResponseEntity;
 
 @RestControllerAdvice(basePackages = "com.tandiantong")
 public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        return !ApiResponse.class.isAssignableFrom(returnType.getParameterType());
+        return !ApiResponse.class.isAssignableFrom(returnType.getParameterType())
+                && !ResponseEntity.class.isAssignableFrom(returnType.getParameterType());
     }
 
     @Override
