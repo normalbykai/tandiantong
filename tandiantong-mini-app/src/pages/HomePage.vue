@@ -67,7 +67,7 @@
     <view class="order-panel">
       <text class="sheet-title">支付成功 · 待取餐</text>
       <text class="pickup-no">A018</text>
-      <text class="sheet-subtitle">请到店后出示核销码，退款仅支持核销前整单退款。</text>
+      <text class="sheet-subtitle">请到店后出示核销码，请勿提前将核销码提供给他人。退款仅支持核销前整单退款。</text>
       <button class="cart-button">查看订单详情</button>
     </view>
 
@@ -88,7 +88,7 @@
     <view class="order-panel">
       <text class="sheet-title">预约成功 · 待履约</text>
       <text class="pickup-no">YY018</text>
-      <text class="sheet-subtitle">咖啡体验课｜7月13日 周一 14:00-15:00｜春风小铺</text>
+      <text class="sheet-subtitle">咖啡体验课｜7月13日 周一 14:00-15:00｜春风小铺｜二维码仅用于到店核销</text>
       <button class="cart-button">取消预约</button>
     </view>
   </view>
