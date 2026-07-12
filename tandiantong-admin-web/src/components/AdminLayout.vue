@@ -26,6 +26,7 @@
       <MerchantList v-else-if="domain === 'PLATFORM' && active === 'merchants'" :merchants="merchants" @create-merchant="emitCreate" />
       <ReviewBoard v-else-if="domain === 'PLATFORM' && active === 'reviews'" :merchants="merchants" />
       <TenantDashboard v-else-if="domain === 'TENANT' && active === 'dashboard'" />
+      <CatalogInventoryView v-else-if="domain === 'TENANT' && active === 'catalog'" />
       <VerificationCenter v-else-if="domain === 'TENANT' && active === 'verification'" />
       <PlaceholderPanel v-else :title="currentTitle" />
     </main>
@@ -39,6 +40,7 @@ import PlatformDashboard from './PlatformDashboard.vue'
 import MerchantList from './MerchantList.vue'
 import ReviewBoard from './ReviewBoard.vue'
 import TenantDashboard from './TenantDashboard.vue'
+import CatalogInventoryView from './CatalogInventoryView.vue'
 import VerificationCenter from './VerificationCenter.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
 import type { Domain, Merchant, MerchantDraft } from '../types'

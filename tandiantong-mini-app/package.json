@@ -1,0 +1,31 @@
+{
+  "name": "tandiantong-mini-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-alpha-5020120260710001",
+    "@dcloudio/uni-app-plus": "3.0.0-alpha-5020120260710001",
+    "@dcloudio/uni-components": "3.0.0-alpha-5020120260710001",
+    "@dcloudio/uni-h5": "3.0.0-alpha-5020120260710001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-5020120260710001",
+    "vue": "^3.5.22"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vue-tsc": "^2.2.12"
+  },
+  "overrides": {
+    "@babel/core": "7.29.7",
+    "@intlify/core-base": "9.14.5",
+    "@intlify/message-resolver": "9.1.11",
+    "esbuild": "0.25.11",
+    "jpeg-js": "0.4.4",
+    "phin": "3.7.1",
+    "postcss": "8.5.17",
+    "ws": "8.21.0"
+  }
+}
