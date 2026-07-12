@@ -1,7 +1,5 @@
 # 01 工程基础实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** 建立摊点通 V1 后端工程基础，使后续阶段可以在统一模块、响应、异常、追踪、迁移和测试命令上继续开发。
 
 **Architecture:** 使用 Maven 聚合工程和 Spring Boot 模块化单体。公共基础能力集中在 `tandiantong-common`，启动与配置集中在 `tandiantong-bootstrap`，其他业务模块仅创建已确认边界下的可编译模块。

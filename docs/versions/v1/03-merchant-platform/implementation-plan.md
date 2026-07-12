@@ -1,7 +1,5 @@
 # 03 统一后台与商户开通实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** 交付统一 B 端后台骨架和平台商户开通核心服务。
 
 **Architecture:** 后端商户开通核心放在 `tandiantong-security` 的平台应用服务中，API 适配放在 `tandiantong-admin-api` 后续控制器。前端放在 `tandiantong-admin-web`，使用 Vue 3、TypeScript、Vite 和 Element Plus。

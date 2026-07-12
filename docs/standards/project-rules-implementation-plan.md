@@ -1,7 +1,5 @@
 # 摊点通项目级规则实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** 在仓库根目录创建可被后续开发人员和编码代理直接遵循的项目级 `AGENTS.md`。
 
 **Architecture:** 使用单一根规则文件覆盖整个仓库，规则引用已确认的架构设计，不复制完整业务规格。内容按范围、注释、模块、后端、前端、多租户、交易、数据、测试、安全和交付顺序组织。

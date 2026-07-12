@@ -1,7 +1,5 @@
 # 02 多租户、认证与 RBAC 实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** 建立 V1 平台与租户权限域隔离、服务端可信上下文、密码哈希、令牌和 RBAC 权限判定。
 
 **Architecture:** 安全能力集中在 `tandiantong-security`，API 和启动模块只装配过滤器与异常响应。数据库迁移放在 `tandiantong-bootstrap`，后续业务模块通过安全上下文读取当前用户、租户、门店和权限。

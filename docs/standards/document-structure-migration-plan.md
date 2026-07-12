@@ -1,7 +1,5 @@
 # 摊点通文档结构迁移实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** 将原有文档迁移为“跨版本规范 + 版本 + 阶段 + 文档类型”的结构，并修正全部路径引用。
 
 **Architecture:** 跨版本长期规则放入 `docs/standards/`，V1 架构与原型设计放入 `docs/versions/v1/`。通过根索引和 V1 索引标记阶段状态，后续每个阶段独立维护设计、计划和验收文档。
@@ -67,7 +65,7 @@
 Run:
 
 ```powershell
-rg -n "旧版文档目录|旧原型目录标识" . -g '!/.git/**' -g '!/.superpowers/**'
+rg -n "旧版文档目录|旧原型目录标识" . -g '!/.git/**'
 ```
 
 Expected: 不返回任何匹配。
