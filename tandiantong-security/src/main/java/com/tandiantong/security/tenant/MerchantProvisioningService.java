@@ -45,6 +45,45 @@ public class MerchantProvisioningService {
                 invitationCode, expiresAt, sceneKey, PaymentConfigStatus.NOT_CONFIGURED);
     }
 
+    @Transactional
+    public void activateInvitation(String invitationCode, String password) {
+        JdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
+        if (jdbcTemplate == null) {
+            throw new IllegalStateException("当前运行环境未配置数据库连接");
+        }
+        if (invitationCode == null || invitationCode.isBlank() || password == null || password.length() < 8) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "邀请码或密码不符合要求");
+        }
+        var invitations = jdbcTemplate.query(
+                "select id, tenant_id, store_id, admin_name, admin_mobile, expires_at, used_at from merchant_invitation where invitation_code_hash = ? for update",
+                (resultSet, rowNumber) -> new PendingInvitation(resultSet.getLong("id"), resultSet.getLong("tenant_id"),
+                        resultSet.getLong("store_id"), resultSet.getString("admin_name"), resultSet.getString("admin_mobile"),
+                        resultSet.getTimestamp("expires_at").toInstant(), resultSet.getTimestamp("used_at") == null ? null : resultSet.getTimestamp("used_at").toInstant()),
+                sha256(invitationCode));
+        if (invitations.size() != 1 || invitations.getFirst().usedAt() != null || invitations.getFirst().expiresAt().isBefore(Instant.now())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "邀请码无效或已过期");
+        }
+        PendingInvitation invitation = invitations.getFirst();
+        jdbcTemplate.update("insert into admin_user (id, tenant_id, store_id, mobile, display_name, password_hash, status, token_version) values (?, ?, ?, ?, ?, ?, ?, 1)",
+                System.currentTimeMillis(), invitation.tenantId(), invitation.storeId(), invitation.adminMobile(), invitation.adminName(),
+                new com.tandiantong.security.auth.PasswordService().hash(password), "ENABLED");
+        jdbcTemplate.update("update merchant_invitation set used_at = current_timestamp(3) where id = ? and used_at is null", invitation.id());
+    }
+
+    @Transactional
+    public void enableMerchant(Long tenantId) {
+        JdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
+        if (jdbcTemplate == null) {
+            throw new IllegalStateException("当前运行环境未配置数据库连接");
+        }
+        int affected = jdbcTemplate.update("update tenant set status = ? where id = ? and status <> ?",
+                TenantStatus.ENABLED.name(), tenantId, TenantStatus.ENABLED.name());
+        Integer exists = jdbcTemplate.queryForObject("select count(*) from tenant where id = ?", Integer.class, tenantId);
+        if ((exists == null || exists == 0) && affected == 0) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "商户不存在");
+        }
+    }
+
     private Long insertTenant(JdbcTemplate jdbcTemplate, String merchantName) {
         return insertAndReturnId(jdbcTemplate, "insert into tenant (tenant_code, name, status) values (?, ?, ?)",
                 "T" + System.currentTimeMillis(), merchantName, TenantStatus.PENDING_ENABLE.name());
@@ -111,5 +150,9 @@ public class MerchantProvisioningService {
     public record ProvisionedMerchant(Long tenantId, Long storeId, String merchantName, String storeName,
                                       String invitationCode, Instant invitationExpiresAt, String sceneKey,
                                       PaymentConfigStatus paymentConfigStatus) {
+    }
+
+    private record PendingInvitation(Long id, Long tenantId, Long storeId, String adminName, String adminMobile,
+                                     Instant expiresAt, Instant usedAt) {
     }
 }

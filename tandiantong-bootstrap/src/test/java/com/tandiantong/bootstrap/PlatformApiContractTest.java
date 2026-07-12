@@ -66,4 +66,19 @@ class PlatformApiContractTest {
                 .andExpect(jsonPath("$.data.merchantName").value("春风小铺"))
                 .andExpect(jsonPath("$.data.invitationCode").value("invite-test"));
     }
+
+    @Test
+    void shouldExposeInvitationActivationEndpointWithoutSession() throws Exception {
+        mockMvc.perform(post("/api/admin/v1/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"invitationCode\":\"invite-test\",\"password\":\"安全密码123\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser(username = "platform-admin", roles = "PLATFORM")
+    void shouldEnableMerchantThroughPlatformApi() throws Exception {
+        mockMvc.perform(post("/api/platform/v1/merchants/1001/enable"))
+                .andExpect(status().isNoContent());
+    }
 }
