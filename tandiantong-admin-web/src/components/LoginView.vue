@@ -16,7 +16,8 @@
           <el-checkbox v-model="remember">记住当前身份</el-checkbox>
           <el-button link>忘记密码</el-button>
         </div>
-        <el-button type="primary" size="large" class="login-button" @click="$emit('login', domain)">登录</el-button>
+        <el-alert v-if="errorMessage" :title="errorMessage" type="error" show-icon :closable="false" />
+        <el-button type="primary" size="large" class="login-button" :loading="submitting" @click="submit">登录</el-button>
       </el-form>
     </section>
   </main>
@@ -25,15 +26,35 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { Domain } from '../types'
+import { apiRequest, setAccessToken } from '../api'
 
-defineEmits<{ login: [domain: Domain] }>()
+const emit = defineEmits<{ login: [domain: Domain] }>()
 
 const domain = ref<Domain>('PLATFORM')
-const mobile = ref('13800008000')
-const password = ref('******')
+const mobile = ref('')
+const password = ref('')
 const remember = ref(true)
+const submitting = ref(false)
+const errorMessage = ref('')
 const domainOptions = [
   { label: '平台管理', value: 'PLATFORM' },
   { label: '商户管理', value: 'TENANT' }
 ]
+
+async function submit() {
+  submitting.value = true
+  errorMessage.value = ''
+  try {
+    const prefix = domain.value === 'PLATFORM' ? '/api/platform/v1' : '/api/admin/v1'
+    const result = await apiRequest<{ accessToken: string }>(`${prefix}/auth/login`, {
+      method: 'POST', body: JSON.stringify({ mobile: mobile.value, password: password.value })
+    })
+    setAccessToken(result.accessToken)
+    emit('login', domain.value)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '登录失败，请稍后再试'
+  } finally {
+    submitting.value = false
+  }
+}
 </script>

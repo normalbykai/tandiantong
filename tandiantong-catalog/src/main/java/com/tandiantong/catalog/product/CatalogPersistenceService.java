@@ -31,12 +31,13 @@ public class CatalogPersistenceService {
     }
 
     public List<MiniProduct> listOnShelfByScene(String sceneKey) {
-        return jdbcTemplate.query("select p.id, p.name, p.description, p.base_price_cent, coalesce(c.name, '推荐') as category_name "
+        return jdbcTemplate.query("select p.id, p.name, p.description, p.base_price_cent, coalesce(c.name, '推荐') as category_name, s.id sku_id, s.price_cent sku_price, s.available_stock "
                         + "from mini_program_scene m join product p on p.tenant_id=m.tenant_id and p.store_id=m.store_id "
                         + "left join product_category c on c.id=p.category_id and c.tenant_id=p.tenant_id and c.store_id=p.store_id "
-                        + "where m.scene_key=? and m.enabled=true and p.status='ON_SHELF' order by p.sort_order, p.id",
+                        + "join product_sku s on s.product_id=p.id and s.tenant_id=p.tenant_id and s.store_id=p.store_id and s.enabled=true "
+                        + "where m.scene_key=? and m.enabled=true and p.status='ON_SHELF' and s.id=(select min(s2.id) from product_sku s2 where s2.tenant_id=p.tenant_id and s2.store_id=p.store_id and s2.product_id=p.id and s2.enabled=true) order by p.sort_order, p.id",
                 (resultSet, rowNumber) -> new MiniProduct(resultSet.getLong("id"), resultSet.getString("name"),
-                        resultSet.getString("description"), resultSet.getInt("base_price_cent"), resultSet.getString("category_name")), sceneKey);
+                        resultSet.getString("description"), resultSet.getInt("sku_price"), resultSet.getString("category_name"),resultSet.getLong("sku_id"),resultSet.getInt("available_stock")), sceneKey);
     }
 
     private PersistedSku createSku(TenantStoreScope scope, Long productId, CreateCatalogSkuCommand sku) {
@@ -103,6 +104,6 @@ public class CatalogPersistenceService {
                                int warningStock) {
     }
 
-    public record MiniProduct(Long productId, String productName, String description, int priceCent, String categoryName) {
+    public record MiniProduct(Long productId, String productName, String description, int priceCent, String categoryName,Long skuId,int availableStock) {
     }
 }

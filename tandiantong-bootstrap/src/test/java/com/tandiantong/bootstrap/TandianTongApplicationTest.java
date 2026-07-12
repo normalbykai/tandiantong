@@ -8,11 +8,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.analytics.app.AnalyticsPersistenceService;
+import com.tandiantong.catalog.product.CatalogPersistenceService;
+import com.tandiantong.order.app.PersistentOrderService;
+import com.tandiantong.reservation.app.ReservationPersistenceService;
+import com.tandiantong.security.auth.DatabaseAuthenticationService;
+import com.tandiantong.security.tenant.MerchantProvisioningService;
+import com.tandiantong.verification.app.VerificationPersistenceService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
@@ -31,6 +39,27 @@ class TandianTongApplicationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private MerchantProvisioningService merchantProvisioningService;
+
+    @MockBean
+    private DatabaseAuthenticationService databaseAuthenticationService;
+
+    @MockBean
+    private CatalogPersistenceService catalogPersistenceService;
+
+    @MockBean
+    private PersistentOrderService persistentOrderService;
+
+    @MockBean
+    private ReservationPersistenceService reservationPersistenceService;
+
+    @MockBean
+    private VerificationPersistenceService verificationPersistenceService;
+
+    @MockBean
+    private AnalyticsPersistenceService analyticsPersistenceService;
 
     @Test
     void shouldLoadSpringContext() {

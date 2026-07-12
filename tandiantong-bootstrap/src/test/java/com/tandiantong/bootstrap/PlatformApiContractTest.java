@@ -18,6 +18,9 @@ import com.tandiantong.security.tenant.MerchantProvisioningService;
 import com.tandiantong.security.auth.DatabaseAuthenticationService;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
 import com.tandiantong.order.app.PersistentOrderService;
+import com.tandiantong.analytics.app.AnalyticsPersistenceService;
+import com.tandiantong.reservation.app.ReservationPersistenceService;
+import com.tandiantong.verification.app.VerificationPersistenceService;
 
 import static org.mockito.BDDMockito.given;
 import java.time.Instant;
@@ -42,6 +45,15 @@ class PlatformApiContractTest {
 
     @MockBean
     private PersistentOrderService persistentOrderService;
+
+    @MockBean
+    private AnalyticsPersistenceService analyticsPersistenceService;
+
+    @MockBean
+    private ReservationPersistenceService reservationPersistenceService;
+
+    @MockBean
+    private VerificationPersistenceService verificationPersistenceService;
 
     @Test
     void shouldExposePlatformHealthThroughVersionedApi() throws Exception {
@@ -101,7 +113,7 @@ class PlatformApiContractTest {
     @Test
     void shouldExposeMiniCatalogThroughScene() throws Exception {
         given(catalogPersistenceService.listOnShelfByScene("scene-test"))
-                .willReturn(java.util.List.of(new CatalogPersistenceService.MiniProduct(1L, "桂花拿铁", "桂花香气", 1800, "咖啡")));
+                .willReturn(java.util.List.of(new CatalogPersistenceService.MiniProduct(1L, "桂花拿铁", "桂花香气", 1800, "咖啡",11L,20)));
         mockMvc.perform(get("/api/mini/v1/catalog/products").param("scene", "scene-test"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))

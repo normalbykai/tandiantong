@@ -1,7 +1,7 @@
 <template>
   <div class="app-shell">
     <LoginView v-if="!loggedIn" @login="login" />
-    <AdminLayout v-else :domain="domain" :merchants="merchants" @logout="loggedIn = false" @create-merchant="createMerchant" />
+    <AdminLayout v-else :domain="domain" :merchants="merchants" @logout="logout" @create-merchant="createMerchant" />
   </div>
 </template>
 
@@ -10,6 +10,7 @@ import { ref } from 'vue'
 import LoginView from './components/LoginView.vue'
 import AdminLayout from './components/AdminLayout.vue'
 import type { Domain, Merchant, MerchantDraft } from './types'
+import { clearAccessToken } from './api'
 
 const loggedIn = ref(false)
 const domain = ref<Domain>('PLATFORM')
@@ -43,6 +44,11 @@ const merchants = ref<Merchant[]>([
 function login(nextDomain: Domain) {
   domain.value = nextDomain
   loggedIn.value = true
+}
+
+function logout() {
+  clearAccessToken()
+  loggedIn.value = false
 }
 
 function createMerchant(draft: MerchantDraft) {

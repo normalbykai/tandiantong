@@ -16,6 +16,7 @@
       </text>
     </scroll-view>
 
+    <view v-if="errorMessage" class="order-panel"><text class="sheet-subtitle">{{ errorMessage }}</text></view>
     <view class="product-grid">
       <view v-for="product in filteredProducts" :key="product.id" class="product-card">
         <image class="product-image" :src="product.image" mode="aspectFill" />
@@ -23,13 +24,13 @@
         <text class="product-desc">{{ product.description }}</text>
         <view class="product-footer">
           <text class="price">¥{{ (product.priceCent / 100).toFixed(2) }}</text>
-          <button class="pick-button">{{ product.hasSku ? '选规格' : '+' }}</button>
+          <button class="pick-button" @tap="selectProduct(product)">选规格</button>
         </view>
       </view>
     </view>
 
     <view class="sku-sheet">
-      <text class="sheet-title">桂花拿铁</text>
+      <text class="sheet-title">{{ selectedProduct?.name ?? '请选择商品' }}</text>
       <text class="sheet-subtitle">杯型和温度必选，加料最多选择 2 项</text>
       <view class="option-row">
         <text class="option active">中杯</text>
@@ -43,7 +44,7 @@
         <text class="option active">燕麦奶 +¥3.00</text>
         <text class="option">浓缩咖啡 +¥4.00</text>
       </view>
-      <button class="cart-button">加入购物车 ¥21.00</button>
+      <button class="cart-button" :disabled="!selectedProduct" @tap="submitOrder">提交订单并模拟支付</button>
     </view>
 
     <view class="order-panel">
@@ -66,14 +67,14 @@
 
     <view class="order-panel">
       <text class="sheet-title">支付成功 · 待取餐</text>
-      <text class="pickup-no">A018</text>
+      <text class="pickup-no">{{ orderResult?.pickupNo ?? '待支付' }}</text>
       <text class="sheet-subtitle">请到店后出示核销码，请勿提前将核销码提供给他人。退款仅支持核销前整单退款。</text>
       <button class="cart-button">查看订单详情</button>
     </view>
 
     <view class="order-panel">
-      <text class="sheet-title">咖啡体验课</text>
-      <text class="sheet-subtitle">60 分钟｜门店小班｜最近可约 7月13日 14:00</text>
+      <text class="sheet-title">{{ services[0]?.name ?? '暂无可预约服务' }}</text>
+      <text class="sheet-subtitle">{{ services[0]?.durationMinutes ?? 0 }} 分钟｜剩余 {{ services[0]?.remainingCapacity ?? 0 }} 名</text>
       <view class="option-row">
         <text class="option active">7月13日 周一</text>
         <text class="option">7月14日 周二</text>
@@ -82,12 +83,12 @@
         <text class="option active">14:00-15:00 剩余2名</text>
         <text class="option disabled">15:00-16:00 已满</text>
       </view>
-      <button class="cart-button">免费确认预约</button>
+      <button class="cart-button" :disabled="services.length === 0" @tap="submitReservation">免费确认预约</button>
     </view>
 
     <view class="order-panel">
       <text class="sheet-title">预约成功 · 待履约</text>
-      <text class="pickup-no">YY018</text>
+      <text class="pickup-no">{{ reservationResult?.reservationNo ?? '待预约' }}</text>
       <text class="sheet-subtitle">咖啡体验课｜7月13日 周一 14:00-15:00｜春风小铺｜二维码仅用于到店核销</text>
       <button class="cart-button">取消预约</button>
     </view>
@@ -95,7 +96,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { miniRequest } from '../api'
 
 interface MiniProduct {
   id: number
@@ -105,30 +107,22 @@ interface MiniProduct {
   priceCent: number
   image: string
   hasSku: boolean
+  skuId?: number
 }
+
+interface MiniService { serviceId: number; name: string; paymentMode: string; priceCent: number; durationMinutes: number; slotId: number; remainingCapacity: number }
+interface OrderResult { orderNo: string; payAmountCent: number; pickupNo: string | null; verificationToken: string | null }
+interface ReservationResult { reservationNo: string; status: string; voucherCode: string | null }
 
 const activeCategory = ref('推荐')
 const categories = ['推荐', '咖啡', '轻食']
-const products = ref<MiniProduct[]>([
-  {
-    id: 1,
-    name: '桂花拿铁',
-    category: '咖啡',
-    description: '桂花香气和醇厚拿铁融合',
-    priceCent: 1800,
-    image: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=360&q=80',
-    hasSku: true
-  },
-  {
-    id: 2,
-    name: '手作三明治',
-    category: '轻食',
-    description: '现烤吐司搭配鸡蛋和蔬菜',
-    priceCent: 2600,
-    image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=360&q=80',
-    hasSku: false
-  }
-])
+const products = ref<MiniProduct[]>([])
+const services = ref<MiniService[]>([])
+const selectedProduct = ref<MiniProduct | null>(null)
+const orderResult = ref<OrderResult | null>(null)
+const reservationResult = ref<ReservationResult | null>(null)
+const errorMessage = ref('')
+const sceneKey = ref('')
 
 const filteredProducts = computed(() => {
   if (activeCategory.value === '推荐') {
@@ -136,6 +130,27 @@ const filteredProducts = computed(() => {
   }
   return products.value.filter(product => product.category === activeCategory.value)
 })
+
+function selectProduct(product: MiniProduct) { selectedProduct.value = product }
+async function loadData() {
+  try {
+    const launch = uni.getLaunchOptionsSync()
+    sceneKey.value = launch.query?.scene || String(uni.getStorageSync('tandiantong_scene') || '')
+    if (!sceneKey.value) throw new Error('缺少商户入口码，请扫描商户小程序码进入')
+    const remoteProducts = await miniRequest<Array<{ productId: number; productName: string; description: string | null; priceCent: number; categoryName: string; skuId: number; availableStock: number }>>(`/api/mini/v1/catalog/products?scene=${encodeURIComponent(sceneKey.value)}`)
+    products.value = remoteProducts.map(item => ({ id: item.productId, name: item.productName, category: item.categoryName, description: item.description || `剩余库存 ${item.availableStock}`, priceCent: item.priceCent, image: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=360&q=80', hasSku: true, skuId: item.skuId }))
+    services.value = await miniRequest<MiniService[]>(`/api/mini/v1/reservations/services?scene=${encodeURIComponent(sceneKey.value)}`)
+  } catch (error) { errorMessage.value = error instanceof Error ? error.message : '门店数据加载失败' }
+}
+async function submitOrder() {
+  if (!selectedProduct.value?.skuId) { errorMessage.value = '当前商品缺少可购买 SKU，请联系商户'; return }
+  try { orderResult.value = await miniRequest<OrderResult>('/api/mini/v1/orders', 'POST', { sceneKey: sceneKey.value, idempotencyKey: `mini-${Date.now()}`, contactMobile: '13800008000', pickupTimeText: '尽快取餐', lines: [{ skuId: selectedProduct.value.skuId, quantity: 1 }] }) } catch (error) { errorMessage.value = error instanceof Error ? error.message : '订单提交失败' }
+}
+async function submitReservation() {
+  const service = services.value[0]; if (!service) return
+  try { reservationResult.value = await miniRequest<ReservationResult>('/api/mini/v1/reservations', 'POST', { sceneKey: sceneKey.value, idempotencyKey: `reservation-${Date.now()}`, serviceId: service.serviceId, slotId: service.slotId, contactMobile: '13800008000' }) } catch (error) { errorMessage.value = error instanceof Error ? error.message : '预约提交失败' }
+}
+onMounted(loadData)
 </script>
 
 <style scoped>
