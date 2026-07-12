@@ -277,6 +277,27 @@ input {
   margin-top: 16px;
 }
 
+.slot-list {
+  display: grid;
+  gap: 10px;
+}
+
+.slot-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #d1fae5;
+  border-radius: 8px;
+  background: #f0fdf4;
+}
+
+.slot-card.full {
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
 .scan-button {
   min-height: 64px;
   font-size: 18px;

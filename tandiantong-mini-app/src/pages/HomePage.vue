@@ -70,6 +70,27 @@
       <text class="sheet-subtitle">请到店后出示核销码，退款仅支持核销前整单退款。</text>
       <button class="cart-button">查看订单详情</button>
     </view>
+
+    <view class="order-panel">
+      <text class="sheet-title">咖啡体验课</text>
+      <text class="sheet-subtitle">60 分钟｜门店小班｜最近可约 7月13日 14:00</text>
+      <view class="option-row">
+        <text class="option active">7月13日 周一</text>
+        <text class="option">7月14日 周二</text>
+      </view>
+      <view class="option-row">
+        <text class="option active">14:00-15:00 剩余2名</text>
+        <text class="option disabled">15:00-16:00 已满</text>
+      </view>
+      <button class="cart-button">免费确认预约</button>
+    </view>
+
+    <view class="order-panel">
+      <text class="sheet-title">预约成功 · 待履约</text>
+      <text class="pickup-no">YY018</text>
+      <text class="sheet-subtitle">咖啡体验课｜7月13日 周一 14:00-15:00｜春风小铺</text>
+      <button class="cart-button">取消预约</button>
+    </view>
   </view>
 </template>
 
@@ -279,6 +300,11 @@ const filteredProducts = computed(() => {
   border-color: #c2410c;
   color: #c2410c;
   background: #fff1e8;
+}
+
+.option.disabled {
+  color: #9ca3af;
+  background: #f3f4f6;
 }
 
 .cart-button {

@@ -28,6 +28,7 @@
       <TenantDashboard v-else-if="domain === 'TENANT' && active === 'dashboard'" />
       <CatalogInventoryView v-else-if="domain === 'TENANT' && active === 'catalog'" />
       <OrderRefundView v-else-if="domain === 'TENANT' && active === 'orders'" />
+      <ReservationView v-else-if="domain === 'TENANT' && active === 'reservations'" />
       <VerificationCenter v-else-if="domain === 'TENANT' && active === 'verification'" />
       <PlaceholderPanel v-else :title="currentTitle" />
     </main>
@@ -36,13 +37,14 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { BarChart3, ClipboardCheck, QrCode, ReceiptText, Settings, ShieldCheck, Store, Users } from 'lucide-vue-next'
+import { BarChart3, CalendarDays, ClipboardCheck, QrCode, ReceiptText, Settings, ShieldCheck, Store, Users } from 'lucide-vue-next'
 import PlatformDashboard from './PlatformDashboard.vue'
 import MerchantList from './MerchantList.vue'
 import ReviewBoard from './ReviewBoard.vue'
 import TenantDashboard from './TenantDashboard.vue'
 import CatalogInventoryView from './CatalogInventoryView.vue'
 import OrderRefundView from './OrderRefundView.vue'
+import ReservationView from './ReservationView.vue'
 import VerificationCenter from './VerificationCenter.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
 import type { Domain, Merchant, MerchantDraft } from '../types'
@@ -62,6 +64,7 @@ const tenantMenu = [
   { key: 'dashboard', label: '商户工作台', icon: BarChart3 },
   { key: 'catalog', label: '商品与库存', icon: Store },
   { key: 'orders', label: '订单与退款', icon: ReceiptText },
+  { key: 'reservations', label: '服务与预约', icon: CalendarDays },
   { key: 'verification', label: '核销中心', icon: QrCode },
   { key: 'staff', label: '员工与角色', icon: Users },
   { key: 'settings', label: '商户设置', icon: Settings }
