@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将现有文档迁移为“跨版本规范 + 版本 + 阶段 + 文档类型”的结构，并修正全部路径引用。
+**Goal:** 将原有文档迁移为“跨版本规范 + 版本 + 阶段 + 文档类型”的结构，并修正全部路径引用。
 
 **Architecture:** 跨版本长期规则放入 `docs/standards/`，V1 架构与原型设计放入 `docs/versions/v1/`。通过根索引和 V1 索引标记阶段状态，后续每个阶段独立维护设计、计划和验收文档。
 
@@ -27,10 +27,10 @@
 ### Task 2: 迁移现有文档
 
 **Files:**
-- Move: `docs/superpowers/specs/2026-07-12-project-rules-design.md` → `docs/standards/project-rules-design.md`
-- Move: `docs/superpowers/plans/2026-07-12-project-rules.md` → `docs/standards/project-rules-implementation-plan.md`
-- Move: `docs/superpowers/specs/2026-07-12-tandiantong-architecture-design.md` → `docs/versions/v1/00-overview/architecture.md`
-- Move: `docs/superpowers/specs/2026-07-12-product-prototype-design.md` → `docs/versions/v1/00-overview/product-prototype-design.md`
+- Move: 原项目规则设计文档 → `docs/standards/project-rules-design.md`
+- Move: 原项目规则实施计划 → `docs/standards/project-rules-implementation-plan.md`
+- Move: 原 V1 架构设计文档 → `docs/versions/v1/00-overview/architecture.md`
+- Move: 原 V1 产品原型设计方案 → `docs/versions/v1/00-overview/product-prototype-design.md`
 
 - [ ] **Step 1: 创建目标目录并使用 Git 移动文件**
 
@@ -58,7 +58,7 @@
 
 - [ ] **Step 3: 更新原型文档输出目录**
 
-将 `docs/product/` 更新为 `docs/versions/v1/prototype/`，保留原有五份原型交付文件结构。
+将旧原型输出目录更新为 `docs/versions/v1/prototype/`，保留原有五份原型交付文件结构。
 
 ### Task 4: 验证并提交迁移
 
@@ -67,7 +67,7 @@
 Run:
 
 ```powershell
-rg -n "docs/superpowers|docs\\superpowers|docs/product" . -g '!/.git/**' -g '!/.superpowers/**'
+rg -n "旧版文档目录|旧原型目录标识" . -g '!/.git/**' -g '!/.superpowers/**'
 ```
 
 Expected: 不返回任何匹配。

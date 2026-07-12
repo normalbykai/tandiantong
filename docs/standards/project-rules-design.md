@@ -63,7 +63,7 @@
 
 ## 7. 一致性要求
 
-`AGENTS.md` 必须引用架构设计文档 `docs/superpowers/specs/2026-07-12-tandiantong-architecture-design.md`。当两者出现冲突时，应先停止实现并更新文档形成明确结论，不得自行选择更宽松的解释。
+`AGENTS.md` 必须引用文档总索引 `docs/README.md`、当前版本索引 `docs/versions/v1/README.md` 和 V1 架构文档 `docs/versions/v1/00-overview/architecture.md`。当规则、版本范围、阶段文档或架构发生冲突时，应先停止实现并更新文档形成明确结论，不得自行选择更宽松的解释。
 
 ## 8. 验收标准
 

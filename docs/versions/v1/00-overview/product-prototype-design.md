@@ -8,10 +8,10 @@
 
 ## 2. 交付文档
 
-原型资料写入 `docs/product/`：
+原型资料写入 `docs/versions/v1/prototype/`：
 
 ```text
-docs/product/
+docs/versions/v1/prototype/
 ├─ README.md
 ├─ 01-总体视觉与交互规范.md
 ├─ 02-C端小程序原型设计.md

@@ -14,8 +14,8 @@
 
 **Files:**
 - Create: `AGENTS.md`
-- Reference: `docs/superpowers/specs/2026-07-12-project-rules-design.md`
-- Reference: `docs/superpowers/specs/2026-07-12-tandiantong-architecture-design.md`
+- Reference: `docs/standards/project-rules-design.md`
+- Reference: `docs/versions/v1/00-overview/architecture.md`
 
 - [ ] **Step 1: 创建根目录规则文件**
 
@@ -63,7 +63,7 @@ Expected: `rg` 不返回匹配；`git diff --check` 退出码为 0。
 - [ ] **Step 5: 提交规则文件**
 
 ```powershell
-git add -- AGENTS.md docs/superpowers/plans/2026-07-12-project-rules.md
+git add -- AGENTS.md docs/standards/project-rules-implementation-plan.md
 git commit -m "docs: add project development rules"
 ```
 
