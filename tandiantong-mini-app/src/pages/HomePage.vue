@@ -45,6 +45,31 @@
       </view>
       <button class="cart-button">加入购物车 ¥21.00</button>
     </view>
+
+    <view class="order-panel">
+      <text class="sheet-title">确认订单</text>
+      <text class="sheet-subtitle">联系电话 138****8000｜预计 18:30 到店取餐</text>
+      <view class="order-line">
+        <text>桂花拿铁 中杯/热 ×2</text>
+        <text>¥36.00</text>
+      </view>
+      <view class="order-line">
+        <text>燕麦奶 ×2</text>
+        <text>¥6.00</text>
+      </view>
+      <view class="order-total">
+        <text>实付</text>
+        <text>¥42.00</text>
+      </view>
+      <button class="cart-button">提交订单并支付</button>
+    </view>
+
+    <view class="order-panel">
+      <text class="sheet-title">支付成功 · 待取餐</text>
+      <text class="pickup-no">A018</text>
+      <text class="sheet-subtitle">请到店后出示核销码，退款仅支持核销前整单退款。</text>
+      <button class="cart-button">查看订单详情</button>
+    </view>
   </view>
 </template>
 
@@ -162,7 +187,8 @@ const filteredProducts = computed(() => {
 }
 
 .product-card,
-.sku-sheet {
+.sku-sheet,
+.order-panel {
   padding: 18rpx;
   border-radius: 16rpx;
   background: #fff;
@@ -206,6 +232,33 @@ const filteredProducts = computed(() => {
 
 .sku-sheet {
   margin-top: 28rpx;
+}
+
+.order-panel {
+  margin-top: 24rpx;
+}
+
+.order-line,
+.order-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16rpx;
+  color: #5b4636;
+}
+
+.order-total {
+  color: #c2410c;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.pickup-no {
+  display: block;
+  margin: 20rpx 0;
+  color: #c2410c;
+  font-size: 72rpx;
+  font-weight: 800;
+  text-align: center;
 }
 
 .option-row {
