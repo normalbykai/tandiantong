@@ -16,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import com.tandiantong.security.tenant.MerchantProvisioningService;
 import com.tandiantong.security.auth.DatabaseAuthenticationService;
+import com.tandiantong.catalog.product.CatalogPersistenceService;
 
 import static org.mockito.BDDMockito.given;
 import java.time.Instant;
@@ -34,6 +35,9 @@ class PlatformApiContractTest {
 
     @MockBean
     private DatabaseAuthenticationService databaseAuthenticationService;
+
+    @MockBean
+    private CatalogPersistenceService catalogPersistenceService;
 
     @Test
     void shouldExposePlatformHealthThroughVersionedApi() throws Exception {
@@ -80,5 +84,23 @@ class PlatformApiContractTest {
     void shouldEnableMerchantThroughPlatformApi() throws Exception {
         mockMvc.perform(post("/api/platform/v1/merchants/1001/enable"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void shouldRejectCatalogCreationFromPlatformDomain() throws Exception {
+        mockMvc.perform(post("/api/admin/v1/catalog/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productName\":\"桂花拿铁\",\"categoryName\":\"咖啡\",\"basePriceCent\":1800,\"onShelf\":true,\"skus\":[{\"specificationText\":\"中杯\",\"skuCode\":\"LATTE-M\",\"priceCent\":1800,\"initialStock\":10,\"warningStock\":2}]}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldExposeMiniCatalogThroughScene() throws Exception {
+        given(catalogPersistenceService.listOnShelfByScene("scene-test"))
+                .willReturn(java.util.List.of(new CatalogPersistenceService.MiniProduct(1L, "桂花拿铁", "桂花香气", 1800, "咖啡")));
+        mockMvc.perform(get("/api/mini/v1/catalog/products").param("scene", "scene-test"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].productName").value("桂花拿铁"));
     }
 }
