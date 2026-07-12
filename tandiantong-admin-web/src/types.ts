@@ -23,6 +23,17 @@ export interface MerchantDraft {
   brandColor: string
 }
 
+export interface MerchantProvisioned {
+  tenantId: number
+  storeId: number
+  merchantName: string
+  storeName: string
+  invitationCode: string
+  invitationExpiresAt: string
+  sceneKey: string
+  paymentConfigStatus: string
+}
+
 export interface ProductSku {
   id: number
   specification: string

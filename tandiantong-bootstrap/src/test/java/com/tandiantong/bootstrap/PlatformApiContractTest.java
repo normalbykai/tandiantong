@@ -24,6 +24,7 @@ import com.tandiantong.verification.app.VerificationPersistenceService;
 
 import static org.mockito.BDDMockito.given;
 import java.time.Instant;
+import java.util.List;
 import com.tandiantong.security.tenant.PaymentConfigStatus;
 
 @SpringBootTest
@@ -85,6 +86,20 @@ class PlatformApiContractTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.merchantName").value("春风小铺"))
                 .andExpect(jsonPath("$.data.invitationCode").value("invite-test"));
+    }
+
+    @Test
+    @WithMockUser(username = "platform-admin", roles = "PLATFORM")
+    void shouldListMerchantsThroughPlatformApi() throws Exception {
+        given(merchantProvisioningService.listMerchants()).willReturn(List.of(
+                new MerchantProvisioningService.MerchantOverview(1001L, "春风小铺", "张晓春", "138****8000",
+                        "PENDING_ENABLE", "NOT_CONFIGURED", "ACTIVATED", "scene-test")));
+
+        mockMvc.perform(get("/api/platform/v1/merchants"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].tenantId").value(1001))
+                .andExpect(jsonPath("$.data[0].merchantName").value("春风小铺"))
+                .andExpect(jsonPath("$.data[0].adminMobileMasked").value("138****8000"));
     }
 
     @Test

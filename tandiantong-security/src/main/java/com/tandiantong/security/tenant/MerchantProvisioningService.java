@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
+import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.beans.factory.ObjectProvider;
@@ -84,6 +85,24 @@ public class MerchantProvisioningService {
         }
     }
 
+    public List<MerchantOverview> listMerchants() {
+        JdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
+        if (jdbcTemplate == null) {
+            throw new IllegalStateException("当前运行环境未配置数据库连接");
+        }
+        return jdbcTemplate.query("select t.id,t.name,t.status,i.admin_name,i.admin_mobile,"
+                        + "coalesce(p.status,'NOT_CONFIGURED') payment_status,"
+                        + "case when exists(select 1 from admin_user u where u.tenant_id=t.id and u.status='ENABLED') then 'ACTIVATED' else 'PENDING' end admin_status,"
+                        + "coalesce(s.scene_key,'') scene_key from tenant t "
+                        + "left join merchant_invitation i on i.id=(select max(i2.id) from merchant_invitation i2 where i2.tenant_id=t.id) "
+                        + "left join tenant_payment_config p on p.tenant_id=t.id "
+                        + "left join mini_program_scene s on s.tenant_id=t.id order by t.created_at desc limit 200",
+                (resultSet, rowNumber) -> new MerchantOverview(resultSet.getLong("id"), resultSet.getString("name"),
+                        resultSet.getString("admin_name"), maskMobile(resultSet.getString("admin_mobile")),
+                        resultSet.getString("status"), resultSet.getString("payment_status"),
+                        resultSet.getString("admin_status"), resultSet.getString("scene_key")));
+    }
+
     private Long insertTenant(JdbcTemplate jdbcTemplate, String merchantName) {
         return insertAndReturnId(jdbcTemplate, "insert into tenant (tenant_code, name, status) values (?, ?, ?)",
                 "T" + System.currentTimeMillis(), merchantName, TenantStatus.PENDING_ENABLE.name());
@@ -147,9 +166,20 @@ public class MerchantProvisioningService {
         }
     }
 
+    private String maskMobile(String mobile) {
+        if (mobile == null || !mobile.matches("1\\d{10}")) {
+            return "****";
+        }
+        return mobile.substring(0, 3) + "****" + mobile.substring(7);
+    }
+
     public record ProvisionedMerchant(Long tenantId, Long storeId, String merchantName, String storeName,
                                       String invitationCode, Instant invitationExpiresAt, String sceneKey,
                                       PaymentConfigStatus paymentConfigStatus) {
+    }
+
+    public record MerchantOverview(Long tenantId, String merchantName, String adminName, String adminMobileMasked,
+                                   String status, String paymentConfigStatus, String adminStatus, String sceneKey) {
     }
 
     private record PendingInvitation(Long id, Long tenantId, Long storeId, String adminName, String adminMobile,

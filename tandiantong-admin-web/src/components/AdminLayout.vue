@@ -22,9 +22,9 @@
         <el-button @click="$emit('logout')">退出登录</el-button>
       </header>
 
-      <PlatformDashboard v-if="domain === 'PLATFORM' && active === 'dashboard'" :merchants="merchants" />
-      <MerchantList v-else-if="domain === 'PLATFORM' && active === 'merchants'" :merchants="merchants" @create-merchant="emitCreate" />
-      <ReviewBoard v-else-if="domain === 'PLATFORM' && active === 'reviews'" :merchants="merchants" />
+      <PlatformDashboard v-if="domain === 'PLATFORM' && active === 'dashboard'" :merchants="[]" />
+      <MerchantList v-else-if="domain === 'PLATFORM' && active === 'merchants'" />
+      <ReviewBoard v-else-if="domain === 'PLATFORM' && active === 'reviews'" :merchants="[]" />
       <TenantDashboard v-else-if="domain === 'TENANT' && active === 'dashboard'" />
       <CatalogInventoryView v-else-if="domain === 'TENANT' && active === 'catalog'" />
       <OrderRefundView v-else-if="domain === 'TENANT' && active === 'orders'" />
@@ -49,10 +49,10 @@ import ReservationView from './ReservationView.vue'
 import VerificationCenter from './VerificationCenter.vue'
 import AnalyticsView from './AnalyticsView.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
-import type { Domain, Merchant, MerchantDraft } from '../types'
+import type { Domain } from '../types'
 
-const props = defineProps<{ domain: Domain; merchants: Merchant[] }>()
-const emit = defineEmits<{ logout: []; createMerchant: [draft: MerchantDraft] }>()
+const props = defineProps<{ domain: Domain }>()
+defineEmits<{ logout: [] }>()
 const active = ref('dashboard')
 
 const platformMenu = [
@@ -80,7 +80,4 @@ watch(() => props.domain, () => {
   active.value = 'dashboard'
 })
 
-function emitCreate(draft: MerchantDraft) {
-  emit('createMerchant', draft)
-}
 </script>
