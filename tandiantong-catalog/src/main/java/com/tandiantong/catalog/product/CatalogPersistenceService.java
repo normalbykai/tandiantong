@@ -40,6 +40,21 @@ public class CatalogPersistenceService {
                         resultSet.getString("description"), resultSet.getInt("sku_price"), resultSet.getString("category_name"),resultSet.getLong("sku_id"),resultSet.getInt("available_stock")), sceneKey);
     }
 
+    public List<AdminProduct> listProducts(TenantStoreScope scope) {
+        return jdbcTemplate.query("select p.id,p.name,c.name category_name,p.status,p.base_price_cent from product p left join product_category c on c.id=p.category_id and c.tenant_id=p.tenant_id and c.store_id=p.store_id where p.tenant_id=? and p.store_id=? order by p.id desc limit 200",
+                (rs, row) -> new AdminProduct(rs.getLong("id"), rs.getString("name"), rs.getString("category_name"), rs.getString("status"), rs.getInt("base_price_cent"), listSkus(scope, rs.getLong("id"))), scope.tenantId(), scope.storeId());
+    }
+
+    public List<InventoryRecordView> listInventoryRecords(TenantStoreScope scope) {
+        return jdbcTemplate.query("select r.id,r.created_at,r.change_type,p.name product_name,s.specification_text,r.quantity,r.business_no,r.reason from inventory_record r join product_sku s on s.id=r.sku_id and s.tenant_id=r.tenant_id and s.store_id=r.store_id join product p on p.id=s.product_id and p.tenant_id=s.tenant_id and p.store_id=s.store_id where r.tenant_id=? and r.store_id=? order by r.id desc limit 500",
+                (rs, row) -> new InventoryRecordView(rs.getLong("id"), rs.getTimestamp("created_at").toLocalDateTime(), rs.getString("change_type"), rs.getString("product_name"), rs.getString("specification_text"), rs.getInt("quantity"), rs.getString("business_no"), rs.getString("reason")), scope.tenantId(), scope.storeId());
+    }
+
+    private List<AdminSku> listSkus(TenantStoreScope scope, Long productId) {
+        return jdbcTemplate.query("select id,specification_text,sku_code,price_cent,available_stock,locked_stock,warning_stock from product_sku where tenant_id=? and store_id=? and product_id=? order by id",
+                (rs, row) -> new AdminSku(rs.getLong("id"), rs.getString("specification_text"), rs.getString("sku_code"), rs.getInt("price_cent"), rs.getInt("available_stock"), rs.getInt("locked_stock"), rs.getInt("warning_stock")), scope.tenantId(), scope.storeId(), productId);
+    }
+
     private PersistedSku createSku(TenantStoreScope scope, Long productId, CreateCatalogSkuCommand sku) {
         Long skuId = insertId("insert into product_sku (tenant_id, store_id, product_id, specification_text, sku_code, price_cent, available_stock, locked_stock, warning_stock, enabled) values (?, ?, ?, ?, ?, ?, ?, 0, ?, true)",
                 scope.tenantId(), scope.storeId(), productId, sku.specificationText(), sku.skuCode(), sku.priceCent(), sku.initialStock(), sku.warningStock());
@@ -106,4 +121,7 @@ public class CatalogPersistenceService {
 
     public record MiniProduct(Long productId, String productName, String description, int priceCent, String categoryName,Long skuId,int availableStock) {
     }
+    public record AdminProduct(Long productId,String productName,String categoryName,String status,int basePriceCent,List<AdminSku> skus) {}
+    public record AdminSku(Long skuId,String specificationText,String skuCode,int priceCent,int availableStock,int lockedStock,int warningStock) {}
+    public record InventoryRecordView(Long id,java.time.LocalDateTime createdAt,String changeType,String productName,String specificationText,int quantity,String businessNo,String reason) {}
 }

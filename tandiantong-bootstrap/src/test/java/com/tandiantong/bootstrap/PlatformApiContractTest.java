@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,11 +27,16 @@ import static org.mockito.BDDMockito.given;
 import java.time.Instant;
 import java.util.List;
 import com.tandiantong.security.tenant.PaymentConfigStatus;
+import com.tandiantong.security.context.CurrentUser;
+import com.tandiantong.security.context.SecurityContextHolder;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class PlatformApiContractTest {
+
+    @AfterEach
+    void clearCurrentUser() { SecurityContextHolder.clear(); }
 
     @Autowired
     private MockMvc mockMvc;
@@ -133,5 +139,22 @@ class PlatformApiContractTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].productName").value("桂花拿铁"));
+    }
+
+    @Test
+    @WithMockUser(username = "tenant-admin", roles = "TENANT")
+    void shouldListTenantCatalog() throws Exception {
+        SecurityContextHolder.set(CurrentUser.tenant(3001L, 1001L, 2001L, "13800008000", "商户管理员"));
+        given(catalogPersistenceService.listProducts(org.mockito.ArgumentMatchers.any())).willReturn(List.of(
+                new CatalogPersistenceService.AdminProduct(1L, "桂花拿铁", "咖啡", "ON_SHELF", 1800,
+                        List.of(new CatalogPersistenceService.AdminSku(11L, "中杯热", "GL-M-HOT", 1800, 20, 0, 5)))));
+        given(catalogPersistenceService.listInventoryRecords(org.mockito.ArgumentMatchers.any())).willReturn(List.of());
+
+        mockMvc.perform(get("/api/admin/v1/catalog/products"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].productName").value("桂花拿铁"))
+                .andExpect(jsonPath("$.data[0].skus[0].availableStock").value(20));
+        mockMvc.perform(get("/api/admin/v1/catalog/inventory-records"))
+                .andExpect(status().isOk());
     }
 }

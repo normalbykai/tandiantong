@@ -10,6 +10,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -35,6 +36,11 @@ public class AdminCatalogController {
                 request.skus().stream().map(sku -> new CatalogPersistenceService.CreateCatalogSkuCommand(
                         sku.specificationText(), sku.skuCode(), sku.priceCent(), sku.initialStock(), sku.warningStock())).toList()));
     }
+
+    @GetMapping
+    public List<CatalogPersistenceService.AdminProduct> list() { return catalogPersistenceService.listProducts(scope()); }
+
+    private TenantStoreScope scope() { var user=SecurityContextHolder.currentUser(); return new TenantStoreScope(user.tenantId(),user.storeId(),user.userId()); }
 
     public record CreateProductRequest(
             @NotBlank(message = "商品名称不能为空") String productName,
