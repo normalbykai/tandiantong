@@ -80,6 +80,31 @@ public class PersistentOrderService {
         return new PersistentOrderResult(orderNo, amountCent, "PENDING_VERIFY", order.prepayId(), "", credential.pickupNo(), credential.token());
     }
 
+    @Transactional
+    public RefundResult refund(Long tenantId,Long storeId,String orderNo,String idempotencyKey,String reason){
+        List<RefundResult> previous=jdbcTemplate.query("select r.refund_no,r.status,r.amount_cent from refund_record r join business_idempotency_record b on b.tenant_id=r.tenant_id and b.business_no=r.refund_no where b.tenant_id=? and b.business_type='ORDER_REFUND' and b.idempotency_key=?",(rs,row)->new RefundResult(rs.getString(1),rs.getString(2),rs.getInt(3)),tenantId,idempotencyKey);
+        if(!previous.isEmpty()) return previous.getFirst();
+        List<OrderRow> rows=jdbcTemplate.query("select tenant_id,store_id,order_no,status,pay_amount_cent,prepay_id from sales_order where tenant_id=? and store_id=? and order_no=? for update",(rs,row)->new OrderRow(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getString(4),rs.getInt(5),rs.getString(6)),tenantId,storeId,orderNo);
+        if(rows.size()!=1) throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,"订单不存在");
+        OrderRow order=rows.getFirst();
+        if(!"PENDING_VERIFY".equals(order.status())) throw new BusinessException(ErrorCode.VALIDATION_FAILED,"只有待核销订单可以整单退款");
+        String refundNo="RF"+tenantId+UUID.randomUUID().toString().replace("-","").substring(0,14);
+        jdbcTemplate.update("update sales_order set status='REFUNDING' where tenant_id=? and store_id=? and order_no=? and status='PENDING_VERIFY'",tenantId,storeId,orderNo);
+        var external=wechatPayClient.refund(orderNo,refundNo,order.amountCent(),reason);
+        String status=external.success()?"SUCCESS":"FAILED";
+        jdbcTemplate.update("insert into refund_record (tenant_id,store_id,order_no,refund_no,amount_cent,status,reason) values (?,?,?,?,?,?,?)",tenantId,storeId,orderNo,refundNo,order.amountCent(),status,reason);
+        if(external.success()){
+            for(OrderLine line:orderLines(order)){
+                jdbcTemplate.update("update product_sku set available_stock=available_stock+? where tenant_id=? and store_id=? and id=?",line.quantity(),tenantId,storeId,line.skuId());
+                jdbcTemplate.update("insert into inventory_record (tenant_id,store_id,sku_id,change_type,quantity,available_after,locked_after,business_no,reason,operator_user_id) select tenant_id,store_id,id,'REFUND_RESTORE',?,available_stock,locked_stock,?,'退款回补库存',0 from product_sku where tenant_id=? and store_id=? and id=?",line.quantity(),refundNo,tenantId,storeId,line.skuId());
+            }
+            jdbcTemplate.update("update sales_order set status='REFUNDED' where tenant_id=? and store_id=? and order_no=? and status='REFUNDING'",tenantId,storeId,orderNo);
+            jdbcTemplate.update("update verification_credential set status='CANCELED' where tenant_id=? and store_id=? and business_no=? and status='PENDING'",tenantId,storeId,orderNo);
+        }
+        jdbcTemplate.update("insert into business_idempotency_record (tenant_id,idempotency_key,business_type,business_no,result_status) values (?,?,'ORDER_REFUND',?,?)",tenantId,idempotencyKey,refundNo,status);
+        return new RefundResult(refundNo,status,order.amountCent());
+    }
+
     private OrderLine lockAndPrice(Scope scope, PersistentOrderLineCommand line, String orderNo) {
         List<OrderLine> candidates = jdbcTemplate.query("select s.id,s.specification_text,s.price_cent,p.name from product_sku s join product p on p.id=s.product_id and p.tenant_id=s.tenant_id and p.store_id=s.store_id where s.id=? and s.tenant_id=? and s.store_id=? and s.enabled=true and p.status='ON_SHELF'",
                 (resultSet, rowNumber) -> new OrderLine(resultSet.getLong("id"), resultSet.getString("name"), resultSet.getString("specification_text"), resultSet.getInt("price_cent"), line.quantity(), resultSet.getInt("price_cent") * line.quantity()),
@@ -142,6 +167,7 @@ public class PersistentOrderService {
     public record PersistentCreateOrderCommand(String idempotencyKey,String contactMobile,String pickupTimeText,List<PersistentOrderLineCommand> lines) {}
     public record PersistentOrderLineCommand(Long skuId,int quantity) {}
     public record PersistentOrderResult(String orderNo,int payAmountCent,String status,String prepayId,String paymentParameters,String pickupNo,String verificationToken) {}
+    public record RefundResult(String refundNo,String status,int amountCent){}
     private record Scope(Long tenantId,Long storeId) {}
     private record PersistedResult(String businessNo,String status) {}
     private record OrderRow(Long tenantId,Long storeId,String orderNo,String status,int amountCent,String prepayId) {}
