@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.tandiantong.security.tenant.MerchantProvisioningService;
 import com.tandiantong.security.auth.DatabaseAuthenticationService;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
+import com.tandiantong.order.app.PersistentOrderService;
 
 import static org.mockito.BDDMockito.given;
 import java.time.Instant;
@@ -38,6 +39,9 @@ class PlatformApiContractTest {
 
     @MockBean
     private CatalogPersistenceService catalogPersistenceService;
+
+    @MockBean
+    private PersistentOrderService persistentOrderService;
 
     @Test
     void shouldExposePlatformHealthThroughVersionedApi() throws Exception {

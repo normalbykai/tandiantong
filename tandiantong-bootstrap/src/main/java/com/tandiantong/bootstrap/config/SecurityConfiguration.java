@@ -20,6 +20,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/platform/v1/health", "/api/callback/**", "/actuator/health",
                                 "/foundation-test/**").permitAll()
                         .requestMatchers("/api/mini/v1/catalog/products").permitAll()
+                        .requestMatchers("/api/mini/v1/orders", "/api/callback/wechat-pay").permitAll()
                         .requestMatchers("/api/platform/v1/auth/login", "/api/admin/v1/auth/login", "/api/admin/v1/auth/activate").permitAll()
                         .requestMatchers("/api/platform/v1/**").hasRole("PLATFORM")
                         .requestMatchers("/api/admin/v1/**").hasRole("TENANT")
