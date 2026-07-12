@@ -7,3 +7,7 @@ spring:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
   main:
     banner-mode: "off"
+
+tandiantong:
+  security:
+    database-enabled: false
