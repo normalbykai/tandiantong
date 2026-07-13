@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/** 基于角色的访问控制服务。 */
 public class RbacService {
 
     private final Map<Long, Set<String>> platformRolePermissions = new HashMap<>();

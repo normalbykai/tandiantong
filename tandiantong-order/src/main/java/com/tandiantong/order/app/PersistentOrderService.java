@@ -1,175 +1,368 @@
 package com.tandiantong.order.app;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.tandiantong.catalog.inventory.InventoryApplicationService;
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
 import com.tandiantong.integration.wechatpay.WechatPayClient;
 import com.tandiantong.integration.wechatpay.WechatPrepayResult;
+import com.tandiantong.order.entity.BusinessIdempotencyRecordEntity;
+import com.tandiantong.order.entity.PaymentRecordEntity;
+import com.tandiantong.order.entity.RefundRecordEntity;
+import com.tandiantong.order.entity.SalesOrderEntity;
+import com.tandiantong.order.entity.SalesOrderItemEntity;
+import com.tandiantong.order.mapper.BusinessIdempotencyRecordMapper;
+import com.tandiantong.order.mapper.PaymentRecordMapper;
+import com.tandiantong.order.mapper.RefundRecordMapper;
+import com.tandiantong.order.mapper.SalesOrderItemMapper;
+import com.tandiantong.order.mapper.SalesOrderMapper;
+import com.tandiantong.security.tenant.MerchantSceneService;
+import com.tandiantong.security.tenant.MerchantSceneService.MerchantSceneScope;
 import com.tandiantong.verification.app.VerificationPersistenceService;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.jdbc.core.ConnectionCallback;
-import org.springframework.jdbc.core.JdbcTemplate;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 商品订单应用服务，负责下单、支付确认、整单退款和交易幂等编排。
+ */
 @Service
+@RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "tandiantong.security", name = "database-enabled", havingValue = "true", matchIfMissing = true)
 public class PersistentOrderService {
 
-    private final JdbcTemplate jdbcTemplate;
+    private static final ZoneId BUSINESS_ZONE_ID = ZoneId.of("Asia/Shanghai");
+    private static final String ORDER_DESCRIPTION = "摊点通商品订单";
+    private static final String EMPTY_ADDON_SNAPSHOT = "";
+    private static final int ZERO_ADDON_AMOUNT_CENT = 0;
+
+    private final SalesOrderMapper salesOrderMapper;
+    private final SalesOrderItemMapper salesOrderItemMapper;
+    private final BusinessIdempotencyRecordMapper idempotencyRecordMapper;
+    private final PaymentRecordMapper paymentRecordMapper;
+    private final RefundRecordMapper refundRecordMapper;
+    private final InventoryApplicationService inventoryApplicationService;
+    private final MerchantSceneService merchantSceneService;
     private final WechatPayClient wechatPayClient;
     private final VerificationPersistenceService verificationPersistenceService;
 
-    public PersistentOrderService(JdbcTemplate jdbcTemplate, WechatPayClient wechatPayClient, VerificationPersistenceService verificationPersistenceService) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.wechatPayClient = wechatPayClient;
-        this.verificationPersistenceService = verificationPersistenceService;
-    }
-
+    /**
+     * 创建商品订单并锁定库存，同一租户下相同幂等键返回首次创建结果。
+     */
     @Transactional
     public PersistentOrderResult createOrder(String sceneKey, PersistentCreateOrderCommand command) {
-        Scope scope = resolveScope(sceneKey);
+        MerchantSceneScope scope = merchantSceneService.resolveEnabledScene(sceneKey);
         validate(command);
-        List<PersistedResult> previous = jdbcTemplate.query("select business_no, result_status from business_idempotency_record where tenant_id=? and business_type='ORDER_CREATE' and idempotency_key=?",
-                (resultSet, rowNumber) -> new PersistedResult(resultSet.getString("business_no"), resultSet.getString("result_status")), scope.tenantId(), command.idempotencyKey());
-        if (!previous.isEmpty()) {
-            return findCreatedOrder(scope.tenantId(), previous.getFirst().businessNo());
+        BusinessIdempotencyRecordEntity previous = findIdempotency(
+                scope.tenantId(), BusinessType.ORDER_CREATE, command.idempotencyKey());
+        if (previous != null) {
+            return findCreatedOrder(scope.tenantId(), previous.getBusinessNo());
         }
-        String orderNo = "SO" + scope.tenantId() + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-        List<OrderLine> lines = command.lines().stream().map(line -> lockAndPrice(scope, line, orderNo)).toList();
+
+        String orderNo = "SO" + scope.tenantId() + randomPart(16);
+        List<OrderLine> lines = command.lines().stream()
+                .map(line -> lockAndPrice(scope, line, orderNo))
+                .toList();
         int amountCent = lines.stream().mapToInt(OrderLine::subtotalCent).sum();
-        WechatPrepayResult prepay = wechatPayClient.createPrepay(orderNo, amountCent, "摊点通商品订单");
+        WechatPrepayResult prepay = wechatPayClient.createPrepay(orderNo, amountCent, ORDER_DESCRIPTION);
         insertOrder(scope, orderNo, amountCent, command.contactMobile(), command.pickupTimeText(), prepay.prepayId());
-        for (OrderLine line : lines) {
-            jdbcTemplate.update("insert into sales_order_item (tenant_id, store_id, order_no, sku_id, product_name, sku_text, addon_snapshot, unit_price_cent, addon_amount_cent, quantity, subtotal_cent) values (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
-                    scope.tenantId(), scope.storeId(), orderNo, line.skuId(), line.productName(), line.specificationText(), "", line.unitPriceCent(), line.quantity(), line.subtotalCent());
-        }
-        jdbcTemplate.update("insert into business_idempotency_record (tenant_id, idempotency_key, business_type, business_no, result_status) values (?, ?, 'ORDER_CREATE', ?, 'SUCCESS')",
-                scope.tenantId(), command.idempotencyKey(), orderNo);
-        return new PersistentOrderResult(orderNo, amountCent, "PENDING_PAYMENT", prepay.prepayId(), prepay.payNonce(), null, null);
+        lines.forEach(line -> insertOrderItem(scope, orderNo, line));
+        insertIdempotency(scope.tenantId(), command.idempotencyKey(), BusinessType.ORDER_CREATE,
+                orderNo, PersistenceResult.SUCCESS.code());
+        return new PersistentOrderResult(orderNo, amountCent, OrderStatus.PENDING_PAYMENT.code(),
+                prepay.prepayId(), prepay.payNonce(), null, null);
     }
 
+    /**
+     * 处理微信支付成功回调，使用订单号反查可信租户并保证状态条件更新最多成功一次。
+     */
     @Transactional
-    public PersistentOrderResult confirmPayment(String orderNo, String transactionId, int amountCent, String signature) {
-        OrderRow order = findOrder(orderNo);
+    public PersistentOrderResult confirmPayment(String orderNo, String transactionId,
+                                                int amountCent, String signature) {
+        SalesOrderEntity order = findOrderForCallback(orderNo);
         if (!wechatPayClient.verifyCallback(orderNo, transactionId, amountCent, signature)) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "微信支付回调验签失败");
         }
-        if (order.status().equals("PENDING_VERIFY")) {
-            return new PersistentOrderResult(orderNo, order.amountCent(), order.status(), order.prepayId(), "", null, null);
+        if (OrderStatus.PENDING_VERIFY.matches(order.getStatus())) {
+            return toResult(order);
         }
-        if (!order.status().equals("PENDING_PAYMENT") || order.amountCent() != amountCent) {
+        if (!OrderStatus.PENDING_PAYMENT.matches(order.getStatus()) || order.getPayAmountCent() != amountCent) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "订单支付状态或金额不正确");
         }
-        int updated = jdbcTemplate.update("update sales_order set status='PENDING_VERIFY', paid_at=current_timestamp(3) where tenant_id=? and order_no=? and status='PENDING_PAYMENT'",
-                order.tenantId(), orderNo);
+        int updated = salesOrderMapper.updatePaidStatus(order.getTenantId(), orderNo,
+                OrderStatus.PENDING_PAYMENT.code(), OrderStatus.PENDING_VERIFY.code(),
+                LocalDateTime.now(BUSINESS_ZONE_ID));
         if (updated == 0) {
-            return findCreatedOrder(order.tenantId(), orderNo);
+            return findCreatedOrder(order.getTenantId(), orderNo);
         }
-        jdbcTemplate.update("insert into payment_record (tenant_id, store_id, order_no, transaction_id, amount_cent, status, paid_at) values (?, ?, ?, ?, ?, 'SUCCESS', current_timestamp(3))",
-                order.tenantId(), order.storeId(), orderNo, transactionId, amountCent);
+        insertPaymentRecord(order, transactionId, amountCent);
         for (OrderLine line : orderLines(order)) {
-            jdbcTemplate.update("update product_sku set locked_stock=locked_stock-? where tenant_id=? and store_id=? and id=? and locked_stock>=?",
-                    line.quantity(), order.tenantId(), order.storeId(), line.skuId(), line.quantity());
-            jdbcTemplate.update("insert into inventory_record (tenant_id, store_id, sku_id, change_type, quantity, available_after, locked_after, business_no, reason, operator_user_id) select tenant_id, store_id, id, 'PAYMENT_DEDUCT', ?, available_stock, locked_stock, ?, '支付确认扣减', 0 from product_sku where id=? and tenant_id=? and store_id=?",
-                    line.quantity(), orderNo, line.skuId(), order.tenantId(), order.storeId());
+            inventoryApplicationService.confirmPayment(order.getTenantId(), order.getStoreId(),
+                    line.skuId(), line.quantity(), orderNo);
         }
-        var credential = verificationPersistenceService.issueOrderCredential(order.tenantId(), order.storeId(), orderNo, "商品订单 " + orderNo);
-        return new PersistentOrderResult(orderNo, amountCent, "PENDING_VERIFY", order.prepayId(), "", credential.pickupNo(), credential.token());
+        VerificationPersistenceService.Credential credential = verificationPersistenceService
+                .issueOrderCredential(order.getTenantId(), order.getStoreId(), orderNo, "商品订单 " + orderNo);
+        return new PersistentOrderResult(orderNo, amountCent, OrderStatus.PENDING_VERIFY.code(),
+                order.getPrepayId(), "", credential.pickupNo(), credential.token());
     }
 
+    /**
+     * 对待核销订单发起整单退款，同一幂等键不会重复调用外部退款。
+     */
     @Transactional
-    public RefundResult refund(Long tenantId,Long storeId,String orderNo,String idempotencyKey,String reason){
-        List<RefundResult> previous=jdbcTemplate.query("select r.refund_no,r.status,r.amount_cent from refund_record r join business_idempotency_record b on b.tenant_id=r.tenant_id and b.business_no=r.refund_no where b.tenant_id=? and b.business_type='ORDER_REFUND' and b.idempotency_key=?",(rs,row)->new RefundResult(rs.getString(1),rs.getString(2),rs.getInt(3)),tenantId,idempotencyKey);
-        if(!previous.isEmpty()) return previous.getFirst();
-        List<OrderRow> rows=jdbcTemplate.query("select tenant_id,store_id,order_no,status,pay_amount_cent,prepay_id from sales_order where tenant_id=? and store_id=? and order_no=? for update",(rs,row)->new OrderRow(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getString(4),rs.getInt(5),rs.getString(6)),tenantId,storeId,orderNo);
-        if(rows.size()!=1) throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,"订单不存在");
-        OrderRow order=rows.getFirst();
-        if(!"PENDING_VERIFY".equals(order.status())) throw new BusinessException(ErrorCode.VALIDATION_FAILED,"只有待核销订单可以整单退款");
-        String refundNo="RF"+tenantId+UUID.randomUUID().toString().replace("-","").substring(0,14);
-        jdbcTemplate.update("update sales_order set status='REFUNDING' where tenant_id=? and store_id=? and order_no=? and status='PENDING_VERIFY'",tenantId,storeId,orderNo);
-        var external=wechatPayClient.refund(orderNo,refundNo,order.amountCent(),reason);
-        String status=external.success()?"SUCCESS":"FAILED";
-        jdbcTemplate.update("insert into refund_record (tenant_id,store_id,order_no,refund_no,amount_cent,status,reason) values (?,?,?,?,?,?,?)",tenantId,storeId,orderNo,refundNo,order.amountCent(),status,reason);
-        if(external.success()){
-            for(OrderLine line:orderLines(order)){
-                jdbcTemplate.update("update product_sku set available_stock=available_stock+? where tenant_id=? and store_id=? and id=?",line.quantity(),tenantId,storeId,line.skuId());
-                jdbcTemplate.update("insert into inventory_record (tenant_id,store_id,sku_id,change_type,quantity,available_after,locked_after,business_no,reason,operator_user_id) select tenant_id,store_id,id,'REFUND_RESTORE',?,available_stock,locked_stock,?,'退款回补库存',0 from product_sku where tenant_id=? and store_id=? and id=?",line.quantity(),refundNo,tenantId,storeId,line.skuId());
+    public RefundResult refund(Long tenantId, Long storeId, String orderNo,
+                               String idempotencyKey, String reason) {
+        BusinessIdempotencyRecordEntity previous = findIdempotency(
+                tenantId, BusinessType.ORDER_REFUND, idempotencyKey);
+        if (previous != null) {
+            RefundRecordEntity refund = refundRecordMapper.selectOne(Wrappers.<RefundRecordEntity>lambdaQuery()
+                    .eq(RefundRecordEntity::getTenantId, tenantId)
+                    .eq(RefundRecordEntity::getRefundNo, previous.getBusinessNo()));
+            if (refund != null) {
+                return new RefundResult(refund.getRefundNo(), refund.getStatus(), refund.getAmountCent());
             }
-            jdbcTemplate.update("update sales_order set status='REFUNDED' where tenant_id=? and store_id=? and order_no=? and status='REFUNDING'",tenantId,storeId,orderNo);
-            jdbcTemplate.update("update verification_credential set status='CANCELED' where tenant_id=? and store_id=? and business_no=? and status='PENDING'",tenantId,storeId,orderNo);
         }
-        jdbcTemplate.update("insert into business_idempotency_record (tenant_id,idempotency_key,business_type,business_no,result_status) values (?,?,'ORDER_REFUND',?,?)",tenantId,idempotencyKey,refundNo,status);
-        return new RefundResult(refundNo,status,order.amountCent());
+
+        SalesOrderEntity order = salesOrderMapper.selectForUpdate(tenantId, storeId, orderNo);
+        if (order == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
+        }
+        if (!OrderStatus.PENDING_VERIFY.matches(order.getStatus())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "只有待核销订单可以整单退款");
+        }
+        String refundNo = "RF" + tenantId + randomPart(14);
+        int changed = salesOrderMapper.updateStatus(tenantId, storeId, orderNo,
+                OrderStatus.PENDING_VERIFY.code(), OrderStatus.REFUNDING.code());
+        if (changed != 1) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "订单状态已变化，请勿重复退款");
+        }
+
+        var external = wechatPayClient.refund(orderNo, refundNo, order.getPayAmountCent(), reason);
+        RefundStatus refundStatus = external.success() ? RefundStatus.SUCCESS : RefundStatus.FAILED;
+        insertRefundRecord(order, refundNo, refundStatus, reason);
+        if (external.success()) {
+            for (OrderLine line : orderLines(order)) {
+                inventoryApplicationService.restoreAfterRefund(tenantId, storeId,
+                        line.skuId(), line.quantity(), refundNo);
+            }
+            salesOrderMapper.updateStatus(tenantId, storeId, orderNo,
+                    OrderStatus.REFUNDING.code(), OrderStatus.REFUNDED.code());
+            verificationPersistenceService.cancelOrderCredential(tenantId, storeId, orderNo);
+        }
+        insertIdempotency(tenantId, idempotencyKey, BusinessType.ORDER_REFUND,
+                refundNo, refundStatus.code());
+        return new RefundResult(refundNo, refundStatus.code(), order.getPayAmountCent());
     }
 
-    private OrderLine lockAndPrice(Scope scope, PersistentOrderLineCommand line, String orderNo) {
-        List<OrderLine> candidates = jdbcTemplate.query("select s.id,s.specification_text,s.price_cent,p.name from product_sku s join product p on p.id=s.product_id and p.tenant_id=s.tenant_id and p.store_id=s.store_id where s.id=? and s.tenant_id=? and s.store_id=? and s.enabled=true and p.status='ON_SHELF'",
-                (resultSet, rowNumber) -> new OrderLine(resultSet.getLong("id"), resultSet.getString("name"), resultSet.getString("specification_text"), resultSet.getInt("price_cent"), line.quantity(), resultSet.getInt("price_cent") * line.quantity()),
-                line.skuId(), scope.tenantId(), scope.storeId());
-        if (candidates.size() != 1) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "商品SKU不存在或已下架");
-        }
-        OrderLine priced = candidates.getFirst();
-        int updated = jdbcTemplate.update("update product_sku set available_stock=available_stock-?, locked_stock=locked_stock+? where id=? and tenant_id=? and store_id=? and available_stock>=?",
-                line.quantity(), line.quantity(), line.skuId(), scope.tenantId(), scope.storeId(), line.quantity());
-        if (updated != 1) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "商品库存不足");
-        }
-        jdbcTemplate.update("insert into inventory_record (tenant_id, store_id, sku_id, change_type, quantity, available_after, locked_after, business_no, reason, operator_user_id) select tenant_id, store_id, id, 'ORDER_LOCK', ?, available_stock, locked_stock, ?, '订单锁定库存', 0 from product_sku where id=? and tenant_id=? and store_id=?",
-                line.quantity(), orderNo, line.skuId(), scope.tenantId(), scope.storeId());
-        return priced;
+    private OrderLine lockAndPrice(MerchantSceneScope scope, PersistentOrderLineCommand line, String orderNo) {
+        InventoryApplicationService.PricedSku sku = inventoryApplicationService.lockAndPrice(
+                scope.tenantId(), scope.storeId(), line.skuId(), line.quantity(), orderNo);
+        return new OrderLine(sku.skuId(), sku.productName(), sku.specificationText(),
+                sku.unitPriceCent(), sku.quantity(), sku.subtotalCent());
     }
 
-    private void insertOrder(Scope scope, String orderNo, int amountCent, String mobile, String pickupTime, String prepayId) {
-        jdbcTemplate.update("insert into sales_order (tenant_id, store_id, order_no, status, pay_amount_cent, contact_mobile, pickup_time_text, prepay_id) values (?, ?, ?, 'PENDING_PAYMENT', ?, ?, ?, ?)",
-                scope.tenantId(), scope.storeId(), orderNo, amountCent, mobile, pickupTime, prepayId);
+    private void insertOrder(MerchantSceneScope scope, String orderNo, int amountCent,
+                             String mobile, String pickupTime, String prepayId) {
+        SalesOrderEntity order = new SalesOrderEntity();
+        order.setTenantId(scope.tenantId());
+        order.setStoreId(scope.storeId());
+        order.setOrderNo(orderNo);
+        order.setStatus(OrderStatus.PENDING_PAYMENT.code());
+        order.setPayAmountCent(amountCent);
+        order.setContactMobile(mobile);
+        order.setPickupTimeText(pickupTime);
+        order.setPrepayId(prepayId);
+        salesOrderMapper.insert(order);
     }
 
-    private Scope resolveScope(String sceneKey) {
-        List<Scope> scopes = jdbcTemplate.query("select tenant_id,store_id from mini_program_scene where scene_key=? and enabled=true",
-                (resultSet, rowNumber) -> new Scope(resultSet.getLong("tenant_id"), resultSet.getLong("store_id")), sceneKey);
-        if (scopes.size() != 1) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "商户入口码无效");
-        }
-        return scopes.getFirst();
+    private void insertOrderItem(MerchantSceneScope scope, String orderNo, OrderLine line) {
+        SalesOrderItemEntity item = new SalesOrderItemEntity();
+        item.setTenantId(scope.tenantId());
+        item.setStoreId(scope.storeId());
+        item.setOrderNo(orderNo);
+        item.setSkuId(line.skuId());
+        item.setProductName(line.productName());
+        item.setSkuText(line.specificationText());
+        item.setAddonSnapshot(EMPTY_ADDON_SNAPSHOT);
+        item.setUnitPriceCent(line.unitPriceCent());
+        item.setAddonAmountCent(ZERO_ADDON_AMOUNT_CENT);
+        item.setQuantity(line.quantity());
+        item.setSubtotalCent(line.subtotalCent());
+        salesOrderItemMapper.insert(item);
+    }
+
+    private void insertPaymentRecord(SalesOrderEntity order, String transactionId, int amountCent) {
+        PaymentRecordEntity payment = new PaymentRecordEntity();
+        payment.setTenantId(order.getTenantId());
+        payment.setStoreId(order.getStoreId());
+        payment.setOrderNo(order.getOrderNo());
+        payment.setTransactionId(transactionId);
+        payment.setAmountCent(amountCent);
+        payment.setStatus(PaymentStatus.SUCCESS.code());
+        payment.setPaidAt(LocalDateTime.now(BUSINESS_ZONE_ID));
+        paymentRecordMapper.insert(payment);
+    }
+
+    private void insertRefundRecord(SalesOrderEntity order, String refundNo,
+                                    RefundStatus status, String reason) {
+        RefundRecordEntity refund = new RefundRecordEntity();
+        refund.setTenantId(order.getTenantId());
+        refund.setStoreId(order.getStoreId());
+        refund.setOrderNo(order.getOrderNo());
+        refund.setRefundNo(refundNo);
+        refund.setAmountCent(order.getPayAmountCent());
+        refund.setStatus(status.code());
+        refund.setReason(reason);
+        refundRecordMapper.insert(refund);
+    }
+
+    private BusinessIdempotencyRecordEntity findIdempotency(Long tenantId, BusinessType type, String key) {
+        return idempotencyRecordMapper.selectOne(Wrappers.<BusinessIdempotencyRecordEntity>lambdaQuery()
+                .eq(BusinessIdempotencyRecordEntity::getTenantId, tenantId)
+                .eq(BusinessIdempotencyRecordEntity::getBusinessType, type.code())
+                .eq(BusinessIdempotencyRecordEntity::getIdempotencyKey, key));
+    }
+
+    private void insertIdempotency(Long tenantId, String key, BusinessType type,
+                                   String businessNo, String resultStatus) {
+        BusinessIdempotencyRecordEntity record = new BusinessIdempotencyRecordEntity();
+        record.setTenantId(tenantId);
+        record.setIdempotencyKey(key);
+        record.setBusinessType(type.code());
+        record.setBusinessNo(businessNo);
+        record.setResultStatus(resultStatus);
+        idempotencyRecordMapper.insert(record);
     }
 
     private PersistentOrderResult findCreatedOrder(Long tenantId, String orderNo) {
-        List<OrderRow> rows = jdbcTemplate.query("select tenant_id,store_id,order_no,status,pay_amount_cent,prepay_id from sales_order where tenant_id=? and order_no=?",
-                (resultSet, rowNumber) -> new OrderRow(resultSet.getLong("tenant_id"), resultSet.getLong("store_id"), resultSet.getString("order_no"), resultSet.getString("status"), resultSet.getInt("pay_amount_cent"), resultSet.getString("prepay_id")), tenantId, orderNo);
-        if (rows.size() != 1) {
+        SalesOrderEntity order = salesOrderMapper.selectOne(Wrappers.<SalesOrderEntity>lambdaQuery()
+                .eq(SalesOrderEntity::getTenantId, tenantId)
+                .eq(SalesOrderEntity::getOrderNo, orderNo));
+        if (order == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
         }
-        OrderRow row = rows.getFirst();
-        return new PersistentOrderResult(row.orderNo(), row.amountCent(), row.status(), row.prepayId(), "", null, null);
+        return toResult(order);
     }
 
-    private OrderRow findOrder(String orderNo) {
-        List<OrderRow> rows = jdbcTemplate.query("select tenant_id,store_id,order_no,status,pay_amount_cent,prepay_id from sales_order where order_no=?",
-                (resultSet, rowNumber) -> new OrderRow(resultSet.getLong("tenant_id"), resultSet.getLong("store_id"), resultSet.getString("order_no"), resultSet.getString("status"), resultSet.getInt("pay_amount_cent"), resultSet.getString("prepay_id")), orderNo);
-        if (rows.size() != 1) throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
-        return rows.getFirst();
+    private SalesOrderEntity findOrderForCallback(String orderNo) {
+        SalesOrderEntity order = salesOrderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
+        }
+        return order;
     }
 
-    private List<OrderLine> orderLines(OrderRow order) {
-        return jdbcTemplate.query("select sku_id,product_name,sku_text,unit_price_cent,quantity,subtotal_cent from sales_order_item where tenant_id=? and store_id=? and order_no=?",
-                (resultSet, rowNumber) -> new OrderLine(resultSet.getLong("sku_id"), resultSet.getString("product_name"), resultSet.getString("sku_text"), resultSet.getInt("unit_price_cent"), resultSet.getInt("quantity"), resultSet.getInt("subtotal_cent")), order.tenantId(), order.storeId(), order.orderNo());
+    private PersistentOrderResult toResult(SalesOrderEntity order) {
+        return new PersistentOrderResult(order.getOrderNo(), order.getPayAmountCent(), order.getStatus(),
+                order.getPrepayId(), "", null, null);
+    }
+
+    private List<OrderLine> orderLines(SalesOrderEntity order) {
+        return salesOrderItemMapper.selectList(Wrappers.<SalesOrderItemEntity>lambdaQuery()
+                        .eq(SalesOrderItemEntity::getTenantId, order.getTenantId())
+                        .eq(SalesOrderItemEntity::getStoreId, order.getStoreId())
+                        .eq(SalesOrderItemEntity::getOrderNo, order.getOrderNo()))
+                .stream()
+                .map(item -> new OrderLine(item.getSkuId(), item.getProductName(), item.getSkuText(),
+                        item.getUnitPriceCent(), item.getQuantity(), item.getSubtotalCent()))
+                .toList();
     }
 
     private void validate(PersistentCreateOrderCommand command) {
-        if (command.idempotencyKey()==null || command.idempotencyKey().isBlank() || command.contactMobile()==null || !command.contactMobile().matches("1\\d{10}") || command.lines()==null || command.lines().isEmpty()) throw new BusinessException(ErrorCode.VALIDATION_FAILED,"下单参数不合法");
-        if (command.lines().stream().anyMatch(line -> line.skuId()==null || line.quantity()<=0)) throw new BusinessException(ErrorCode.VALIDATION_FAILED,"商品数量不合法");
+        if (command == null || command.idempotencyKey() == null || command.idempotencyKey().isBlank()
+                || command.contactMobile() == null || !command.contactMobile().matches("1\\d{10}")
+                || command.lines() == null || command.lines().isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "下单参数不合法");
+        }
+        if (command.lines().stream().anyMatch(line -> line.skuId() == null || line.quantity() <= 0)) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "商品数量不合法");
+        }
     }
 
-    public record PersistentCreateOrderCommand(String idempotencyKey,String contactMobile,String pickupTimeText,List<PersistentOrderLineCommand> lines) {}
-    public record PersistentOrderLineCommand(Long skuId,int quantity) {}
-    public record PersistentOrderResult(String orderNo,int payAmountCent,String status,String prepayId,String paymentParameters,String pickupNo,String verificationToken) {}
-    public record RefundResult(String refundNo,String status,int amountCent){}
-    private record Scope(Long tenantId,Long storeId) {}
-    private record PersistedResult(String businessNo,String status) {}
-    private record OrderRow(Long tenantId,Long storeId,String orderNo,String status,int amountCent,String prepayId) {}
-    private record OrderLine(Long skuId,String productName,String specificationText,int unitPriceCent,int quantity,int subtotalCent) {}
+    private String randomPart(int length) {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, length);
+    }
+
+    /** 创建订单命令。 */
+    public record PersistentCreateOrderCommand(String idempotencyKey, String contactMobile,
+                                               String pickupTimeText, List<PersistentOrderLineCommand> lines) {
+    }
+
+    /** 创建订单的单个商品命令。 */
+    public record PersistentOrderLineCommand(Long skuId, int quantity) {
+    }
+
+    /** 商品订单处理结果。 */
+    public record PersistentOrderResult(String orderNo, int payAmountCent, String status,
+                                        String prepayId, String paymentParameters,
+                                        String pickupNo, String verificationToken) {
+    }
+
+    /** 整单退款处理结果。 */
+    public record RefundResult(String refundNo, String status, int amountCent) {
+    }
+
+    /** 订单商品成交快照。 */
+    private record OrderLine(Long skuId, String productName, String specificationText,
+                             int unitPriceCent, int quantity, int subtotalCent) {
+    }
+
+    /** 订单业务状态。 */
+    private enum OrderStatus {
+        PENDING_PAYMENT,
+        PENDING_VERIFY,
+        REFUNDING,
+        REFUNDED;
+
+        String code() {
+            return name();
+        }
+
+        boolean matches(String value) {
+            return code().equals(value);
+        }
+    }
+
+    /** 幂等业务类型。 */
+    private enum BusinessType {
+        ORDER_CREATE,
+        ORDER_REFUND;
+
+        String code() {
+            return name();
+        }
+    }
+
+    /** 持久化操作结果。 */
+    private enum PersistenceResult {
+        SUCCESS;
+
+        String code() {
+            return name();
+        }
+    }
+
+    /** 支付记录状态。 */
+    private enum PaymentStatus {
+        SUCCESS;
+
+        String code() {
+            return name();
+        }
+    }
+
+    /** 退款记录状态。 */
+    private enum RefundStatus {
+        SUCCESS,
+        FAILED;
+
+        String code() {
+            return name();
+        }
+    }
 }

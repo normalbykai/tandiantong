@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+/** 商品、SKU、加料和库存领域服务。 */
 public class CatalogInventoryService {
 
     private final AtomicLong idSequence = new AtomicLong(1000);

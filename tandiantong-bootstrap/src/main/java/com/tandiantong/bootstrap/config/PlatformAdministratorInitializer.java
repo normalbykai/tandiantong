@@ -1,18 +1,20 @@
 package com.tandiantong.bootstrap.config;
 
-import com.tandiantong.security.auth.PasswordService;
+import com.tandiantong.security.auth.PlatformAdministratorService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 
+/**
+ * 平台管理员初始化配置，仅在显式提供本地初始化账号时执行。
+ */
 @Configuration
 @ConditionalOnProperty(prefix = "tandiantong.security", name = "database-enabled", havingValue = "true", matchIfMissing = true)
 public class PlatformAdministratorInitializer {
 
     @Bean
-    public CommandLineRunner initializePlatformAdministrator(JdbcTemplate jdbcTemplate,
+    public CommandLineRunner initializePlatformAdministrator(PlatformAdministratorService platformAdministratorService,
                                                                org.springframework.core.env.Environment environment) {
         return arguments -> {
             String mobile = environment.getProperty("TDT_BOOTSTRAP_PLATFORM_MOBILE");
@@ -21,11 +23,7 @@ public class PlatformAdministratorInitializer {
             if (mobile == null || password == null || mobile.isBlank() || password.isBlank()) {
                 return;
             }
-            Integer count = jdbcTemplate.queryForObject("select count(*) from platform_user where mobile = ?", Integer.class, mobile);
-            if (count != null && count == 0) {
-                jdbcTemplate.update("insert into platform_user (id, mobile, display_name, password_hash, status, token_version) values (?, ?, ?, ?, ?, 1)",
-                        System.currentTimeMillis(), mobile, name, new PasswordService().hash(password), "ENABLED");
-            }
+            platformAdministratorService.createIfAbsent(mobile, password, name);
         };
     }
 }

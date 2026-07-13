@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/** 经营指标汇总和导出领域服务。 */
 public class AnalyticsService {
 
     private static final DateTimeFormatter FILE_DATE = DateTimeFormatter.BASIC_ISO_DATE;

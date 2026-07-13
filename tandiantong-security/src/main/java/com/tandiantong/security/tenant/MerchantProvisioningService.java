@@ -1,147 +1,205 @@
 package com.tandiantong.security.tenant;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.security.auth.PasswordService;
+import com.tandiantong.security.entity.AdminUserEntity;
+import com.tandiantong.security.entity.MerchantInvitationEntity;
+import com.tandiantong.security.entity.MiniProgramSceneEntity;
+import com.tandiantong.security.entity.StoreEntity;
+import com.tandiantong.security.entity.TenantEntity;
+import com.tandiantong.security.entity.TenantPaymentConfigEntity;
+import com.tandiantong.security.mapper.AdminUserMapper;
+import com.tandiantong.security.mapper.MerchantInvitationMapper;
+import com.tandiantong.security.mapper.MiniProgramSceneMapper;
+import com.tandiantong.security.mapper.StoreMapper;
+import com.tandiantong.security.mapper.TenantMapper;
+import com.tandiantong.security.mapper.TenantPaymentConfigMapper;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.List;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ConnectionCallback;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 商户开通持久化服务，负责平台创建商户、激活邀请和查看商户列表。
+ */
 @Service
 public class MerchantProvisioningService {
 
-    private final ObjectProvider<JdbcTemplate> jdbcTemplateProvider;
+    private static final String ENABLED_STATUS = "ENABLED";
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Shanghai");
 
-    public MerchantProvisioningService(ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
+    private final TenantMapper tenantMapper;
+    private final StoreMapper storeMapper;
+    private final MerchantInvitationMapper merchantInvitationMapper;
+    private final TenantPaymentConfigMapper tenantPaymentConfigMapper;
+    private final MiniProgramSceneMapper miniProgramSceneMapper;
+    private final AdminUserMapper adminUserMapper;
+    private final PasswordService passwordService = new PasswordService();
+
+    public MerchantProvisioningService(TenantMapper tenantMapper, StoreMapper storeMapper,
+                                       MerchantInvitationMapper merchantInvitationMapper,
+                                       TenantPaymentConfigMapper tenantPaymentConfigMapper,
+                                       MiniProgramSceneMapper miniProgramSceneMapper, AdminUserMapper adminUserMapper) {
+        this.tenantMapper = tenantMapper;
+        this.storeMapper = storeMapper;
+        this.merchantInvitationMapper = merchantInvitationMapper;
+        this.tenantPaymentConfigMapper = tenantPaymentConfigMapper;
+        this.miniProgramSceneMapper = miniProgramSceneMapper;
+        this.adminUserMapper = adminUserMapper;
     }
 
+    /**
+     * 创建待启用商户，并生成首个管理员邀请和小程序入口码。
+     */
     @Transactional
     public ProvisionedMerchant provision(MerchantOnboardingCommand command) {
-        JdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
-        if (jdbcTemplate == null) {
-            throw new IllegalStateException("当前运行环境未配置数据库连接");
-        }
         validate(command);
-        Long tenantId = insertTenant(jdbcTemplate, command.merchantName());
-        Long storeId = insertStore(jdbcTemplate, tenantId, command.merchantName() + "默认门店");
+        TenantEntity tenant = insertTenant(command.merchantName());
+        StoreEntity store = insertStore(tenant.getId(), command.merchantName() + "默认门店");
         String invitationCode = randomCode("invite");
         String sceneKey = randomCode("scene");
         Instant expiresAt = Instant.now().plus(7, ChronoUnit.DAYS);
-        insertInvitation(jdbcTemplate, tenantId, storeId, command, invitationCode, expiresAt);
-        jdbcTemplate.update("insert into tenant_payment_config (tenant_id, store_id, status) values (?, ?, ?)",
-                tenantId, storeId, PaymentConfigStatus.NOT_CONFIGURED.name());
-        jdbcTemplate.update("insert into mini_program_scene (tenant_id, store_id, scene_key, enabled) values (?, ?, ?, true)",
-                tenantId, storeId, sceneKey);
-        return new ProvisionedMerchant(tenantId, storeId, command.merchantName(), command.merchantName() + "默认门店",
+        insertInvitation(tenant.getId(), store.getId(), command, invitationCode, expiresAt);
+        insertPaymentConfig(tenant.getId(), store.getId());
+        insertMiniProgramScene(tenant.getId(), store.getId(), sceneKey);
+        return new ProvisionedMerchant(tenant.getId(), store.getId(), command.merchantName(), command.merchantName() + "默认门店",
                 invitationCode, expiresAt, sceneKey, PaymentConfigStatus.NOT_CONFIGURED);
     }
 
+    /**
+     * 激活商户管理员邀请。
+     */
     @Transactional
     public void activateInvitation(String invitationCode, String password) {
-        JdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
-        if (jdbcTemplate == null) {
-            throw new IllegalStateException("当前运行环境未配置数据库连接");
-        }
         if (invitationCode == null || invitationCode.isBlank() || password == null || password.length() < 8) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "邀请码或密码不符合要求");
         }
-        var invitations = jdbcTemplate.query(
-                "select id, tenant_id, store_id, admin_name, admin_mobile, expires_at, used_at from merchant_invitation where invitation_code_hash = ? for update",
-                (resultSet, rowNumber) -> new PendingInvitation(resultSet.getLong("id"), resultSet.getLong("tenant_id"),
-                        resultSet.getLong("store_id"), resultSet.getString("admin_name"), resultSet.getString("admin_mobile"),
-                        resultSet.getTimestamp("expires_at").toInstant(), resultSet.getTimestamp("used_at") == null ? null : resultSet.getTimestamp("used_at").toInstant()),
-                sha256(invitationCode));
-        if (invitations.size() != 1 || invitations.getFirst().usedAt() != null || invitations.getFirst().expiresAt().isBefore(Instant.now())) {
+        MerchantInvitationEntity invitation = merchantInvitationMapper.selectOne(new QueryWrapper<MerchantInvitationEntity>()
+                .eq("invitation_code_hash", sha256(invitationCode))
+                .last("for update"));
+        if (invitation == null || invitation.getUsedAt() != null || toInstant(invitation.getExpiresAt()).isBefore(Instant.now())) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "邀请码无效或已过期");
         }
-        PendingInvitation invitation = invitations.getFirst();
-        jdbcTemplate.update("insert into admin_user (id, tenant_id, store_id, mobile, display_name, password_hash, status, token_version) values (?, ?, ?, ?, ?, ?, ?, 1)",
-                System.currentTimeMillis(), invitation.tenantId(), invitation.storeId(), invitation.adminMobile(), invitation.adminName(),
-                new com.tandiantong.security.auth.PasswordService().hash(password), "ENABLED");
-        jdbcTemplate.update("update merchant_invitation set used_at = current_timestamp(3) where id = ? and used_at is null", invitation.id());
+        AdminUserEntity adminUser = new AdminUserEntity();
+        adminUser.setId(System.currentTimeMillis());
+        adminUser.setTenantId(invitation.getTenantId());
+        adminUser.setStoreId(invitation.getStoreId());
+        adminUser.setMobile(invitation.getAdminMobile());
+        adminUser.setDisplayName(invitation.getAdminName());
+        adminUser.setPasswordHash(passwordService.hash(password));
+        adminUser.setStatus(ENABLED_STATUS);
+        adminUser.setTokenVersion(1);
+        adminUserMapper.insert(adminUser);
+
+        invitation.setUsedAt(LocalDateTime.now(BUSINESS_ZONE));
+        merchantInvitationMapper.updateById(invitation);
     }
 
+    /**
+     * 启用商户，启用后才允许产生新的业务写操作。
+     */
     @Transactional
     public void enableMerchant(Long tenantId) {
-        JdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
-        if (jdbcTemplate == null) {
-            throw new IllegalStateException("当前运行环境未配置数据库连接");
-        }
-        int affected = jdbcTemplate.update("update tenant set status = ? where id = ? and status <> ?",
-                TenantStatus.ENABLED.name(), tenantId, TenantStatus.ENABLED.name());
-        Integer exists = jdbcTemplate.queryForObject("select count(*) from tenant where id = ?", Integer.class, tenantId);
-        if ((exists == null || exists == 0) && affected == 0) {
+        TenantEntity tenant = tenantMapper.selectById(tenantId);
+        if (tenant == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "商户不存在");
         }
+        tenantMapper.update(null, new LambdaUpdateWrapper<TenantEntity>()
+                .eq(TenantEntity::getId, tenantId)
+                .ne(TenantEntity::getStatus, TenantStatus.ENABLED.name())
+                .set(TenantEntity::getStatus, TenantStatus.ENABLED.name()));
     }
 
+    /**
+     * 查询平台商户列表。
+     */
     public List<MerchantOverview> listMerchants() {
-        JdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
-        if (jdbcTemplate == null) {
-            throw new IllegalStateException("当前运行环境未配置数据库连接");
-        }
-        return jdbcTemplate.query("select t.id,t.name,t.status,i.admin_name,i.admin_mobile,"
-                        + "coalesce(p.status,'NOT_CONFIGURED') payment_status,"
-                        + "case when exists(select 1 from admin_user u where u.tenant_id=t.id and u.status='ENABLED') then 'ACTIVATED' else 'PENDING' end admin_status,"
-                        + "coalesce(s.scene_key,'') scene_key from tenant t "
-                        + "left join merchant_invitation i on i.id=(select max(i2.id) from merchant_invitation i2 where i2.tenant_id=t.id) "
-                        + "left join tenant_payment_config p on p.tenant_id=t.id "
-                        + "left join mini_program_scene s on s.tenant_id=t.id order by t.created_at desc limit 200",
-                (resultSet, rowNumber) -> new MerchantOverview(resultSet.getLong("id"), resultSet.getString("name"),
-                        resultSet.getString("admin_name"), maskMobile(resultSet.getString("admin_mobile")),
-                        resultSet.getString("status"), resultSet.getString("payment_status"),
-                        resultSet.getString("admin_status"), resultSet.getString("scene_key")));
+        return tenantMapper.selectList(new LambdaQueryWrapper<TenantEntity>()
+                        .orderByDesc(TenantEntity::getId)
+                        .last("limit 200"))
+                .stream()
+                .map(this::toOverview)
+                .toList();
     }
 
-    private Long insertTenant(JdbcTemplate jdbcTemplate, String merchantName) {
-        return insertAndReturnId(jdbcTemplate, "insert into tenant (tenant_code, name, status) values (?, ?, ?)",
-                "T" + System.currentTimeMillis(), merchantName, TenantStatus.PENDING_ENABLE.name());
+    private TenantEntity insertTenant(String merchantName) {
+        TenantEntity tenant = new TenantEntity();
+        tenant.setTenantCode("T" + System.currentTimeMillis());
+        tenant.setName(merchantName);
+        tenant.setStatus(TenantStatus.PENDING_ENABLE.name());
+        tenantMapper.insert(tenant);
+        return tenant;
     }
 
-    private Long insertStore(JdbcTemplate jdbcTemplate, Long tenantId, String storeName) {
-        return insertAndReturnId(jdbcTemplate, "insert into store (tenant_id, name, status) values (?, ?, ?)",
-                tenantId, storeName, "ENABLED");
+    private StoreEntity insertStore(Long tenantId, String storeName) {
+        StoreEntity store = new StoreEntity();
+        store.setTenantId(tenantId);
+        store.setName(storeName);
+        store.setStatus(ENABLED_STATUS);
+        storeMapper.insert(store);
+        return store;
     }
 
-    private void insertInvitation(JdbcTemplate jdbcTemplate, Long tenantId, Long storeId, MerchantOnboardingCommand command,
+    private void insertInvitation(Long tenantId, Long storeId, MerchantOnboardingCommand command,
                                   String invitationCode, Instant expiresAt) {
-        jdbcTemplate.update(connection -> {
-            PreparedStatement statement = connection.prepareStatement(
-                    "insert into merchant_invitation (tenant_id, store_id, admin_name, admin_mobile, invitation_code_hash, expires_at) values (?, ?, ?, ?, ?, ?)");
-            statement.setLong(1, tenantId);
-            statement.setLong(2, storeId);
-            statement.setString(3, command.adminName());
-            statement.setString(4, command.adminMobile());
-            statement.setString(5, sha256(invitationCode));
-            statement.setObject(6, expiresAt);
-            return statement;
-        });
+        MerchantInvitationEntity invitation = new MerchantInvitationEntity();
+        invitation.setTenantId(tenantId);
+        invitation.setStoreId(storeId);
+        invitation.setAdminName(command.adminName());
+        invitation.setAdminMobile(command.adminMobile());
+        invitation.setInvitationCodeHash(sha256(invitationCode));
+        invitation.setExpiresAt(LocalDateTime.ofInstant(expiresAt, BUSINESS_ZONE));
+        merchantInvitationMapper.insert(invitation);
     }
 
-    private Long insertAndReturnId(JdbcTemplate jdbcTemplate, String sql, Object... values) {
-        return jdbcTemplate.execute((ConnectionCallback<Long>) connection -> {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            for (int index = 0; index < values.length; index++) {
-                statement.setObject(index + 1, values[index]);
-            }
-            statement.executeUpdate();
-            try (var keys = statement.getGeneratedKeys()) {
-                if (!keys.next()) {
-                    throw new IllegalStateException("商户开通未返回数据库主键");
-                }
-                return keys.getLong(1);
-            }
-        });
+    private void insertPaymentConfig(Long tenantId, Long storeId) {
+        TenantPaymentConfigEntity paymentConfig = new TenantPaymentConfigEntity();
+        paymentConfig.setTenantId(tenantId);
+        paymentConfig.setStoreId(storeId);
+        paymentConfig.setStatus(PaymentConfigStatus.NOT_CONFIGURED.name());
+        tenantPaymentConfigMapper.insert(paymentConfig);
+    }
+
+    private void insertMiniProgramScene(Long tenantId, Long storeId, String sceneKey) {
+        MiniProgramSceneEntity scene = new MiniProgramSceneEntity();
+        scene.setTenantId(tenantId);
+        scene.setStoreId(storeId);
+        scene.setSceneKey(sceneKey);
+        scene.setEnabled(true);
+        miniProgramSceneMapper.insert(scene);
+    }
+
+    private MerchantOverview toOverview(TenantEntity tenant) {
+        MerchantInvitationEntity invitation = merchantInvitationMapper.selectOne(new LambdaQueryWrapper<MerchantInvitationEntity>()
+                .eq(MerchantInvitationEntity::getTenantId, tenant.getId())
+                .orderByDesc(MerchantInvitationEntity::getId)
+                .last("limit 1"));
+        TenantPaymentConfigEntity paymentConfig = tenantPaymentConfigMapper.selectOne(new LambdaQueryWrapper<TenantPaymentConfigEntity>()
+                .eq(TenantPaymentConfigEntity::getTenantId, tenant.getId())
+                .last("limit 1"));
+        MiniProgramSceneEntity scene = miniProgramSceneMapper.selectOne(new LambdaQueryWrapper<MiniProgramSceneEntity>()
+                .eq(MiniProgramSceneEntity::getTenantId, tenant.getId())
+                .last("limit 1"));
+        Long activeAdminCount = adminUserMapper.selectCount(new LambdaQueryWrapper<AdminUserEntity>()
+                .eq(AdminUserEntity::getTenantId, tenant.getId())
+                .eq(AdminUserEntity::getStatus, ENABLED_STATUS));
+        return new MerchantOverview(tenant.getId(), tenant.getName(),
+                invitation == null ? "" : invitation.getAdminName(),
+                maskMobile(invitation == null ? null : invitation.getAdminMobile()),
+                tenant.getStatus(),
+                paymentConfig == null ? PaymentConfigStatus.NOT_CONFIGURED.name() : paymentConfig.getStatus(),
+                activeAdminCount > 0 ? "ACTIVATED" : "PENDING",
+                scene == null ? "" : scene.getSceneKey());
     }
 
     private void validate(MerchantOnboardingCommand command) {
@@ -173,6 +231,10 @@ public class MerchantProvisioningService {
         return mobile.substring(0, 3) + "****" + mobile.substring(7);
     }
 
+    private Instant toInstant(LocalDateTime dateTime) {
+        return dateTime.atZone(BUSINESS_ZONE).toInstant();
+    }
+
     public record ProvisionedMerchant(Long tenantId, Long storeId, String merchantName, String storeName,
                                       String invitationCode, Instant invitationExpiresAt, String sceneKey,
                                       PaymentConfigStatus paymentConfigStatus) {
@@ -180,9 +242,5 @@ public class MerchantProvisioningService {
 
     public record MerchantOverview(Long tenantId, String merchantName, String adminName, String adminMobileMasked,
                                    String status, String paymentConfigStatus, String adminStatus, String sceneKey) {
-    }
-
-    private record PendingInvitation(Long id, Long tenantId, Long storeId, String adminName, String adminMobile,
-                                     Instant expiresAt, Instant usedAt) {
     }
 }

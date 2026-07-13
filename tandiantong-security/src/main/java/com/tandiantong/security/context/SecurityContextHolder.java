@@ -1,5 +1,6 @@
 package com.tandiantong.security.context;
 
+/** 当前线程可信用户上下文持有器。 */
 public final class SecurityContextHolder {
 
     private static final ThreadLocal<CurrentUser> CURRENT_USER = new ThreadLocal<>();

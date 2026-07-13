@@ -2,6 +2,7 @@ package com.tandiantong.order.domain;
 
 import java.time.Instant;
 
+/** 商品订单领域对象。 */
 public record SalesOrder(
         Long orderId,
         Long tenantId,

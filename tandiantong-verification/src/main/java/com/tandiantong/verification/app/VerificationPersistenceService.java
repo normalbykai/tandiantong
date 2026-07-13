@@ -1,53 +1,178 @@
 package com.tandiantong.verification.app;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.verification.entity.VerificationCredentialEntity;
+import com.tandiantong.verification.entity.VerificationRecordEntity;
+import com.tandiantong.verification.mapper.PickupNoSequenceMapper;
+import com.tandiantong.verification.mapper.VerificationCredentialMapper;
+import com.tandiantong.verification.mapper.VerificationRecordMapper;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 核销应用服务，负责安全凭证签发、一次性核销、核销审计和业务状态通知。
+ */
 @Service
+@RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "tandiantong.security", name = "database-enabled", havingValue = "true", matchIfMissing = true)
 public class VerificationPersistenceService {
-    private final JdbcTemplate jdbcTemplate;
-    public VerificationPersistenceService(JdbcTemplate jdbcTemplate) { this.jdbcTemplate = jdbcTemplate; }
 
+    private static final ZoneId BUSINESS_ZONE_ID = ZoneId.of("Asia/Shanghai");
+    private static final String DEFAULT_VERIFY_REASON = "正常核销";
+
+    private final PickupNoSequenceMapper pickupNoSequenceMapper;
+    private final VerificationCredentialMapper verificationCredentialMapper;
+    private final VerificationRecordMapper verificationRecordMapper;
+    private final List<VerificationBusinessCompletionHandler> completionHandlers;
+
+    /**
+     * 为已支付商品订单签发不可猜测核销令牌和当日取餐号。
+     */
     @Transactional
     public Credential issueOrderCredential(Long tenantId, Long storeId, String orderNo, String summary) {
-        List<Credential> existing = jdbcTemplate.query("select business_no,pickup_no,token_hash,status from verification_credential where tenant_id=? and store_id=? and business_type='PRODUCT_ORDER' and business_no=?",
-                (resultSet, rowNumber) -> new Credential(resultSet.getString("business_no"), resultSet.getString("pickup_no"), resultSet.getString("token_hash"), resultSet.getString("status")), tenantId, storeId, orderNo);
-        if (!existing.isEmpty()) return existing.getFirst();
-        LocalDate businessDate = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
-        Integer current = jdbcTemplate.queryForObject("select current_value from pickup_no_sequence where tenant_id=? and store_id=? and business_date=? for update", Integer.class, tenantId, storeId, businessDate);
-        int next = current == null ? 1 : current + 1;
-        if (current == null) jdbcTemplate.update("insert into pickup_no_sequence (tenant_id,store_id,business_date,current_value) values (?,?,?,?)",tenantId,storeId,businessDate,next);
-        else jdbcTemplate.update("update pickup_no_sequence set current_value=? where tenant_id=? and store_id=? and business_date=?",next,tenantId,storeId,businessDate);
-        String token = "vk-" + UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
-        String pickupNo = "A" + String.format("%03d",next);
-        jdbcTemplate.update("insert into verification_credential (tenant_id,store_id,business_type,business_no,summary,business_date,pickup_no,token_hash,status) values (?,?,'PRODUCT_ORDER',?,?,?,?,?,'PENDING')",tenantId,storeId,orderNo,summary,businessDate,pickupNo,sha256(token));
-        return new Credential(orderNo,pickupNo,token,"PENDING");
+        VerificationCredentialEntity existing = verificationCredentialMapper.selectOne(
+                Wrappers.<VerificationCredentialEntity>lambdaQuery()
+                        .eq(VerificationCredentialEntity::getTenantId, tenantId)
+                        .eq(VerificationCredentialEntity::getStoreId, storeId)
+                        .eq(VerificationCredentialEntity::getBusinessType, BusinessType.PRODUCT_ORDER.code())
+                        .eq(VerificationCredentialEntity::getBusinessNo, orderNo));
+        if (existing != null) {
+            return new Credential(existing.getBusinessNo(), existing.getPickupNo(), null, existing.getStatus());
+        }
+
+        LocalDate businessDate = LocalDate.now(BUSINESS_ZONE_ID);
+        pickupNoSequenceMapper.increment(tenantId, storeId, businessDate);
+        Integer current = pickupNoSequenceMapper.selectCurrentValue(tenantId, storeId, businessDate);
+        if (current == null) {
+            throw new IllegalStateException("数据库未返回取餐号序列");
+        }
+        String token = "vk-" + randomPart() + randomPart();
+        String pickupNo = "A" + String.format("%03d", current);
+
+        VerificationCredentialEntity credential = new VerificationCredentialEntity();
+        credential.setTenantId(tenantId);
+        credential.setStoreId(storeId);
+        credential.setBusinessType(BusinessType.PRODUCT_ORDER.code());
+        credential.setBusinessNo(orderNo);
+        credential.setSummary(summary);
+        credential.setBusinessDate(businessDate);
+        credential.setPickupNo(pickupNo);
+        credential.setTokenHash(sha256(token));
+        credential.setStatus(CredentialStatus.PENDING.code());
+        verificationCredentialMapper.insert(credential);
+        return new Credential(orderNo, pickupNo, token, CredentialStatus.PENDING.code());
     }
 
+    /**
+     * 使用凭证令牌执行一次性核销，重复提交已核销令牌返回同一结果。
+     */
     @Transactional
-    public VerificationResult verify(Long tenantId, Long storeId, Long operatorId, String token, String reason) {
-        String tokenHash=sha256(token);
-        List<Credential> found=jdbcTemplate.query("select business_no,pickup_no,token_hash,status from verification_credential where tenant_id=? and store_id=? and token_hash=?",(rs,row)->new Credential(rs.getString("business_no"),rs.getString("pickup_no"),rs.getString("token_hash"),rs.getString("status")),tenantId,storeId,tokenHash);
-        if(found.size()!=1) throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,"核销凭证不存在");
-        Credential credential=found.getFirst();
-        int updated=jdbcTemplate.update("update verification_credential set status='VERIFIED' where tenant_id=? and store_id=? and token_hash=? and status='PENDING'",tenantId,storeId,tokenHash);
-        if(updated==0 && !"VERIFIED".equals(credential.status())) throw new BusinessException(ErrorCode.VALIDATION_FAILED,"当前凭证不能核销");
-        if(updated==1) {
-            jdbcTemplate.update("insert into verification_record (tenant_id,store_id,business_type,business_no,summary,operator_user_id,reason,verified_at) select tenant_id,store_id,business_type,business_no,summary,?,?,current_timestamp(3) from verification_credential where token_hash=?",operatorId,reason == null ? "正常核销" : reason,tokenHash);
-            jdbcTemplate.update("update sales_order set status='COMPLETED' where tenant_id=? and store_id=? and order_no=? and status='PENDING_VERIFY'",tenantId,storeId,credential.businessNo());
+    public VerificationResult verify(Long tenantId, Long storeId, Long operatorId,
+                                     String token, String reason) {
+        String tokenHash = sha256(token);
+        VerificationCredentialEntity credential = verificationCredentialMapper.selectOne(
+                Wrappers.<VerificationCredentialEntity>lambdaQuery()
+                        .eq(VerificationCredentialEntity::getTenantId, tenantId)
+                        .eq(VerificationCredentialEntity::getStoreId, storeId)
+                        .eq(VerificationCredentialEntity::getTokenHash, tokenHash));
+        if (credential == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "核销凭证不存在");
         }
-        return new VerificationResult(credential.businessNo(),credential.pickupNo(),updated==1 ? "VERIFIED" : "VERIFIED");
+        int updated = verificationCredentialMapper.updateStatusByToken(tenantId, storeId, tokenHash,
+                CredentialStatus.PENDING.code(), CredentialStatus.VERIFIED.code());
+        if (updated == 0 && !CredentialStatus.VERIFIED.matches(credential.getStatus())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "当前凭证不能核销");
+        }
+        if (updated == 1) {
+            insertVerificationRecord(credential, operatorId, reason);
+            completionHandlers.stream()
+                    .filter(handler -> handler.supports(credential.getBusinessType()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("未找到核销业务完成处理器"))
+                    .complete(tenantId, storeId, credential.getBusinessNo());
+        }
+        return new VerificationResult(credential.getBusinessNo(), credential.getPickupNo(),
+                CredentialStatus.VERIFIED.code());
     }
-    private String sha256(String raw){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException("当前运行环境缺少 SHA-256 摘要算法",e);}}
-    public record Credential(String businessNo,String pickupNo,String token,String status){}
-    public record VerificationResult(String businessNo,String pickupNo,String status){}
+
+    /**
+     * 订单退款成功后取消尚未核销的凭证。
+     */
+    public void cancelOrderCredential(Long tenantId, Long storeId, String orderNo) {
+        verificationCredentialMapper.updateBusinessStatus(tenantId, storeId,
+                BusinessType.PRODUCT_ORDER.code(), orderNo,
+                CredentialStatus.PENDING.code(), CredentialStatus.CANCELED.code());
+    }
+
+    private void insertVerificationRecord(VerificationCredentialEntity credential,
+                                          Long operatorId, String reason) {
+        VerificationRecordEntity record = new VerificationRecordEntity();
+        record.setTenantId(credential.getTenantId());
+        record.setStoreId(credential.getStoreId());
+        record.setBusinessType(credential.getBusinessType());
+        record.setBusinessNo(credential.getBusinessNo());
+        record.setSummary(credential.getSummary());
+        record.setOperatorUserId(operatorId);
+        record.setReason(reason == null || reason.isBlank() ? DEFAULT_VERIFY_REASON : reason);
+        record.setVerifiedAt(LocalDateTime.now(BUSINESS_ZONE_ID));
+        verificationRecordMapper.insert(record);
+    }
+
+    private String randomPart() {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private String sha256(String raw) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(raw.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("当前运行环境缺少 SHA-256 摘要算法", exception);
+        }
+    }
+
+    /** 核销凭证签发结果，令牌明文只在首次签发时返回。 */
+    public record Credential(String businessNo, String pickupNo, String token, String status) {
+    }
+
+    /** 核销处理结果。 */
+    public record VerificationResult(String businessNo, String pickupNo, String status) {
+    }
+
+    /** 支持核销的业务类型。 */
+    private enum BusinessType {
+        PRODUCT_ORDER;
+
+        String code() {
+            return name();
+        }
+    }
+
+    /** 核销凭证状态。 */
+    private enum CredentialStatus {
+        PENDING,
+        VERIFIED,
+        CANCELED;
+
+        String code() {
+            return name();
+        }
+
+        boolean matches(String value) {
+            return code().equals(value);
+        }
+    }
 }

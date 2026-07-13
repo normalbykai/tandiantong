@@ -10,6 +10,7 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/** 为每个 HTTP 请求建立并回传追踪号。 */
 @Component
 public class TraceIdFilter extends OncePerRequestFilter {
 

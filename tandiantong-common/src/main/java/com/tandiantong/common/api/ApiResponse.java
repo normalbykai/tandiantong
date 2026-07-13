@@ -1,5 +1,6 @@
 package com.tandiantong.common.api;
 
+/** 统一接口响应结构。 */
 public record ApiResponse<T>(
         boolean success,
         String code,

@@ -2,6 +2,7 @@ package com.tandiantong.reservation.domain;
 
 import java.time.Instant;
 
+/** 服务预约记录。 */
 public record ReservationRecord(
         Long reservationId,
         Long tenantId,

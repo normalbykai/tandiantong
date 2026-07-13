@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+/** 商品订单支付、退款和幂等领域服务。 */
 public class OrderPaymentService {
 
     private final CatalogInventoryService catalogInventoryService;

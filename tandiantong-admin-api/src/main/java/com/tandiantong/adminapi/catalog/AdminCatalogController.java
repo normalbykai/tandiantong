@@ -1,5 +1,7 @@
 package com.tandiantong.adminapi.catalog;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
 import com.tandiantong.catalog.tenant.TenantStoreScope;
 import com.tandiantong.security.context.SecurityContextHolder;
@@ -16,8 +18,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/** 商户后台商品管理接口。 */
 @RestController
 @RequestMapping("/api/admin/v1/catalog/products")
+@Tag(name = "商户商品")
 public class AdminCatalogController {
 
     private final CatalogPersistenceService catalogPersistenceService;
@@ -26,6 +30,7 @@ public class AdminCatalogController {
         this.catalogPersistenceService = catalogPersistenceService;
     }
 
+    @Operation(summary = "创建商品和SKU")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CatalogPersistenceService.PersistedProduct create(@Valid @RequestBody CreateProductRequest request) {
@@ -37,11 +42,13 @@ public class AdminCatalogController {
                         sku.specificationText(), sku.skuCode(), sku.priceCent(), sku.initialStock(), sku.warningStock())).toList()));
     }
 
+    @Operation(summary = "查询商品列表")
     @GetMapping
     public List<CatalogPersistenceService.AdminProduct> list() { return catalogPersistenceService.listProducts(scope()); }
 
     private TenantStoreScope scope() { var user=SecurityContextHolder.currentUser(); return new TenantStoreScope(user.tenantId(),user.storeId(),user.userId()); }
 
+    /** 创建商品请求。 */
     public record CreateProductRequest(
             @NotBlank(message = "商品名称不能为空") String productName,
             @NotBlank(message = "商品分类不能为空") String categoryName,
@@ -51,6 +58,7 @@ public class AdminCatalogController {
     ) {
     }
 
+    /** 创建SKU请求。 */
     public record CreateSkuRequest(
             @NotBlank(message = "SKU规格不能为空") String specificationText,
             @NotBlank(message = "SKU编码不能为空") String skuCode,

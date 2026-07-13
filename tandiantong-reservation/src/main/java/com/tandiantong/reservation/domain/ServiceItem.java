@@ -1,5 +1,6 @@
 package com.tandiantong.reservation.domain;
 
+/** 可预约服务项目。 */
 public record ServiceItem(
         Long serviceId,
         Long tenantId,

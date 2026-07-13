@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 import org.springframework.http.ResponseEntity;
 
+/** 统一接口响应包装器。 */
 @RestControllerAdvice(basePackages = "com.tandiantong")
 public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
 

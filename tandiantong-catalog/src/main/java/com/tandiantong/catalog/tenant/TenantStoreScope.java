@@ -1,5 +1,6 @@
 package com.tandiantong.catalog.tenant;
 
+/** 商品模块可信租户门店操作范围。 */
 public record TenantStoreScope(Long tenantId, Long storeId, Long operatorUserId) {
 
     public TenantStoreScope {

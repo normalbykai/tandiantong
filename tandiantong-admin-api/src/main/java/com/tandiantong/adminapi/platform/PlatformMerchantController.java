@@ -1,5 +1,7 @@
 package com.tandiantong.adminapi.platform;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.tandiantong.security.tenant.MerchantOnboardingCommand;
 import com.tandiantong.security.tenant.MerchantProvisioningService;
 import jakarta.validation.Valid;
@@ -15,8 +17,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
+/** 平台商户开通与启用接口。 */
 @RestController
 @RequestMapping("/api/platform/v1/merchants")
+@Tag(name = "平台商户")
 public class PlatformMerchantController {
 
     private final MerchantProvisioningService merchantProvisioningService;
@@ -25,6 +29,7 @@ public class PlatformMerchantController {
         this.merchantProvisioningService = merchantProvisioningService;
     }
 
+    @Operation(summary = "开通商户")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public MerchantProvisioningResponse create(@Valid @RequestBody CreateMerchantRequest request) {
@@ -35,17 +40,20 @@ public class PlatformMerchantController {
                 merchant.paymentConfigStatus().name());
     }
 
+    @Operation(summary = "查询商户列表")
     @GetMapping
     public List<MerchantProvisioningService.MerchantOverview> list() {
         return merchantProvisioningService.listMerchants();
     }
 
+    @Operation(summary = "启用商户")
     @PostMapping("/{tenantId}/enable")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void enable(@PathVariable("tenantId") Long tenantId) {
         merchantProvisioningService.enableMerchant(tenantId);
     }
 
+    /** 开通商户请求。 */
     public record CreateMerchantRequest(
             @NotBlank(message = "商户名称不能为空") String merchantName,
             @NotBlank(message = "门店地址不能为空") String storeAddress,
@@ -54,6 +62,7 @@ public class PlatformMerchantController {
     ) {
     }
 
+    /** 商户开通响应。 */
     public record MerchantProvisioningResponse(Long tenantId, Long storeId, String merchantName, String storeName,
                                                String invitationCode, String invitationExpiresAt, String sceneKey,
                                                String paymentConfigStatus) {

@@ -1,5 +1,6 @@
 package com.tandiantong.catalog.product;
 
+/** 库存变化业务类型。 */
 public enum InventoryChangeType {
     INITIAL_STOCK,
     MANUAL_IN,

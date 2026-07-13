@@ -1,5 +1,6 @@
 package com.tandiantong.catalog.product;
 
+/** 商品聚合查询资料。 */
 public record ProductProfile(
         Long productId,
         Long tenantId,

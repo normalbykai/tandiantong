@@ -19,6 +19,31 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-enums-package: com.tandiantong.**.enums
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+
+sa-token:
+  token-name: Authorization
+  timeout: ${TDT_SA_TOKEN_TIMEOUT:7200}
+  active-timeout: ${TDT_SA_TOKEN_ACTIVE_TIMEOUT:1800}
+  is-concurrent: true
+  is-share: false
+  token-prefix: Bearer
+  is-log: false
+
+knife4j:
+  enable: ${TDT_KNIFE4J_ENABLE:true}
+
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level traceId=%X{traceId:-} %logger{36} - %msg%n"

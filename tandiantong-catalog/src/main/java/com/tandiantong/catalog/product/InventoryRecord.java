@@ -2,6 +2,7 @@ package com.tandiantong.catalog.product;
 
 import java.time.Instant;
 
+/** 库存变化记录。 */
 public record InventoryRecord(
         Long recordId,
         Long tenantId,

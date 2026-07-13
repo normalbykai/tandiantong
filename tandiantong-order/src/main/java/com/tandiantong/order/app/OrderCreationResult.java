@@ -6,6 +6,7 @@ import com.tandiantong.order.domain.SalesOrder;
 
 import java.util.List;
 
+/** 商品订单创建结果。 */
 public record OrderCreationResult(
         SalesOrder order,
         List<OrderItemSnapshot> items,

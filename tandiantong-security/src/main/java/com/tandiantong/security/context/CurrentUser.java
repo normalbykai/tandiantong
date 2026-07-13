@@ -2,6 +2,7 @@ package com.tandiantong.security.context;
 
 import java.util.Optional;
 
+/** 服务端认证后建立的可信当前用户上下文。 */
 public record CurrentUser(
         Long userId,
         AccessDomain domain,

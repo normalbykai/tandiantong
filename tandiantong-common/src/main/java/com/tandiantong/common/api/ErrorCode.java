@@ -1,5 +1,6 @@
 package com.tandiantong.common.api;
 
+/** 系统统一业务错误码。 */
 public enum ErrorCode {
     SUCCESS("SUCCESS", "处理成功"),
     VALIDATION_FAILED("COMMON_VALIDATION_FAILED", "参数校验失败"),

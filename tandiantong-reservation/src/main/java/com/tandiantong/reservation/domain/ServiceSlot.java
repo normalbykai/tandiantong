@@ -2,6 +2,7 @@ package com.tandiantong.reservation.domain;
 
 import java.time.LocalDate;
 
+/** 服务预约时段及容量。 */
 public record ServiceSlot(
         Long slotId,
         Long tenantId,

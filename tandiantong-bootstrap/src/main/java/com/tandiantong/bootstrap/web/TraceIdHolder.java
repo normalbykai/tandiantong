@@ -1,5 +1,6 @@
 package com.tandiantong.bootstrap.web;
 
+/** 当前线程请求追踪号持有器。 */
 public final class TraceIdHolder {
 
     private static final ThreadLocal<String> TRACE_ID = new ThreadLocal<>();

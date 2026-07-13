@@ -1,5 +1,6 @@
 package com.tandiantong.catalog.product;
 
+/** 商品 SKU 查询资料。 */
 public record ProductSkuProfile(
         Long skuId,
         Long productId,

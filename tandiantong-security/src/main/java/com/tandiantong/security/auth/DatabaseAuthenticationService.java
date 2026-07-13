@@ -1,109 +1,134 @@
 package com.tandiantong.security.auth;
 
+import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
 import com.tandiantong.security.context.AccessDomain;
 import com.tandiantong.security.context.CurrentUser;
-import java.util.List;
-import org.springframework.jdbc.core.JdbcTemplate;
+import com.tandiantong.security.entity.AdminUserEntity;
+import com.tandiantong.security.entity.PlatformUserEntity;
+import com.tandiantong.security.entity.TenantEntity;
+import com.tandiantong.security.mapper.AdminUserMapper;
+import com.tandiantong.security.mapper.PlatformUserMapper;
+import com.tandiantong.security.mapper.TenantMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
+/**
+ * 数据库认证服务，负责登录校验和令牌用户解析。
+ */
 @Service
 @ConditionalOnProperty(prefix = "tandiantong.security", name = "database-enabled", havingValue = "true", matchIfMissing = true)
 public class DatabaseAuthenticationService {
 
-    private final JdbcTemplate jdbcTemplate;
+    private static final String ENABLED_STATUS = "ENABLED";
+    private static final String TOKEN_VERSION_KEY = "tokenVersion";
+
+    private final PlatformUserMapper platformUserMapper;
+    private final AdminUserMapper adminUserMapper;
+    private final TenantMapper tenantMapper;
     private final PasswordService passwordService = new PasswordService();
-    private final TokenService tokenService;
 
-    public DatabaseAuthenticationService(JdbcTemplate jdbcTemplate, TokenService tokenService) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.tokenService = tokenService;
+    public DatabaseAuthenticationService(PlatformUserMapper platformUserMapper, AdminUserMapper adminUserMapper,
+                                         TenantMapper tenantMapper) {
+        this.platformUserMapper = platformUserMapper;
+        this.adminUserMapper = adminUserMapper;
+        this.tenantMapper = tenantMapper;
     }
 
+    /**
+     * 平台管理员登录。
+     */
     public LoginResult loginPlatform(String mobile, String password) {
-        List<LoginUser> users = jdbcTemplate.query(
-                "select id, mobile, display_name, password_hash, status, token_version from platform_user where mobile = ?",
-                (resultSet, rowNumber) -> new LoginUser(resultSet.getLong("id"), resultSet.getString("mobile"),
-                        resultSet.getString("display_name"), resultSet.getString("password_hash"), resultSet.getString("status"),
-                        resultSet.getInt("token_version"), null, null), mobile);
-        LoginUser user = requireActiveUser(users);
-        verifyPassword(password, user);
-        CurrentUser currentUser = CurrentUser.platform(user.userId(), user.mobile(), user.displayName());
-        return new LoginResult(tokenService.issue(user.userId(), AccessDomain.PLATFORM, user.tokenVersion()), currentUser);
+        PlatformUserEntity user = requireActivePlatformUser(platformUserMapper.selectOne(
+                new LambdaQueryWrapper<PlatformUserEntity>().eq(PlatformUserEntity::getMobile, mobile)));
+        verifyPassword(password, user.getPasswordHash());
+        CurrentUser currentUser = CurrentUser.platform(user.getId(), user.getMobile(), user.getDisplayName());
+        return new LoginResult(issueSaToken(user.getId(), AccessDomain.PLATFORM, user.getTokenVersion()), currentUser);
     }
 
+    /**
+     * 租户后台用户登录。
+     */
     public LoginResult loginTenant(String mobile, String password) {
-        List<LoginUser> users = jdbcTemplate.query(
-                "select id, mobile, display_name, password_hash, status, token_version, tenant_id, store_id from admin_user where mobile = ?",
-                (resultSet, rowNumber) -> new LoginUser(resultSet.getLong("id"), resultSet.getString("mobile"),
-                        resultSet.getString("display_name"), resultSet.getString("password_hash"), resultSet.getString("status"),
-                        resultSet.getInt("token_version"), resultSet.getLong("tenant_id"), resultSet.getLong("store_id")), mobile);
-        LoginUser user = requireActiveUser(users);
-        verifyPassword(password, user);
-        ensureTenantEnabled(user.tenantId());
-        CurrentUser currentUser = CurrentUser.tenant(user.userId(), user.tenantId(), user.storeId(), user.mobile(), user.displayName());
-        return new LoginResult(tokenService.issue(user.userId(), AccessDomain.TENANT, user.tokenVersion()), currentUser);
+        AdminUserEntity user = requireActiveTenantUser(adminUserMapper.selectOne(
+                new LambdaQueryWrapper<AdminUserEntity>().eq(AdminUserEntity::getMobile, mobile)));
+        verifyPassword(password, user.getPasswordHash());
+        ensureTenantEnabled(user.getTenantId());
+        CurrentUser currentUser = CurrentUser.tenant(user.getId(), user.getTenantId(), user.getStoreId(),
+                user.getMobile(), user.getDisplayName());
+        return new LoginResult(issueSaToken(user.getId(), AccessDomain.TENANT, user.getTokenVersion()), currentUser);
     }
 
-    public CurrentUser resolve(AuthTokenClaims claims) {
-        return claims.domain() == AccessDomain.PLATFORM ? resolvePlatform(claims) : resolveTenant(claims);
+    /**
+     * 根据当前 Sa-Token 登录态解析用户上下文。
+     */
+    public CurrentUser resolveCurrentSaTokenUser(AccessDomain expectedDomain) {
+        StpUtil.checkLogin();
+        SaTokenLoginId loginId = SaTokenLoginId.parse(StpUtil.getLoginId());
+        if (loginId.domain() != expectedDomain) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "当前账号没有操作权限");
+        }
+        Integer tokenVersion = (Integer) StpUtil.getTokenSession().get(TOKEN_VERSION_KEY);
+        if (loginId.domain() == AccessDomain.PLATFORM) {
+            return resolvePlatform(loginId.userId(), tokenVersion);
+        }
+        return resolveTenant(loginId.userId(), tokenVersion);
     }
 
-    private CurrentUser resolvePlatform(AuthTokenClaims claims) {
-        List<LoginUser> users = jdbcTemplate.query(
-                "select id, mobile, display_name, password_hash, status, token_version from platform_user where id = ?",
-                (resultSet, rowNumber) -> new LoginUser(resultSet.getLong("id"), resultSet.getString("mobile"),
-                        resultSet.getString("display_name"), resultSet.getString("password_hash"), resultSet.getString("status"),
-                        resultSet.getInt("token_version"), null, null), claims.userId());
-        LoginUser user = requireActiveUser(users);
-        ensureTokenVersion(claims, user);
-        return CurrentUser.platform(user.userId(), user.mobile(), user.displayName());
+    private CurrentUser resolvePlatform(Long userId, Integer tokenVersion) {
+        PlatformUserEntity user = requireActivePlatformUser(platformUserMapper.selectById(userId));
+        ensureTokenVersion(tokenVersion, user.getTokenVersion());
+        return CurrentUser.platform(user.getId(), user.getMobile(), user.getDisplayName());
     }
 
-    private CurrentUser resolveTenant(AuthTokenClaims claims) {
-        List<LoginUser> users = jdbcTemplate.query(
-                "select id, mobile, display_name, password_hash, status, token_version, tenant_id, store_id from admin_user where id = ?",
-                (resultSet, rowNumber) -> new LoginUser(resultSet.getLong("id"), resultSet.getString("mobile"),
-                        resultSet.getString("display_name"), resultSet.getString("password_hash"), resultSet.getString("status"),
-                        resultSet.getInt("token_version"), resultSet.getLong("tenant_id"), resultSet.getLong("store_id")), claims.userId());
-        LoginUser user = requireActiveUser(users);
-        ensureTokenVersion(claims, user);
-        ensureTenantEnabled(user.tenantId());
-        return CurrentUser.tenant(user.userId(), user.tenantId(), user.storeId(), user.mobile(), user.displayName());
+    private CurrentUser resolveTenant(Long userId, Integer tokenVersion) {
+        AdminUserEntity user = requireActiveTenantUser(adminUserMapper.selectById(userId));
+        ensureTokenVersion(tokenVersion, user.getTokenVersion());
+        ensureTenantEnabled(user.getTenantId());
+        return CurrentUser.tenant(user.getId(), user.getTenantId(), user.getStoreId(), user.getMobile(), user.getDisplayName());
     }
 
-    private LoginUser requireActiveUser(List<LoginUser> users) {
-        if (users.size() != 1 || !"ENABLED".equals(users.getFirst().status())) {
+    private PlatformUserEntity requireActivePlatformUser(PlatformUserEntity user) {
+        if (user == null || !ENABLED_STATUS.equals(user.getStatus())) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "账号或密码不正确");
         }
-        return users.getFirst();
+        return user;
     }
 
-    private void verifyPassword(String password, LoginUser user) {
-        if (password == null || !passwordService.matches(password, user.passwordHash())) {
+    private AdminUserEntity requireActiveTenantUser(AdminUserEntity user) {
+        if (user == null || !ENABLED_STATUS.equals(user.getStatus())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "账号或密码不正确");
+        }
+        return user;
+    }
+
+    private void verifyPassword(String password, String passwordHash) {
+        if (password == null || !passwordService.matches(password, passwordHash)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "账号或密码不正确");
         }
     }
 
-    private void ensureTokenVersion(AuthTokenClaims claims, LoginUser user) {
-        if (claims.tokenVersion() != user.tokenVersion()) {
+    private void ensureTokenVersion(Integer tokenVersionInSession, Integer tokenVersionInDatabase) {
+        if (tokenVersionInSession == null || !tokenVersionInSession.equals(tokenVersionInDatabase)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "登录状态已失效");
         }
     }
 
     private void ensureTenantEnabled(Long tenantId) {
-        String status = jdbcTemplate.queryForObject("select status from tenant where id = ?", String.class, tenantId);
-        if (!"ENABLED".equals(status)) {
+        TenantEntity tenant = tenantMapper.selectById(tenantId);
+        if (tenant == null || !ENABLED_STATUS.equals(tenant.getStatus())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "当前商户暂未启用或已停用");
         }
     }
 
-    public record LoginResult(String accessToken, CurrentUser currentUser) {
+    private String issueSaToken(Long userId, AccessDomain domain, Integer tokenVersion) {
+        StpUtil.login(new SaTokenLoginId(domain, userId).encode());
+        StpUtil.getTokenSession().set(TOKEN_VERSION_KEY, tokenVersion);
+        return StpUtil.getTokenValue();
     }
 
-    private record LoginUser(Long userId, String mobile, String displayName, String passwordHash, String status,
-                             int tokenVersion, Long tenantId, Long storeId) {
+    public record LoginResult(String accessToken, CurrentUser currentUser) {
     }
 }

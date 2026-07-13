@@ -1,92 +1,175 @@
 package com.tandiantong.catalog.product;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.tandiantong.catalog.entity.InventoryRecordEntity;
+import com.tandiantong.catalog.entity.ProductCategoryEntity;
+import com.tandiantong.catalog.entity.ProductEntity;
+import com.tandiantong.catalog.entity.ProductSkuEntity;
+import com.tandiantong.catalog.mapper.InventoryRecordMapper;
+import com.tandiantong.catalog.mapper.ProductCategoryMapper;
+import com.tandiantong.catalog.mapper.ProductMapper;
+import com.tandiantong.catalog.mapper.ProductSkuMapper;
 import com.tandiantong.catalog.tenant.TenantStoreScope;
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
-import org.springframework.jdbc.core.ConnectionCallback;
-import org.springframework.jdbc.core.JdbcTemplate;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 商品库存持久化服务，负责商品、SKU 和库存流水的数据库读写。
+ */
 @Service
 public class CatalogPersistenceService {
 
-    private final JdbcTemplate jdbcTemplate;
+    private static final String DEFAULT_CATEGORY_NAME = "推荐";
+    private static final String DEFAULT_SPECIFICATION_TEXT = "默认规格";
+    private static final String PRODUCT_BUSINESS_NO_PREFIX = "PRODUCT-";
+    private static final String INITIAL_STOCK_REASON = "商品初始库存";
 
-    public CatalogPersistenceService(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    private final ProductCategoryMapper productCategoryMapper;
+    private final ProductMapper productMapper;
+    private final ProductSkuMapper productSkuMapper;
+    private final InventoryRecordMapper inventoryRecordMapper;
+
+    public CatalogPersistenceService(ProductCategoryMapper productCategoryMapper, ProductMapper productMapper,
+                                     ProductSkuMapper productSkuMapper, InventoryRecordMapper inventoryRecordMapper) {
+        this.productCategoryMapper = productCategoryMapper;
+        this.productMapper = productMapper;
+        this.productSkuMapper = productSkuMapper;
+        this.inventoryRecordMapper = inventoryRecordMapper;
     }
 
+    /**
+     * 创建商品、SKU 和初始库存流水。
+     */
     @Transactional
     public PersistedProduct createProduct(TenantStoreScope scope, CreateCatalogProductCommand command) {
         validate(command);
         Long categoryId = findOrCreateCategory(scope, command.categoryName());
-        Long productId = insertId("insert into product (tenant_id, store_id, category_id, name, base_price_cent, status) values (?, ?, ?, ?, ?, ?)",
-                scope.tenantId(), scope.storeId(), categoryId, command.productName(), command.basePriceCent(), command.onShelf() ? "ON_SHELF" : "DRAFT");
+        ProductEntity product = new ProductEntity();
+        product.setTenantId(scope.tenantId());
+        product.setStoreId(scope.storeId());
+        product.setCategoryId(categoryId);
+        product.setName(command.productName());
+        product.setBasePriceCent(command.basePriceCent());
+        product.setStatus(command.onShelf() ? ProductStatus.ON_SHELF.name() : ProductStatus.DRAFT.name());
+        productMapper.insert(product);
+        Long productId = product.getId();
         List<PersistedSku> skus = command.skus().stream().map(sku -> createSku(scope, productId, sku)).toList();
         return new PersistedProduct(productId, command.productName(), command.categoryName(), command.basePriceCent(), command.onShelf(), skus);
     }
 
+    /**
+     * 按小程序入口码查询 C 端上架商品。
+     */
     public List<MiniProduct> listOnShelfByScene(String sceneKey) {
-        return jdbcTemplate.query("select p.id, p.name, p.description, p.base_price_cent, coalesce(c.name, '推荐') as category_name, s.id sku_id, s.price_cent sku_price, s.available_stock "
-                        + "from mini_program_scene m join product p on p.tenant_id=m.tenant_id and p.store_id=m.store_id "
-                        + "left join product_category c on c.id=p.category_id and c.tenant_id=p.tenant_id and c.store_id=p.store_id "
-                        + "join product_sku s on s.product_id=p.id and s.tenant_id=p.tenant_id and s.store_id=p.store_id and s.enabled=true "
-                        + "where m.scene_key=? and m.enabled=true and p.status='ON_SHELF' and s.id=(select min(s2.id) from product_sku s2 where s2.tenant_id=p.tenant_id and s2.store_id=p.store_id and s2.product_id=p.id and s2.enabled=true) order by p.sort_order, p.id",
-                (resultSet, rowNumber) -> new MiniProduct(resultSet.getLong("id"), resultSet.getString("name"),
-                        resultSet.getString("description"), resultSet.getInt("sku_price"), resultSet.getString("category_name"),resultSet.getLong("sku_id"),resultSet.getInt("available_stock")), sceneKey);
+        return productMapper.selectMiniProductsByScene(sceneKey).stream()
+                .map(row -> new MiniProduct(longValue(row, "product_id"), stringValue(row, "product_name"),
+                        stringValue(row, "description"), intValue(row, "price_cent"),
+                        stringValue(row, "category_name"), longValue(row, "sku_id"), intValue(row, "available_stock")))
+                .toList();
     }
 
+    /**
+     * 查询后台商品列表。
+     */
     public List<AdminProduct> listProducts(TenantStoreScope scope) {
-        return jdbcTemplate.query("select p.id,p.name,c.name category_name,p.status,p.base_price_cent from product p left join product_category c on c.id=p.category_id and c.tenant_id=p.tenant_id and c.store_id=p.store_id where p.tenant_id=? and p.store_id=? order by p.id desc limit 200",
-                (rs, row) -> new AdminProduct(rs.getLong("id"), rs.getString("name"), rs.getString("category_name"), rs.getString("status"), rs.getInt("base_price_cent"), listSkus(scope, rs.getLong("id"))), scope.tenantId(), scope.storeId());
+        return productMapper.selectList(new LambdaQueryWrapper<ProductEntity>()
+                        .eq(ProductEntity::getTenantId, scope.tenantId())
+                        .eq(ProductEntity::getStoreId, scope.storeId())
+                        .orderByDesc(ProductEntity::getId)
+                        .last("limit 200"))
+                .stream()
+                .map(product -> new AdminProduct(product.getId(), product.getName(), categoryName(product),
+                        product.getStatus(), product.getBasePriceCent(), listSkus(scope, product.getId())))
+                .toList();
     }
 
+    /**
+     * 查询后台库存流水。
+     */
     public List<InventoryRecordView> listInventoryRecords(TenantStoreScope scope) {
-        return jdbcTemplate.query("select r.id,r.created_at,r.change_type,p.name product_name,s.specification_text,r.quantity,r.business_no,r.reason from inventory_record r join product_sku s on s.id=r.sku_id and s.tenant_id=r.tenant_id and s.store_id=r.store_id join product p on p.id=s.product_id and p.tenant_id=s.tenant_id and p.store_id=s.store_id where r.tenant_id=? and r.store_id=? order by r.id desc limit 500",
-                (rs, row) -> new InventoryRecordView(rs.getLong("id"), rs.getTimestamp("created_at").toLocalDateTime(), rs.getString("change_type"), rs.getString("product_name"), rs.getString("specification_text"), rs.getInt("quantity"), rs.getString("business_no"), rs.getString("reason")), scope.tenantId(), scope.storeId());
+        return inventoryRecordMapper.selectInventoryRecordViews(scope.tenantId(), scope.storeId()).stream()
+                .map(row -> new InventoryRecordView(longValue(row, "id"), dateTimeValue(row, "created_at"),
+                        stringValue(row, "change_type"), stringValue(row, "product_name"),
+                        stringValue(row, "specification_text"), intValue(row, "quantity"),
+                        stringValue(row, "business_no"), stringValue(row, "reason")))
+                .toList();
     }
 
     private List<AdminSku> listSkus(TenantStoreScope scope, Long productId) {
-        return jdbcTemplate.query("select id,specification_text,sku_code,price_cent,available_stock,locked_stock,warning_stock from product_sku where tenant_id=? and store_id=? and product_id=? order by id",
-                (rs, row) -> new AdminSku(rs.getLong("id"), rs.getString("specification_text"), rs.getString("sku_code"), rs.getInt("price_cent"), rs.getInt("available_stock"), rs.getInt("locked_stock"), rs.getInt("warning_stock")), scope.tenantId(), scope.storeId(), productId);
+        return productSkuMapper.selectList(new LambdaQueryWrapper<ProductSkuEntity>()
+                        .eq(ProductSkuEntity::getTenantId, scope.tenantId())
+                        .eq(ProductSkuEntity::getStoreId, scope.storeId())
+                        .eq(ProductSkuEntity::getProductId, productId)
+                        .orderByAsc(ProductSkuEntity::getId))
+                .stream()
+                .map(sku -> new AdminSku(sku.getId(), sku.getSpecificationText(), sku.getSkuCode(), sku.getPriceCent(),
+                        sku.getAvailableStock(), sku.getLockedStock(), sku.getWarningStock()))
+                .toList();
     }
 
     private PersistedSku createSku(TenantStoreScope scope, Long productId, CreateCatalogSkuCommand sku) {
-        Long skuId = insertId("insert into product_sku (tenant_id, store_id, product_id, specification_text, sku_code, price_cent, available_stock, locked_stock, warning_stock, enabled) values (?, ?, ?, ?, ?, ?, ?, 0, ?, true)",
-                scope.tenantId(), scope.storeId(), productId, sku.specificationText(), sku.skuCode(), sku.priceCent(), sku.initialStock(), sku.warningStock());
-        jdbcTemplate.update("insert into inventory_record (tenant_id, store_id, sku_id, change_type, quantity, available_after, locked_after, business_no, reason, operator_user_id) values (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)",
-                scope.tenantId(), scope.storeId(), skuId, InventoryChangeType.INITIAL_STOCK.name(), sku.initialStock(), sku.initialStock(),
-                "PRODUCT-" + productId, "商品初始库存", scope.operatorUserId());
-        return new PersistedSku(skuId, sku.specificationText(), sku.skuCode(), sku.priceCent(), sku.initialStock(), sku.warningStock());
+        ProductSkuEntity skuEntity = new ProductSkuEntity();
+        skuEntity.setTenantId(scope.tenantId());
+        skuEntity.setStoreId(scope.storeId());
+        skuEntity.setProductId(productId);
+        skuEntity.setSpecificationText(normalizeSpecificationText(sku.specificationText()));
+        skuEntity.setSkuCode(sku.skuCode());
+        skuEntity.setPriceCent(sku.priceCent());
+        skuEntity.setAvailableStock(sku.initialStock());
+        skuEntity.setLockedStock(0);
+        skuEntity.setWarningStock(sku.warningStock());
+        skuEntity.setEnabled(true);
+        productSkuMapper.insert(skuEntity);
+
+        InventoryRecordEntity record = new InventoryRecordEntity();
+        record.setTenantId(scope.tenantId());
+        record.setStoreId(scope.storeId());
+        record.setSkuId(skuEntity.getId());
+        record.setChangeType(InventoryChangeType.INITIAL_STOCK.name());
+        record.setQuantity(sku.initialStock());
+        record.setAvailableAfter(sku.initialStock());
+        record.setLockedAfter(0);
+        record.setBusinessNo(PRODUCT_BUSINESS_NO_PREFIX + productId);
+        record.setReason(INITIAL_STOCK_REASON);
+        record.setOperatorUserId(scope.operatorUserId());
+        inventoryRecordMapper.insert(record);
+        return new PersistedSku(skuEntity.getId(), skuEntity.getSpecificationText(), sku.skuCode(), sku.priceCent(),
+                sku.initialStock(), sku.warningStock());
     }
 
     private Long findOrCreateCategory(TenantStoreScope scope, String categoryName) {
-        List<Long> ids = jdbcTemplate.query("select id from product_category where tenant_id=? and store_id=? and name=?",
-                (resultSet, rowNumber) -> resultSet.getLong(1), scope.tenantId(), scope.storeId(), categoryName);
-        if (!ids.isEmpty()) {
-            return ids.getFirst();
+        ProductCategoryEntity existing = productCategoryMapper.selectOne(new LambdaQueryWrapper<ProductCategoryEntity>()
+                .eq(ProductCategoryEntity::getTenantId, scope.tenantId())
+                .eq(ProductCategoryEntity::getStoreId, scope.storeId())
+                .eq(ProductCategoryEntity::getName, categoryName));
+        if (existing != null) {
+            return existing.getId();
         }
-        return insertId("insert into product_category (tenant_id, store_id, name) values (?, ?, ?)", scope.tenantId(), scope.storeId(), categoryName);
+        ProductCategoryEntity category = new ProductCategoryEntity();
+        category.setTenantId(scope.tenantId());
+        category.setStoreId(scope.storeId());
+        category.setName(categoryName);
+        category.setSortOrder(0);
+        category.setEnabled(true);
+        productCategoryMapper.insert(category);
+        return category.getId();
     }
 
-    private Long insertId(String sql, Object... values) {
-        return jdbcTemplate.execute((ConnectionCallback<Long>) connection -> {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            for (int index = 0; index < values.length; index++) {
-                statement.setObject(index + 1, values[index]);
-            }
-            statement.executeUpdate();
-            try (var keys = statement.getGeneratedKeys()) {
-                if (!keys.next()) {
-                    throw new IllegalStateException("数据库未返回主键");
-                }
-                return keys.getLong(1);
-            }
-        });
+    private String categoryName(ProductEntity product) {
+        if (product.getCategoryId() == null) {
+            return DEFAULT_CATEGORY_NAME;
+        }
+        ProductCategoryEntity category = productCategoryMapper.selectOne(new LambdaQueryWrapper<ProductCategoryEntity>()
+                .eq(ProductCategoryEntity::getId, product.getCategoryId())
+                .eq(ProductCategoryEntity::getTenantId, product.getTenantId())
+                .eq(ProductCategoryEntity::getStoreId, product.getStoreId()));
+        return category == null ? DEFAULT_CATEGORY_NAME : category.getName();
     }
 
     private void validate(CreateCatalogProductCommand command) {
@@ -101,6 +184,48 @@ public class CatalogPersistenceService {
                 throw new BusinessException(ErrorCode.VALIDATION_FAILED, "SKU价格、库存或编码不合法");
             }
         }
+    }
+
+    private String normalizeSpecificationText(String specificationText) {
+        return specificationText == null || specificationText.isBlank() ? DEFAULT_SPECIFICATION_TEXT : specificationText;
+    }
+
+    private Long longValue(Map<String, Object> row, String key) {
+        Object value = row.get(key);
+        if (value == null) {
+            value = row.get(key.toUpperCase());
+        }
+        return value == null ? null : ((Number) value).longValue();
+    }
+
+    private int intValue(Map<String, Object> row, String key) {
+        Object value = row.get(key);
+        if (value == null) {
+            value = row.get(key.toUpperCase());
+        }
+        return value == null ? 0 : ((Number) value).intValue();
+    }
+
+    private String stringValue(Map<String, Object> row, String key) {
+        Object value = row.get(key);
+        if (value == null) {
+            value = row.get(key.toUpperCase());
+        }
+        return value == null ? null : value.toString();
+    }
+
+    private LocalDateTime dateTimeValue(Map<String, Object> row, String key) {
+        Object value = row.get(key);
+        if (value == null) {
+            value = row.get(key.toUpperCase());
+        }
+        if (value instanceof LocalDateTime dateTime) {
+            return dateTime;
+        }
+        if (value instanceof Timestamp timestamp) {
+            return timestamp.toLocalDateTime();
+        }
+        return null;
     }
 
     public record CreateCatalogProductCommand(String productName, String categoryName, int basePriceCent, boolean onShelf,

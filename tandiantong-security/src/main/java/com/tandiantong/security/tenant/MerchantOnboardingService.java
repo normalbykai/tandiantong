@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+/** 商户开通领域服务，负责生成首店、邀请和场景入口。 */
 public class MerchantOnboardingService {
 
     private static final SecureRandom RANDOM = new SecureRandom();

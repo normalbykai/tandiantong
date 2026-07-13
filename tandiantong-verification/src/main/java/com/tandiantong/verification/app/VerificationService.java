@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+/** 核销凭证签发和一次性核销领域服务。 */
 public class VerificationService {
 
     private static final SecureRandom RANDOM = new SecureRandom();

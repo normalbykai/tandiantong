@@ -2,6 +2,7 @@ package com.tandiantong.order.domain;
 
 import java.util.List;
 
+/** 订单商品成交快照。 */
 public record OrderItemSnapshot(
         Long itemId,
         String orderNo,

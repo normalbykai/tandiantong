@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
+/** 本地开发使用的微信支付替身实现。 */
 public class LocalWechatPayClient implements WechatPayClient {
 
     private final String localSecret;

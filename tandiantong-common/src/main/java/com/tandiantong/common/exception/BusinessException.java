@@ -2,6 +2,7 @@ package com.tandiantong.common.exception;
 
 import com.tandiantong.common.api.ErrorCode;
 
+/** 携带稳定错误码和中文消息的业务异常。 */
 public class BusinessException extends RuntimeException {
 
     private final ErrorCode errorCode;

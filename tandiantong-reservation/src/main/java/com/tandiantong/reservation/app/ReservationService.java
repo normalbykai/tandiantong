@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+/** 服务预约、容量占用和取消领域服务。 */
 public class ReservationService {
 
     private final AtomicLong idSequence = new AtomicLong(1000);
