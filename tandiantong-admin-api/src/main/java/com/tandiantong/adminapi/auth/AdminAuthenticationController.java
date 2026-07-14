@@ -33,7 +33,7 @@ public class AdminAuthenticationController {
     @Operation(summary = "平台管理员登录")
     @PostMapping("/api/platform/v1/auth/login")
     @ResponseStatus(HttpStatus.OK)
-    public LoginResponse platformLogin(@Valid @RequestBody LoginRequest request) {
+    public LoginResponse platformLogin(@Valid @RequestBody PlatformLoginRequest request) {
         return responseOf(databaseAuthenticationService.loginPlatform(request.mobile(), request.password()));
     }
 
@@ -55,7 +55,14 @@ public class AdminAuthenticationController {
         return new LoginResponse(result.accessToken(), result.currentUser().domain().name(), result.currentUser().displayName());
     }
 
-    /** 后台登录请求。 */
+    /** 平台登录请求。 */
+    public record PlatformLoginRequest(
+            @NotBlank(message = "账号不能为空") String mobile,
+            @NotBlank(message = "密码不能为空") String password
+    ) {
+    }
+
+    /** 商户后台登录请求。 */
     public record LoginRequest(
             @Pattern(regexp = "1\\d{10}", message = "手机号格式不正确") String mobile,
             @NotBlank(message = "密码不能为空") String password
