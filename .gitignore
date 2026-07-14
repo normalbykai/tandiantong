@@ -1,6 +1,7 @@
 .idea/
 .worktrees/
 .local-tools/
+logs/
 target/
 **/target/
 node_modules/

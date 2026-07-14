@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="tandiantong"/>
+    <property name="LOG_HOME" value="${TDT_LOG_HOME:-logs}"/>
+    <property name="CONSOLE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level traceId=%X{traceId:-} tenantId=%X{tenantId:-} storeId=%X{storeId:-} %logger{36} - %msg%n"/>
+    <property name="FILE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level traceId=%X{traceId:-} tenantId=%X{tenantId:-} storeId=%X{storeId:-} %logger{64} - %msg%n"/>
+
+    <springProfile name="dev,test">
+        <!-- 开发环境使用控制台日志，便于本地调试和快速定位请求链路。 -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <charset>UTF-8</charset>
+                <pattern>${CONSOLE_PATTERN}</pattern>
+            </encoder>
+        </appender>
+
+        <logger name="com.tandiantong" level="${TDT_APP_LOG_LEVEL:-DEBUG}"/>
+        <logger name="org.mybatis" level="${TDT_MYBATIS_LOG_LEVEL:-INFO}"/>
+        <logger name="com.baomidou.mybatisplus" level="${TDT_MYBATIS_PLUS_LOG_LEVEL:-INFO}"/>
+        <root level="${TDT_ROOT_LOG_LEVEL:-INFO}">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <!-- 生产环境记录全部业务日志，按天和大小滚动，避免单个文件无限增长。 -->
+        <appender name="ROLLING_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_HOME}/${appName}.log</file>
+            <encoder>
+                <charset>UTF-8</charset>
+                <pattern>${FILE_PATTERN}</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_HOME}/archive/${appName}.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>${TDT_LOG_MAX_FILE_SIZE:-100MB}</maxFileSize>
+                <maxHistory>${TDT_LOG_MAX_HISTORY:-30}</maxHistory>
+                <totalSizeCap>${TDT_LOG_TOTAL_SIZE_CAP:-10GB}</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <!-- 生产环境单独保留错误日志，方便排查系统异常和告警接入。 -->
+        <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_HOME}/${appName}-error.log</file>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>ERROR</level>
+            </filter>
+            <encoder>
+                <charset>UTF-8</charset>
+                <pattern>${FILE_PATTERN}</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_HOME}/archive/${appName}-error.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>${TDT_LOG_MAX_FILE_SIZE:-100MB}</maxFileSize>
+                <maxHistory>${TDT_LOG_MAX_HISTORY:-30}</maxHistory>
+                <totalSizeCap>${TDT_LOG_ERROR_TOTAL_SIZE_CAP:-2GB}</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <logger name="com.tandiantong" level="${TDT_APP_LOG_LEVEL:-INFO}"/>
+        <logger name="org.springframework" level="${TDT_SPRING_LOG_LEVEL:-WARN}"/>
+        <logger name="org.mybatis" level="${TDT_MYBATIS_LOG_LEVEL:-WARN}"/>
+        <logger name="com.baomidou.mybatisplus" level="${TDT_MYBATIS_PLUS_LOG_LEVEL:-WARN}"/>
+        <root level="${TDT_ROOT_LOG_LEVEL:-INFO}">
+            <appender-ref ref="ROLLING_FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+    </springProfile>
+</configuration>
