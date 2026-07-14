@@ -21,7 +21,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
+    baseline-on-migrate: ${TDT_FLYWAY_BASELINE_ON_MIGRATE:false}
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
