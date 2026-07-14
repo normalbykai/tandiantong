@@ -314,9 +314,13 @@ public class PersistentOrderService {
 
     /** 订单业务状态。 */
     private enum OrderStatus {
+        /** 订单已创建，等待顾客支付。 */
         PENDING_PAYMENT,
+        /** 订单已支付，等待商户核销。 */
         PENDING_VERIFY,
+        /** 订单正在退款处理中。 */
         REFUNDING,
+        /** 订单已完成退款。 */
         REFUNDED;
 
         String code() {
@@ -330,7 +334,9 @@ public class PersistentOrderService {
 
     /** 幂等业务类型。 */
     private enum BusinessType {
+        /** 创建商品订单幂等记录。 */
         ORDER_CREATE,
+        /** 商品订单整单退款幂等记录。 */
         ORDER_REFUND;
 
         String code() {
@@ -340,6 +346,7 @@ public class PersistentOrderService {
 
     /** 持久化操作结果。 */
     private enum PersistenceResult {
+        /** 持久化操作成功。 */
         SUCCESS;
 
         String code() {
@@ -349,6 +356,7 @@ public class PersistentOrderService {
 
     /** 支付记录状态。 */
     private enum PaymentStatus {
+        /** 支付记录已确认成功。 */
         SUCCESS;
 
         String code() {
@@ -358,7 +366,9 @@ public class PersistentOrderService {
 
     /** 退款记录状态。 */
     private enum RefundStatus {
+        /** 退款处理成功。 */
         SUCCESS,
+        /** 退款处理失败。 */
         FAILED;
 
         String code() {

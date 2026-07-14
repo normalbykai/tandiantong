@@ -1,11 +1,11 @@
 package com.tandiantong.adminapi.verification;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.tandiantong.adminapi.verification.dto.VerifyRequest;
 import com.tandiantong.security.context.SecurityContextHolder;
 import com.tandiantong.verification.app.VerificationPersistenceService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +24,4 @@ public class AdminVerificationController {
         var user=SecurityContextHolder.currentUser();
         return verificationPersistenceService.verify(user.tenantId(),user.storeId(),user.userId(),request.token(),request.reason());
     }
-    /** 核销凭证请求。 */
-    public record VerifyRequest(@NotBlank(message="核销凭证不能为空") String token,String reason) {}
 }

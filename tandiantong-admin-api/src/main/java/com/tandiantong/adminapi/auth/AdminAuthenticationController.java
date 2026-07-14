@@ -1,10 +1,12 @@
 package com.tandiantong.adminapi.auth;
 
+import com.tandiantong.adminapi.auth.dto.ActivateInvitationRequest;
+import com.tandiantong.adminapi.auth.dto.LoginRequest;
+import com.tandiantong.adminapi.auth.dto.LoginResponse;
+import com.tandiantong.adminapi.auth.dto.PlatformLoginRequest;
 import com.tandiantong.security.auth.DatabaseAuthenticationService;
 import com.tandiantong.security.tenant.MerchantProvisioningService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -53,30 +55,5 @@ public class AdminAuthenticationController {
 
     private LoginResponse responseOf(DatabaseAuthenticationService.LoginResult result) {
         return new LoginResponse(result.accessToken(), result.currentUser().domain().name(), result.currentUser().displayName());
-    }
-
-    /** 平台登录请求。 */
-    public record PlatformLoginRequest(
-            @NotBlank(message = "账号不能为空") String mobile,
-            @NotBlank(message = "密码不能为空") String password
-    ) {
-    }
-
-    /** 商户后台登录请求。 */
-    public record LoginRequest(
-            @Pattern(regexp = "1\\d{10}", message = "手机号格式不正确") String mobile,
-            @NotBlank(message = "密码不能为空") String password
-    ) {
-    }
-
-    /** 后台登录响应。 */
-    public record LoginResponse(String accessToken, String domain, String displayName) {
-    }
-
-    /** 商户管理员邀请激活请求。 */
-    public record ActivateInvitationRequest(
-            @NotBlank(message = "邀请码不能为空") String invitationCode,
-            @NotBlank(message = "密码不能为空") String password
-    ) {
     }
 }

@@ -1,11 +1,10 @@
 package com.tandiantong.miniapi.reservation;
 
+import com.tandiantong.miniapi.reservation.dto.ReserveRequest;
+import com.tandiantong.reservation.app.ReservationPersistenceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.tandiantong.reservation.app.ReservationPersistenceService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +27,4 @@ public class MiniReservationController {
     @Operation(summary = "提交预约")
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public ReservationPersistenceService.ReservationResult reserve(@Valid @RequestBody ReserveRequest request){return service.reserve(request.sceneKey(),new ReservationPersistenceService.ReserveCommand(request.idempotencyKey(),request.serviceId(),request.slotId(),request.contactMobile()));}
-    /** 顾客预约请求。 */
-    public record ReserveRequest(@NotBlank String sceneKey,@NotBlank String idempotencyKey,@NotNull Long serviceId,@NotNull Long slotId,@NotBlank String contactMobile){}
 }

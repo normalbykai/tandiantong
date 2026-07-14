@@ -2,8 +2,11 @@ package com.tandiantong.analytics.app;
 
 /** 经营数据导出类型。 */
 public enum ExportType {
+    /** 交易概览导出。 */
     TRANSACTION("交易概览"),
+    /** 商品分析导出。 */
     PRODUCT("商品分析"),
+    /** 预约分析导出。 */
     RESERVATION("预约分析");
 
     private final String displayName;

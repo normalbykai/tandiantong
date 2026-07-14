@@ -1,16 +1,13 @@
 package com.tandiantong.adminapi.reservation;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.tandiantong.adminapi.reservation.dto.CreateServiceRequest;
+import com.tandiantong.adminapi.reservation.dto.CreateSlotRequest;
 import com.tandiantong.reservation.app.ReservationPersistenceService;
 import com.tandiantong.reservation.tenant.TenantStoreScope;
 import com.tandiantong.security.context.SecurityContextHolder;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
-import java.time.LocalDate;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,8 +33,4 @@ public class AdminReservationController {
     @PostMapping("/{reservationNo}/cancel")
     public ReservationPersistenceService.ReservationResult cancel(@PathVariable("reservationNo") String reservationNo){return service.cancel(scope(),reservationNo);}
     private TenantStoreScope scope(){var user=SecurityContextHolder.currentUser();return new TenantStoreScope(user.tenantId(),user.storeId(),user.userId());}
-    /** 创建预约服务请求。 */
-    public record CreateServiceRequest(@NotBlank String name,@NotBlank String paymentMode,@PositiveOrZero int priceCent,@Positive int durationMinutes){}
-    /** 创建预约时段请求。 */
-    public record CreateSlotRequest(@NotNull Long serviceId,@NotNull LocalDate serviceDate,@NotBlank String startTime,@NotBlank String endTime,@Positive int capacity){}
 }

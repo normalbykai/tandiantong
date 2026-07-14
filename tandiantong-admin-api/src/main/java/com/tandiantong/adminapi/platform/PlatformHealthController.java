@@ -1,5 +1,6 @@
 package com.tandiantong.adminapi.platform;
 
+import com.tandiantong.adminapi.platform.dto.PlatformHealthResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
@@ -17,9 +18,5 @@ public class PlatformHealthController {
     @GetMapping("/health")
     public PlatformHealthResponse health() {
         return new PlatformHealthResponse("平台服务正常", Instant.now().toString());
-    }
-
-    /** 平台服务健康状态响应。 */
-    public record PlatformHealthResponse(String status, String checkedAt) {
     }
 }

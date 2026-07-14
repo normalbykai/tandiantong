@@ -172,6 +172,7 @@ public class AnalyticsPersistenceService {
 
     /** 导出业务类型。 */
     private enum ExportType {
+        /** 交易概览导出任务。 */
         TRANSACTION;
 
         String code() {
@@ -181,6 +182,7 @@ public class AnalyticsPersistenceService {
 
     /** 导出任务状态。 */
     private enum ExportStatus {
+        /** 导出任务已完成并生成文件。 */
         FINISHED;
 
         String code() {

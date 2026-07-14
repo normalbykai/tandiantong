@@ -1,11 +1,10 @@
 package com.tandiantong.miniapi.order;
 
+import com.tandiantong.miniapi.order.dto.PaymentCallbackRequest;
 import com.tandiantong.order.app.PersistentOrderService;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.PositiveOrZero;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +24,4 @@ public class WechatPaymentCallbackController {
     public PersistentOrderService.PersistentOrderResult callback(@Valid @RequestBody PaymentCallbackRequest request) {
         return persistentOrderService.confirmPayment(request.orderNo(), request.transactionId(), request.amountCent(), request.signature());
     }
-    /** 微信支付回调请求。 */
-    public record PaymentCallbackRequest(@NotBlank(message="订单号不能为空") String orderNo,@NotBlank(message="支付流水号不能为空") String transactionId,@PositiveOrZero(message="支付金额不能小于零") int amountCent,@NotBlank(message="签名不能为空") String signature) {}
 }

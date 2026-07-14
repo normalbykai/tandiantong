@@ -284,6 +284,7 @@ public class ReservationPersistenceService {
 
     /** 服务启停状态。 */
     private enum ServiceStatus {
+        /** 服务项目已启用，可对顾客展示和预约。 */
         ENABLED;
 
         String code() {
@@ -293,7 +294,9 @@ public class ReservationPersistenceService {
 
     /** 服务支付模式。 */
     private enum PaymentMode {
+        /** 免费预约，提交后直接确认。 */
         FREE,
+        /** 付费预约，提交后等待支付。 */
         PAID;
 
         static boolean supports(String value) {
@@ -307,9 +310,13 @@ public class ReservationPersistenceService {
 
     /** 预约状态。 */
     private enum ReservationStatus {
+        /** 付费预约已提交，等待支付。 */
         PENDING_PAYMENT,
+        /** 预约已确认，等待履约。 */
         CONFIRMED,
+        /** 预约已取消。 */
         CANCELED,
+        /** 预约已完成履约。 */
         FULFILLED;
 
         String code() {
@@ -323,6 +330,7 @@ public class ReservationPersistenceService {
 
     /** 预约幂等业务类型。 */
     private enum IdempotencyBusinessType {
+        /** 创建预约幂等记录。 */
         RESERVATION_CREATE;
 
         String code() {
@@ -332,6 +340,7 @@ public class ReservationPersistenceService {
 
     /** 预约幂等执行结果。 */
     private enum IdempotencyResult {
+        /** 预约幂等操作执行成功。 */
         SUCCESS;
 
         String code() {

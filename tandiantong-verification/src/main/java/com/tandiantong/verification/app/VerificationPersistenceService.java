@@ -154,6 +154,7 @@ public class VerificationPersistenceService {
 
     /** 支持核销的业务类型。 */
     private enum BusinessType {
+        /** 商品订单核销凭证。 */
         PRODUCT_ORDER;
 
         String code() {
@@ -163,8 +164,11 @@ public class VerificationPersistenceService {
 
     /** 核销凭证状态。 */
     private enum CredentialStatus {
+        /** 凭证待核销。 */
         PENDING,
+        /** 凭证已核销。 */
         VERIFIED,
+        /** 凭证已取消。 */
         CANCELED;
 
         String code() {

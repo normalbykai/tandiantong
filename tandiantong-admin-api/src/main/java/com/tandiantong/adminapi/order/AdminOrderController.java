@@ -1,11 +1,11 @@
 package com.tandiantong.adminapi.order;
 
+import com.tandiantong.adminapi.order.dto.RefundRequest;
 import com.tandiantong.order.app.PersistentOrderService;
 import com.tandiantong.security.context.SecurityContextHolder;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +24,4 @@ public class AdminOrderController {
     @Operation(summary = "申请订单整单退款")
     @PostMapping("/{orderNo}/refund")
     public PersistentOrderService.RefundResult refund(@PathVariable("orderNo") String orderNo,@Valid @RequestBody RefundRequest request){var user=SecurityContextHolder.currentUser();return service.refund(user.tenantId(),user.storeId(),orderNo,request.idempotencyKey(),request.reason());}
-    /** 订单退款请求。 */
-    public record RefundRequest(@NotBlank String idempotencyKey,@NotBlank String reason){}
 }
