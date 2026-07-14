@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git 提交快速版"
+  short_description: "只分析当前修改并生成中文提交信息建议"
+  default_prompt: "Use $git-commit-quick to inspect current Git changes and draft a compliant Chinese commit message without validating or committing."

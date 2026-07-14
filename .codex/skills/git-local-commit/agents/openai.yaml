@@ -1,4 +1,4 @@
 interface:
-  display_name: "Git 本地提交"
-  short_description: "读取修改生成规范中文提交并本地提交"
-  default_prompt: "Use $git-local-commit to review current Git changes, generate a compliant Chinese commit message, and commit locally."
+  display_name: "Git 提交严格版"
+  short_description: "验证当前修改后生成中文提交并本地提交"
+  default_prompt: "Use $git-local-commit to review, validate, stage, and commit current Git changes with a compliant Chinese commit message."
