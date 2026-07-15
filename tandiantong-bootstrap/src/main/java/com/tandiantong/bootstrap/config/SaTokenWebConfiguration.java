@@ -1,5 +1,6 @@
 package com.tandiantong.bootstrap.config;
 
+import cn.dev33.satoken.interceptor.SaInterceptor;
 import com.tandiantong.bootstrap.security.SaTokenAuthenticationInterceptor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
@@ -25,5 +26,6 @@ public class SaTokenWebConfiguration implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(saTokenAuthenticationInterceptor).addPathPatterns("/**");
+        registry.addInterceptor(new SaInterceptor()).addPathPatterns("/**").order(1);
     }
 }

@@ -1,22 +1,22 @@
 package com.tandiantong.bootstrap.web;
 
+import com.tandiantong.common.trace.TraceIdContext;
+
 /** 当前线程请求追踪号持有器。 */
 public final class TraceIdHolder {
-
-    private static final ThreadLocal<String> TRACE_ID = new ThreadLocal<>();
 
     private TraceIdHolder() {
     }
 
     public static void set(String traceId) {
-        TRACE_ID.set(traceId);
+        TraceIdContext.set(traceId);
     }
 
     public static String get() {
-        return TRACE_ID.get();
+        return TraceIdContext.get();
     }
 
     public static void clear() {
-        TRACE_ID.remove();
+        TraceIdContext.clear();
     }
 }

@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import com.tandiantong.analytics.app.AnalyticsPersistenceService;
 import com.tandiantong.analytics.tenant.TenantStoreScope;
 import com.tandiantong.security.context.SecurityContextHolder;
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
@@ -26,13 +27,13 @@ public class AdminAnalyticsController {
     private final AnalyticsPersistenceService service;
     public AdminAnalyticsController(AnalyticsPersistenceService service){this.service=service;}
     @Operation(summary = "查询经营数据看板", description = "按日期范围统计当前租户和门店的订单、退款、预约及商品销量")
-    @GetMapping public AnalyticsDashboardResponse dashboard(
+    @GetMapping @SaCheckPermission("analytics:dashboard:read") public AnalyticsDashboardResponse dashboard(
             @Parameter(description = "统计开始日期", example = "2026-07-01", required = true)
             @RequestParam("startDate") @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "统计结束日期", example = "2026-07-15", required = true)
             @RequestParam("endDate") @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate endDate){return AnalyticsDashboardResponse.from(service.dashboard(scope(),startDate,endDate));}
     @Operation(summary = "导出经营数据 Excel", description = "按日期范围导出经营数据，并记录导出联系人用于审计")
-    @GetMapping("/export") public ResponseEntity<byte[]> export(
+    @GetMapping("/export") @SaCheckPermission("analytics:export:create") public ResponseEntity<byte[]> export(
             @Parameter(description = "统计开始日期", example = "2026-07-01", required = true)
             @RequestParam("startDate") @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "统计结束日期", example = "2026-07-15", required = true)

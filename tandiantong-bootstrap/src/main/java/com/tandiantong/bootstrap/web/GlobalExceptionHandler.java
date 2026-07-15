@@ -1,6 +1,7 @@
 package com.tandiantong.bootstrap.web;
 
 import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
 import com.tandiantong.common.api.ApiResponse;
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
@@ -29,6 +30,14 @@ public class GlobalExceptionHandler {
         log.warn("请求未登录或登录状态已过期，原因：{}", exception.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.failure(TraceIdHolder.get(), ErrorCode.UNAUTHORIZED, ErrorCode.UNAUTHORIZED.message()));
+    }
+
+    /** 将 Sa-Token 原生权限不足异常转换为统一的业务响应。 */
+    @ExceptionHandler(NotPermissionException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotPermissionException(NotPermissionException exception) {
+        log.warn("当前账号权限不足，所需权限：{}", exception.getPermission());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.failure(TraceIdHolder.get(), ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN.message()));
     }
 
     @ExceptionHandler(Exception.class)

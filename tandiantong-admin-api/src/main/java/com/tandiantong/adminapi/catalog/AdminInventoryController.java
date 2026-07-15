@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
 import com.tandiantong.catalog.tenant.TenantStoreScope;
 import com.tandiantong.security.context.SecurityContextHolder;
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +25,7 @@ public class AdminInventoryController {
 
     @Operation(summary = "查询库存流水", description = "查询当前租户和门店下的库存增减记录及关联业务来源")
     @GetMapping
+    @SaCheckPermission("catalog:inventory:read")
     public List<InventoryRecordResponse> list() {
         var user = SecurityContextHolder.currentUser();
         return catalogPersistenceService.listInventoryRecords(new TenantStoreScope(user.tenantId(), user.storeId(), user.userId()))

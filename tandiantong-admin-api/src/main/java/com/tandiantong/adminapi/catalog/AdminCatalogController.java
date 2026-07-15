@@ -7,6 +7,7 @@ import com.tandiantong.adminapi.catalog.dto.ProductResponse;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
 import com.tandiantong.catalog.tenant.TenantStoreScope;
 import com.tandiantong.security.context.SecurityContextHolder;
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -34,6 +35,7 @@ public class AdminCatalogController {
     @Operation(summary = "创建商品和 SKU", description = "创建商品及至少一个 SKU，并初始化可售库存")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @SaCheckPermission("catalog:product:create")
     public CreatedProductResponse create(@Valid @RequestBody CreateProductRequest request) {
         var currentUser = SecurityContextHolder.currentUser();
         TenantStoreScope scope = new TenantStoreScope(currentUser.tenantId(), currentUser.storeId(), currentUser.userId());
@@ -45,6 +47,7 @@ public class AdminCatalogController {
 
     @Operation(summary = "查询商品列表", description = "查询当前租户和门店下的商品、SKU 与库存概要")
     @GetMapping
+    @SaCheckPermission("catalog:product:read")
     public List<ProductResponse> list() { return catalogPersistenceService.listProducts(scope()).stream().map(ProductResponse::from).toList(); }
 
     private TenantStoreScope scope() { var user=SecurityContextHolder.currentUser(); return new TenantStoreScope(user.tenantId(),user.storeId(),user.userId()); }
