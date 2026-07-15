@@ -1,4 +1,4 @@
 interface:
-  display_name: "Git 提交快速版"
-  short_description: "只看Git当前改动并生成含详细正文的中文提交信息"
-  default_prompt: "Use $git-commit-quick to inspect current Git changes and draft a complete Chinese commit title and detailed body without validating or committing."
+  display_name: "Git 本地提交快速版"
+  short_description: "快速生成中文提交信息或直接完成安全的本地提交"
+  default_prompt: "Use $git-commit-quick to inspect the current Git changes and quickly create a compliant local commit without running tests or pushing."
