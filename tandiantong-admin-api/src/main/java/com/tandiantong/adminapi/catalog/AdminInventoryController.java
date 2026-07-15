@@ -1,5 +1,6 @@
 package com.tandiantong.adminapi.catalog;
 
+import com.tandiantong.adminapi.catalog.dto.InventoryRecordResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** 商户后台库存流水查询接口。 */
 @RestController
 @RequestMapping("/api/admin/v1/catalog/inventory-records")
-@Tag(name = "商户库存")
+@Tag(name = "商户库存", description = "商户后台查询商品库存变更流水")
 public class AdminInventoryController {
     private final CatalogPersistenceService catalogPersistenceService;
 
@@ -21,10 +22,11 @@ public class AdminInventoryController {
         this.catalogPersistenceService = catalogPersistenceService;
     }
 
-    @Operation(summary = "查询库存流水")
+    @Operation(summary = "查询库存流水", description = "查询当前租户和门店下的库存增减记录及关联业务来源")
     @GetMapping
-    public List<CatalogPersistenceService.InventoryRecordView> list() {
+    public List<InventoryRecordResponse> list() {
         var user = SecurityContextHolder.currentUser();
-        return catalogPersistenceService.listInventoryRecords(new TenantStoreScope(user.tenantId(), user.storeId(), user.userId()));
+        return catalogPersistenceService.listInventoryRecords(new TenantStoreScope(user.tenantId(), user.storeId(), user.userId()))
+                .stream().map(InventoryRecordResponse::from).toList();
     }
 }
