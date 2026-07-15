@@ -87,6 +87,26 @@ class OpenApiDocumentationTest {
                 .contains("安全核销令牌");
     }
 
+    @Test
+    void shouldAttachAuthorizationToProtectedOperationsOnly() throws Exception {
+        String content = mockMvc.perform(get("/v3/api-docs").characterEncoding(StandardCharsets.UTF_8))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        JsonNode document = objectMapper.readTree(content);
+        JsonNode paths = document.path("paths");
+
+        assertAuthorization(paths.path("/api/admin/v1/catalog/products").path("get"));
+        assertAuthorization(paths.path("/api/platform/v1/merchants").path("post"));
+        assertThat(paths.path("/api/admin/v1/auth/login").path("post").has("security")).isFalse();
+        assertThat(paths.path("/api/platform/v1/health").path("get").has("security")).isFalse();
+        assertThat(paths.path("/api/mini/v1/catalog/products").path("get").has("security")).isFalse();
+    }
+
+    private void assertAuthorization(JsonNode operation) {
+        assertThat(operation.path("security").isArray()).isTrue();
+        assertThat(operation.path("security").toString()).contains("Authorization");
+    }
+
     private void assertChinese(String value, String subject) {
         assertThat(value).as(subject).isNotBlank().containsPattern("[\\u4e00-\\u9fa5]");
     }
