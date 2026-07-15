@@ -2,6 +2,8 @@ package com.tandiantong.adminapi.catalog;
 
 import com.tandiantong.adminapi.catalog.dto.CreateProductRequest;
 import com.tandiantong.adminapi.catalog.dto.CreateSkuRequest;
+import com.tandiantong.adminapi.catalog.dto.CreatedProductResponse;
+import com.tandiantong.adminapi.catalog.dto.ProductResponse;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
 import com.tandiantong.catalog.tenant.TenantStoreScope;
 import com.tandiantong.security.context.SecurityContextHolder;
@@ -20,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** 商户后台商品管理接口。 */
 @RestController
 @RequestMapping("/api/admin/v1/catalog/products")
-@Tag(name = "商户商品")
+@Tag(name = "商户商品", description = "商户后台创建商品、SKU 并查询商品列表")
 public class AdminCatalogController {
 
     private final CatalogPersistenceService catalogPersistenceService;
@@ -29,21 +31,21 @@ public class AdminCatalogController {
         this.catalogPersistenceService = catalogPersistenceService;
     }
 
-    @Operation(summary = "创建商品和SKU")
+    @Operation(summary = "创建商品和 SKU", description = "创建商品及至少一个 SKU，并初始化可售库存")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CatalogPersistenceService.PersistedProduct create(@Valid @RequestBody CreateProductRequest request) {
+    public CreatedProductResponse create(@Valid @RequestBody CreateProductRequest request) {
         var currentUser = SecurityContextHolder.currentUser();
         TenantStoreScope scope = new TenantStoreScope(currentUser.tenantId(), currentUser.storeId(), currentUser.userId());
-        return catalogPersistenceService.createProduct(scope, new CatalogPersistenceService.CreateCatalogProductCommand(
+        return CreatedProductResponse.from(catalogPersistenceService.createProduct(scope, new CatalogPersistenceService.CreateCatalogProductCommand(
                 request.productName(), request.categoryName(), request.basePriceCent(), request.onShelf(),
                 request.skus().stream().map(sku -> new CatalogPersistenceService.CreateCatalogSkuCommand(
-                        sku.specificationText(), sku.skuCode(), sku.priceCent(), sku.initialStock(), sku.warningStock())).toList()));
+                        sku.specificationText(), sku.skuCode(), sku.priceCent(), sku.initialStock(), sku.warningStock())).toList())));
     }
 
-    @Operation(summary = "查询商品列表")
+    @Operation(summary = "查询商品列表", description = "查询当前租户和门店下的商品、SKU 与库存概要")
     @GetMapping
-    public List<CatalogPersistenceService.AdminProduct> list() { return catalogPersistenceService.listProducts(scope()); }
+    public List<ProductResponse> list() { return catalogPersistenceService.listProducts(scope()).stream().map(ProductResponse::from).toList(); }
 
     private TenantStoreScope scope() { var user=SecurityContextHolder.currentUser(); return new TenantStoreScope(user.tenantId(),user.storeId(),user.userId()); }
 }

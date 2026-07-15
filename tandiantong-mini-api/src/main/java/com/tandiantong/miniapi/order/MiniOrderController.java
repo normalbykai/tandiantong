@@ -1,6 +1,7 @@
 package com.tandiantong.miniapi.order;
 
 import com.tandiantong.miniapi.order.dto.CreateOrderRequest;
+import com.tandiantong.miniapi.order.dto.OrderResponse;
 import com.tandiantong.order.app.PersistentOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/mini/v1/orders")
-@Tag(name = "小程序订单")
+@Tag(name = "小程序订单", description = "顾客在微信小程序中创建商品订单")
 public class MiniOrderController {
 
     private final PersistentOrderService persistentOrderService;
@@ -26,12 +27,12 @@ public class MiniOrderController {
         this.persistentOrderService = persistentOrderService;
     }
 
-    @Operation(summary = "创建商品订单")
+    @Operation(summary = "创建商品订单", description = "根据商户入口码、商品明细和幂等键创建待支付商品订单")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PersistentOrderService.PersistentOrderResult create(@Valid @RequestBody CreateOrderRequest request) {
-        return persistentOrderService.createOrder(request.sceneKey(), new PersistentOrderService.PersistentCreateOrderCommand(
+    public OrderResponse create(@Valid @RequestBody CreateOrderRequest request) {
+        return OrderResponse.from(persistentOrderService.createOrder(request.sceneKey(), new PersistentOrderService.PersistentCreateOrderCommand(
                 request.idempotencyKey(), request.contactMobile(), request.pickupTimeText(), request.lines().stream()
-                        .map(line -> new PersistentOrderService.PersistentOrderLineCommand(line.skuId(), line.quantity())).toList()));
+                        .map(line -> new PersistentOrderService.PersistentOrderLineCommand(line.skuId(), line.quantity())).toList())));
     }
 }

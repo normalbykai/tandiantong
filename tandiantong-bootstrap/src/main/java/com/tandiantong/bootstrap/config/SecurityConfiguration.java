@@ -30,7 +30,8 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/platform/v1/health", "/api/callback/**", "/actuator/health",
-                                "/foundation-test/**").permitAll()
+                                "/foundation-test/**", "/doc.html", "/webjars/**", "/swagger-ui/**",
+                                "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/mini/v1/catalog/products").permitAll()
                         .requestMatchers("/api/mini/v1/orders", "/api/callback/wechat-pay").permitAll()
                         .requestMatchers("/api/mini/v1/reservations", "/api/mini/v1/reservations/services").permitAll()
