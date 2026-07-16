@@ -53,4 +53,17 @@ public interface SalesOrderMapper extends BaseMapper<SalesOrderEntity> {
     int updateStatus(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId,
                      @Param("orderNo") String orderNo, @Param("currentStatus") String currentStatus,
                      @Param("targetStatus") String targetStatus);
+
+    /**
+     * 按当前状态原子取消订单并记录取消时间和原因。
+     */
+    @Update("""
+            update sales_order set status = #{targetStatus}, canceled_at = #{canceledAt}, cancel_reason = #{cancelReason}
+             where tenant_id = #{tenantId} and store_id = #{storeId} and order_no = #{orderNo}
+               and status = #{currentStatus}
+            """)
+    int updateCanceledStatus(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId,
+                             @Param("orderNo") String orderNo, @Param("currentStatus") String currentStatus,
+                             @Param("targetStatus") String targetStatus, @Param("canceledAt") LocalDateTime canceledAt,
+                             @Param("cancelReason") String cancelReason);
 }

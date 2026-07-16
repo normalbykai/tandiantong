@@ -47,6 +47,15 @@ public class SalesOrderEntity {
     /** 微信预支付编号。 */
     private String prepayId;
 
+    /** 订单取消原因。 */
+    private String cancelReason;
+
+    /** 订单取消时间。 */
+    private LocalDateTime canceledAt;
+
+    /** 订单超时取消时间。 */
+    private LocalDateTime expireAt;
+
     /** 支付成功时间。 */
     private LocalDateTime paidAt;
 

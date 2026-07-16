@@ -41,6 +41,18 @@ public class RefundRecordEntity {
     /** 退款原因。 */
     private String reason;
 
+    /** 退款重试次数。 */
+    private Integer retryCount;
+
+    /** 下次重试时间。 */
+    private LocalDateTime nextRetryAt;
+
+    /** 最后一次失败原因。 */
+    private String lastErrorMessage;
+
+    /** 人工排查状态。 */
+    private String reviewStatus;
+
     /** 创建时间。 */
     private LocalDateTime createdAt;
 

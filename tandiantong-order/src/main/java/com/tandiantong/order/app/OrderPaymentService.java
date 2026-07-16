@@ -1,6 +1,7 @@
 package com.tandiantong.order.app;
 
 import com.tandiantong.catalog.product.CatalogInventoryService;
+import com.tandiantong.catalog.product.CatalogInventoryService.AddonQuote;
 import com.tandiantong.catalog.product.ProductSkuProfile;
 import com.tandiantong.catalog.tenant.TenantStoreScope;
 import com.tandiantong.common.api.ErrorCode;
@@ -13,7 +14,6 @@ import com.tandiantong.order.domain.PaymentRecord;
 import com.tandiantong.order.domain.RefundRecord;
 import com.tandiantong.order.domain.RefundStatus;
 import com.tandiantong.order.domain.SalesOrder;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -49,14 +49,13 @@ public class OrderPaymentService {
         int payAmountCent = 0;
         for (OrderSkuSelection selection : command.selections()) {
             ProductSkuProfile sku = catalogInventoryService.findSku(scope, selection.skuId());
-            int addonAmountCent = selection.addonNames().stream()
-                    .mapToInt(this::addonPriceCent)
-                    .sum();
-            int subtotal = (sku.priceCent() + addonAmountCent) * selection.quantity();
+            String productName = catalogInventoryService.findProductBySku(scope, selection.skuId()).productName();
+            AddonQuote addonQuote = catalogInventoryService.quoteAddonSelection(sku.productId(), selection.addonNames());
+            int subtotal = (sku.priceCent() + addonQuote.addonAmountCent()) * selection.quantity();
             payAmountCent += subtotal;
             snapshots.add(new OrderItemSnapshot(idSequence.incrementAndGet(), orderNo, sku.skuId(),
-                    "桂花拿铁", sku.specificationText(), List.copyOf(selection.addonNames()),
-                    sku.priceCent(), addonAmountCent, selection.quantity(), subtotal));
+                    productName, sku.specificationText(), List.copyOf(addonQuote.addonNames()),
+                    sku.priceCent(), addonQuote.addonAmountCent(), selection.quantity(), subtotal));
         }
         SalesOrder order = new SalesOrder(idSequence.incrementAndGet(), scope.tenantId(), scope.storeId(),
                 null, orderNo, OrderStatus.PENDING_PAYMENT, payAmountCent, command.contactMobile(),
@@ -155,19 +154,17 @@ public class OrderPaymentService {
         if (command.selections() == null || command.selections().isEmpty()) {
             throw businessError("订单至少需要一个商品");
         }
+        if (command.contactMobile() == null || !command.contactMobile().matches("1\\d{10}")) {
+            throw businessError("联系电话不合法");
+        }
         for (OrderSkuSelection selection : command.selections()) {
             if (selection.quantity() <= 0) {
                 throw businessError("商品数量必须大于零");
             }
+            if (selection.addonNames() == null) {
+                throw businessError("加料选择不能为空");
+            }
         }
-    }
-
-    private int addonPriceCent(String addonName) {
-        return switch (addonName) {
-            case "燕麦奶" -> 300;
-            case "浓缩咖啡" -> 400;
-            default -> throw businessError("加料项不存在或已停用");
-        };
     }
 
     private void ensureOrderBelongsToScope(TenantStoreScope scope, SalesOrder order) {

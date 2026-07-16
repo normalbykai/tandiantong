@@ -2,6 +2,8 @@ package com.tandiantong.order.app;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.tandiantong.catalog.inventory.InventoryApplicationService;
+import com.tandiantong.catalog.product.CatalogInventoryService;
+import com.tandiantong.catalog.product.CatalogInventoryService.AddonQuote;
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
 import com.tandiantong.integration.wechatpay.WechatPayClient;
@@ -21,6 +23,7 @@ import com.tandiantong.security.tenant.MerchantSceneService.MerchantSceneScope;
 import com.tandiantong.verification.app.VerificationPersistenceService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 商品订单应用服务，负责下单、支付确认、整单退款和交易幂等编排。
+ * 商品订单应用服务，负责创建、查询、取消、支付确认、退款和重试。
  */
 @Service
 @RequiredArgsConstructor
@@ -38,52 +41,43 @@ public class PersistentOrderService {
 
     private static final ZoneId BUSINESS_ZONE_ID = ZoneId.of("Asia/Shanghai");
     private static final String ORDER_DESCRIPTION = "摊点通商品订单";
-    private static final String EMPTY_ADDON_SNAPSHOT = "";
-    private static final int ZERO_ADDON_AMOUNT_CENT = 0;
 
     private final SalesOrderMapper salesOrderMapper;
     private final SalesOrderItemMapper salesOrderItemMapper;
     private final BusinessIdempotencyRecordMapper idempotencyRecordMapper;
     private final PaymentRecordMapper paymentRecordMapper;
     private final RefundRecordMapper refundRecordMapper;
+    private final CatalogInventoryService catalogInventoryService;
     private final InventoryApplicationService inventoryApplicationService;
     private final MerchantSceneService merchantSceneService;
     private final WechatPayClient wechatPayClient;
     private final VerificationPersistenceService verificationPersistenceService;
 
-    /**
-     * 创建商品订单并锁定库存，同一租户下相同幂等键返回首次创建结果。
-     */
     @Transactional
     public PersistentOrderResult createOrder(String sceneKey, PersistentCreateOrderCommand command) {
         MerchantSceneScope scope = merchantSceneService.resolveEnabledScene(sceneKey);
         validate(command);
-        BusinessIdempotencyRecordEntity previous = findIdempotency(
-                scope.tenantId(), BusinessType.ORDER_CREATE, command.idempotencyKey());
+        BusinessIdempotencyRecordEntity previous = findIdempotency(scope.tenantId(), BusinessType.ORDER_CREATE, command.idempotencyKey());
         if (previous != null) {
             return findCreatedOrder(scope.tenantId(), previous.getBusinessNo());
         }
 
         String orderNo = "SO" + scope.tenantId() + randomPart(16);
-        List<OrderLine> lines = command.lines().stream()
-                .map(line -> lockAndPrice(scope, line, orderNo))
-                .toList();
+        List<OrderLine> lines = new ArrayList<>();
+        for (PersistentOrderLineCommand lineCommand : command.lines()) {
+            lines.add(lockAndPrice(scope, lineCommand, orderNo));
+        }
         int amountCent = lines.stream().mapToInt(OrderLine::subtotalCent).sum();
         WechatPrepayResult prepay = wechatPayClient.createPrepay(orderNo, amountCent, ORDER_DESCRIPTION);
         insertOrder(scope, orderNo, amountCent, command.contactMobile(), command.pickupTimeText(), prepay.prepayId());
         lines.forEach(line -> insertOrderItem(scope, orderNo, line));
-        insertIdempotency(scope.tenantId(), command.idempotencyKey(), BusinessType.ORDER_CREATE,
-                orderNo, PersistenceResult.SUCCESS.code());
+        insertIdempotency(scope.tenantId(), command.idempotencyKey(), BusinessType.ORDER_CREATE, orderNo, PersistenceResult.SUCCESS.code());
         return new PersistentOrderResult(orderNo, amountCent, OrderStatus.PENDING_PAYMENT.code(),
                 prepay.prepayId(), prepay.payNonce(), null, null);
     }
 
-    /**
-     * 处理微信支付成功回调，使用订单号反查可信租户并保证状态条件更新最多成功一次。
-     */
     @Transactional
-    public PersistentOrderResult confirmPayment(String orderNo, String transactionId,
-                                                int amountCent, String signature) {
+    public PersistentOrderResult confirmPayment(String orderNo, String transactionId, int amountCent, String signature) {
         SalesOrderEntity order = findOrderForCallback(orderNo);
         if (!wechatPayClient.verifyCallback(orderNo, transactionId, amountCent, signature)) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "微信支付回调验签失败");
@@ -95,15 +89,13 @@ public class PersistentOrderService {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "订单支付状态或金额不正确");
         }
         int updated = salesOrderMapper.updatePaidStatus(order.getTenantId(), orderNo,
-                OrderStatus.PENDING_PAYMENT.code(), OrderStatus.PENDING_VERIFY.code(),
-                LocalDateTime.now(BUSINESS_ZONE_ID));
+                OrderStatus.PENDING_PAYMENT.code(), OrderStatus.PENDING_VERIFY.code(), LocalDateTime.now(BUSINESS_ZONE_ID));
         if (updated == 0) {
             return findCreatedOrder(order.getTenantId(), orderNo);
         }
         insertPaymentRecord(order, transactionId, amountCent);
         for (OrderLine line : orderLines(order)) {
-            inventoryApplicationService.confirmPayment(order.getTenantId(), order.getStoreId(),
-                    line.skuId(), line.quantity(), orderNo);
+            inventoryApplicationService.confirmPayment(order.getTenantId(), order.getStoreId(), line.skuId(), line.quantity(), orderNo);
         }
         VerificationPersistenceService.Credential credential = verificationPersistenceService
                 .issueOrderCredential(order.getTenantId(), order.getStoreId(), orderNo, "商品订单 " + orderNo);
@@ -111,14 +103,9 @@ public class PersistentOrderService {
                 order.getPrepayId(), "", credential.pickupNo(), credential.token());
     }
 
-    /**
-     * 对待核销订单发起整单退款，同一幂等键不会重复调用外部退款。
-     */
     @Transactional
-    public RefundResult refund(Long tenantId, Long storeId, String orderNo,
-                               String idempotencyKey, String reason) {
-        BusinessIdempotencyRecordEntity previous = findIdempotency(
-                tenantId, BusinessType.ORDER_REFUND, idempotencyKey);
+    public RefundResult refund(Long tenantId, Long storeId, String orderNo, String idempotencyKey, String reason) {
+        BusinessIdempotencyRecordEntity previous = findIdempotency(tenantId, BusinessType.ORDER_REFUND, idempotencyKey);
         if (previous != null) {
             RefundRecordEntity refund = refundRecordMapper.selectOne(Wrappers.<RefundRecordEntity>lambdaQuery()
                     .eq(RefundRecordEntity::getTenantId, tenantId)
@@ -127,7 +114,6 @@ public class PersistentOrderService {
                 return new RefundResult(refund.getRefundNo(), refund.getStatus(), refund.getAmountCent());
             }
         }
-
         SalesOrderEntity order = salesOrderMapper.selectForUpdate(tenantId, storeId, orderNo);
         if (order == null) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
@@ -141,33 +127,124 @@ public class PersistentOrderService {
         if (changed != 1) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "订单状态已变化，请勿重复退款");
         }
-
         var external = wechatPayClient.refund(orderNo, refundNo, order.getPayAmountCent(), reason);
         RefundStatus refundStatus = external.success() ? RefundStatus.SUCCESS : RefundStatus.FAILED;
-        insertRefundRecord(order, refundNo, refundStatus, reason);
+        insertRefundRecord(order, refundNo, refundStatus, reason, 0, external.success() ? null : external.message(),
+                external.success() ? "SUCCESS" : "PENDING_RETRY");
         if (external.success()) {
-            for (OrderLine line : orderLines(order)) {
-                inventoryApplicationService.restoreAfterRefund(tenantId, storeId,
-                        line.skuId(), line.quantity(), refundNo);
-            }
+            restoreOrderInventory(order, refundNo);
             salesOrderMapper.updateStatus(tenantId, storeId, orderNo,
                     OrderStatus.REFUNDING.code(), OrderStatus.REFUNDED.code());
             verificationPersistenceService.cancelOrderCredential(tenantId, storeId, orderNo);
         }
-        insertIdempotency(tenantId, idempotencyKey, BusinessType.ORDER_REFUND,
-                refundNo, refundStatus.code());
+        insertIdempotency(tenantId, idempotencyKey, BusinessType.ORDER_REFUND, refundNo, refundStatus.code());
+        return new RefundResult(refundNo, refundStatus.code(), order.getPayAmountCent());
+    }
+
+    public List<OrderSummaryView> listCustomerOrders(Long tenantId, Long storeId, String contactMobile, String status) {
+        return salesOrderMapper.selectList(Wrappers.<SalesOrderEntity>lambdaQuery()
+                        .eq(SalesOrderEntity::getTenantId, tenantId)
+                        .eq(SalesOrderEntity::getStoreId, storeId)
+                        .eq(contactMobile != null && !contactMobile.isBlank(), SalesOrderEntity::getContactMobile, contactMobile)
+                        .eq(status != null && !status.isBlank(), SalesOrderEntity::getStatus, status)
+                        .orderByDesc(SalesOrderEntity::getCreatedAt))
+                .stream().map(this::toSummaryView).toList();
+    }
+
+    public OrderDetailView getCustomerOrderDetail(Long tenantId, Long storeId, String orderNo, String contactMobile) {
+        SalesOrderEntity order = salesOrderMapper.selectOne(Wrappers.<SalesOrderEntity>lambdaQuery()
+                .eq(SalesOrderEntity::getTenantId, tenantId)
+                .eq(SalesOrderEntity::getStoreId, storeId)
+                .eq(SalesOrderEntity::getOrderNo, orderNo)
+                .eq(contactMobile != null && !contactMobile.isBlank(), SalesOrderEntity::getContactMobile, contactMobile));
+        if (order == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
+        }
+        List<OrderItemView> items = orderLines(order).stream().map(this::toItemView).toList();
+        List<RefundView> refunds = refundRecordMapper.selectList(Wrappers.<RefundRecordEntity>lambdaQuery()
+                        .eq(RefundRecordEntity::getTenantId, tenantId)
+                        .eq(RefundRecordEntity::getStoreId, storeId)
+                        .eq(RefundRecordEntity::getOrderNo, orderNo)
+                        .orderByDesc(RefundRecordEntity::getCreatedAt))
+                .stream().map(this::toRefundView).toList();
+        PaymentRecordEntity payment = paymentRecordMapper.selectOne(Wrappers.<PaymentRecordEntity>lambdaQuery()
+                .eq(PaymentRecordEntity::getTenantId, tenantId)
+                .eq(PaymentRecordEntity::getStoreId, storeId)
+                .eq(PaymentRecordEntity::getOrderNo, orderNo));
+        return new OrderDetailView(toSummaryView(order), items, refunds, payment == null ? null : payment.getTransactionId());
+    }
+
+    @Transactional
+    public void cancelPendingOrder(Long tenantId, Long storeId, String orderNo, String reason) {
+        SalesOrderEntity order = salesOrderMapper.selectForUpdate(tenantId, storeId, orderNo);
+        if (order == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
+        }
+        if (!OrderStatus.PENDING_PAYMENT.matches(order.getStatus())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "只有待支付订单可以取消");
+        }
+        restoreOrderInventory(order, orderNo);
+        int changed = salesOrderMapper.updateCanceledStatus(tenantId, storeId, orderNo,
+                OrderStatus.PENDING_PAYMENT.code(), OrderStatus.CANCELED.code(), LocalDateTime.now(BUSINESS_ZONE_ID), reason);
+        if (changed != 1) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "订单状态已变化，请勿重复取消");
+        }
+    }
+
+    @Transactional
+    public int cancelExpiredPendingOrders(Long tenantId, Long storeId, LocalDateTime expireBefore) {
+        List<SalesOrderEntity> candidates = salesOrderMapper.selectList(Wrappers.<SalesOrderEntity>lambdaQuery()
+                .eq(SalesOrderEntity::getTenantId, tenantId)
+                .eq(SalesOrderEntity::getStoreId, storeId)
+                .eq(SalesOrderEntity::getStatus, OrderStatus.PENDING_PAYMENT.code())
+                .le(SalesOrderEntity::getExpireAt, expireBefore));
+        int count = 0;
+        for (SalesOrderEntity order : candidates) {
+            cancelPendingOrder(tenantId, storeId, order.getOrderNo(), "订单超时自动取消");
+            count++;
+        }
+        return count;
+    }
+
+    @Transactional
+    public RefundResult retryFailedRefund(Long tenantId, Long storeId, String orderNo, String idempotencyKey, String reason) {
+        RefundRecordEntity latestRefund = findLatestRefundRecord(tenantId, storeId, orderNo);
+        if (latestRefund == null || !RefundStatus.FAILED.code().equals(latestRefund.getStatus())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "当前订单没有可重试的退款失败记录");
+        }
+        Integer retryCount = latestRefund.getRetryCount() == null ? 0 : latestRefund.getRetryCount();
+        if (retryCount >= 3) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "退款重试已达上限，请人工排查");
+        }
+        SalesOrderEntity order = salesOrderMapper.selectForUpdate(tenantId, storeId, orderNo);
+        if (order == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "订单不存在");
+        }
+        String refundNo = "RF" + tenantId + randomPart(14);
+        var external = wechatPayClient.refund(orderNo, refundNo, order.getPayAmountCent(), reason);
+        RefundStatus refundStatus = external.success() ? RefundStatus.SUCCESS : RefundStatus.FAILED;
+        insertRefundRecord(order, refundNo, refundStatus, reason, retryCount + 1,
+                external.success() ? null : external.message(),
+                external.success() ? "SUCCESS" : (retryCount + 1 >= 3 ? "MANUAL_REVIEW" : "PENDING_RETRY"));
+        if (external.success()) {
+            restoreOrderInventory(order, refundNo);
+            salesOrderMapper.updateStatus(tenantId, storeId, orderNo,
+                    OrderStatus.REFUNDING.code(), OrderStatus.REFUNDED.code());
+            verificationPersistenceService.cancelOrderCredential(tenantId, storeId, orderNo);
+        }
+        insertIdempotency(tenantId, idempotencyKey, BusinessType.ORDER_REFUND, refundNo, refundStatus.code());
         return new RefundResult(refundNo, refundStatus.code(), order.getPayAmountCent());
     }
 
     private OrderLine lockAndPrice(MerchantSceneScope scope, PersistentOrderLineCommand line, String orderNo) {
-        InventoryApplicationService.PricedSku sku = inventoryApplicationService.lockAndPrice(
-                scope.tenantId(), scope.storeId(), line.skuId(), line.quantity(), orderNo);
+        InventoryApplicationService.PricedSku sku = inventoryApplicationService.lockAndPrice(scope.tenantId(), scope.storeId(), line.skuId(), line.quantity(), orderNo);
+        AddonQuote addonQuote = catalogInventoryService.quoteAddonSelection(sku.productId(), line.addonNames());
         return new OrderLine(sku.skuId(), sku.productName(), sku.specificationText(),
-                sku.unitPriceCent(), sku.quantity(), sku.subtotalCent());
+                sku.unitPriceCent(), addonQuote.addonAmountCent(), sku.quantity(),
+                (sku.unitPriceCent() + addonQuote.addonAmountCent()) * sku.quantity(), addonQuote.addonNames());
     }
 
-    private void insertOrder(MerchantSceneScope scope, String orderNo, int amountCent,
-                             String mobile, String pickupTime, String prepayId) {
+    private void insertOrder(MerchantSceneScope scope, String orderNo, int amountCent, String mobile, String pickupTime, String prepayId) {
         SalesOrderEntity order = new SalesOrderEntity();
         order.setTenantId(scope.tenantId());
         order.setStoreId(scope.storeId());
@@ -177,6 +254,7 @@ public class PersistentOrderService {
         order.setContactMobile(mobile);
         order.setPickupTimeText(pickupTime);
         order.setPrepayId(prepayId);
+        order.setExpireAt(LocalDateTime.now(BUSINESS_ZONE_ID).plusMinutes(15));
         salesOrderMapper.insert(order);
     }
 
@@ -188,9 +266,9 @@ public class PersistentOrderService {
         item.setSkuId(line.skuId());
         item.setProductName(line.productName());
         item.setSkuText(line.specificationText());
-        item.setAddonSnapshot(EMPTY_ADDON_SNAPSHOT);
+        item.setAddonSnapshot(String.join(",", line.addonNames()));
         item.setUnitPriceCent(line.unitPriceCent());
-        item.setAddonAmountCent(ZERO_ADDON_AMOUNT_CENT);
+        item.setAddonAmountCent(line.addonAmountCent());
         item.setQuantity(line.quantity());
         item.setSubtotalCent(line.subtotalCent());
         salesOrderItemMapper.insert(item);
@@ -203,13 +281,17 @@ public class PersistentOrderService {
         payment.setOrderNo(order.getOrderNo());
         payment.setTransactionId(transactionId);
         payment.setAmountCent(amountCent);
-        payment.setStatus(PaymentStatus.SUCCESS.code());
+        payment.setStatus("SUCCESS");
         payment.setPaidAt(LocalDateTime.now(BUSINESS_ZONE_ID));
         paymentRecordMapper.insert(payment);
     }
 
-    private void insertRefundRecord(SalesOrderEntity order, String refundNo,
-                                    RefundStatus status, String reason) {
+    private void insertRefundRecord(SalesOrderEntity order, String refundNo, RefundStatus status, String reason) {
+        insertRefundRecord(order, refundNo, status, reason, 0, null, status == RefundStatus.SUCCESS ? "SUCCESS" : "PENDING_RETRY");
+    }
+
+    private void insertRefundRecord(SalesOrderEntity order, String refundNo, RefundStatus status, String reason,
+                                    int retryCount, String lastErrorMessage, String reviewStatus) {
         RefundRecordEntity refund = new RefundRecordEntity();
         refund.setTenantId(order.getTenantId());
         refund.setStoreId(order.getStoreId());
@@ -218,7 +300,20 @@ public class PersistentOrderService {
         refund.setAmountCent(order.getPayAmountCent());
         refund.setStatus(status.code());
         refund.setReason(reason);
+        refund.setRetryCount(retryCount);
+        refund.setNextRetryAt(status == RefundStatus.FAILED ? LocalDateTime.now(BUSINESS_ZONE_ID).plusMinutes(15) : null);
+        refund.setLastErrorMessage(lastErrorMessage);
+        refund.setReviewStatus(reviewStatus);
         refundRecordMapper.insert(refund);
+    }
+
+    private RefundRecordEntity findLatestRefundRecord(Long tenantId, Long storeId, String orderNo) {
+        return refundRecordMapper.selectOne(Wrappers.<RefundRecordEntity>lambdaQuery()
+                .eq(RefundRecordEntity::getTenantId, tenantId)
+                .eq(RefundRecordEntity::getStoreId, storeId)
+                .eq(RefundRecordEntity::getOrderNo, orderNo)
+                .orderByDesc(RefundRecordEntity::getCreatedAt)
+                .last("limit 1"));
     }
 
     private BusinessIdempotencyRecordEntity findIdempotency(Long tenantId, BusinessType type, String key) {
@@ -228,8 +323,7 @@ public class PersistentOrderService {
                 .eq(BusinessIdempotencyRecordEntity::getIdempotencyKey, key));
     }
 
-    private void insertIdempotency(Long tenantId, String key, BusinessType type,
-                                   String businessNo, String resultStatus) {
+    private void insertIdempotency(Long tenantId, String key, BusinessType type, String businessNo, String resultStatus) {
         BusinessIdempotencyRecordEntity record = new BusinessIdempotencyRecordEntity();
         record.setTenantId(tenantId);
         record.setIdempotencyKey(key);
@@ -262,6 +356,21 @@ public class PersistentOrderService {
                 order.getPrepayId(), "", null, null);
     }
 
+    private OrderSummaryView toSummaryView(SalesOrderEntity order) {
+        return new OrderSummaryView(order.getOrderNo(), order.getStatus(), order.getPayAmountCent(),
+                order.getContactMobile(), order.getPickupTimeText(), order.getCreatedAt(), order.getExpireAt());
+    }
+
+    private OrderItemView toItemView(OrderLine line) {
+        return new OrderItemView(line.skuId(), line.productName(), line.specificationText(),
+                line.unitPriceCent(), line.addonAmountCent(), line.quantity(), line.subtotalCent(), line.addonNames());
+    }
+
+    private RefundView toRefundView(RefundRecordEntity refund) {
+        return new RefundView(refund.getRefundNo(), refund.getStatus(), refund.getAmountCent(),
+                refund.getRetryCount(), refund.getReviewStatus(), refund.getLastErrorMessage(), refund.getNextRetryAt());
+    }
+
     private List<OrderLine> orderLines(SalesOrderEntity order) {
         return salesOrderItemMapper.selectList(Wrappers.<SalesOrderItemEntity>lambdaQuery()
                         .eq(SalesOrderItemEntity::getTenantId, order.getTenantId())
@@ -269,8 +378,17 @@ public class PersistentOrderService {
                         .eq(SalesOrderItemEntity::getOrderNo, order.getOrderNo()))
                 .stream()
                 .map(item -> new OrderLine(item.getSkuId(), item.getProductName(), item.getSkuText(),
-                        item.getUnitPriceCent(), item.getQuantity(), item.getSubtotalCent()))
+                        item.getUnitPriceCent(), item.getAddonAmountCent(), item.getQuantity(), item.getSubtotalCent(),
+                        item.getAddonSnapshot() == null || item.getAddonSnapshot().isBlank()
+                                ? List.of() : List.of(item.getAddonSnapshot().split(","))))
                 .toList();
+    }
+
+    private void restoreOrderInventory(SalesOrderEntity order, String businessNo) {
+        for (OrderLine line : orderLines(order)) {
+            inventoryApplicationService.restoreAfterRefund(order.getTenantId(), order.getStoreId(),
+                    line.skuId(), line.quantity(), businessNo);
+        }
     }
 
     private void validate(PersistentCreateOrderCommand command) {
@@ -289,12 +407,45 @@ public class PersistentOrderService {
     }
 
     /** 创建订单命令。 */
-    public record PersistentCreateOrderCommand(String idempotencyKey, String contactMobile,
-                                               String pickupTimeText, List<PersistentOrderLineCommand> lines) {
+    public static class PersistentCreateOrderCommand {
+        private final String idempotencyKey;
+        private final String contactMobile;
+        private final String pickupTimeText;
+        private final List<PersistentOrderLineCommand> lines;
+
+        public PersistentCreateOrderCommand(String idempotencyKey, String contactMobile,
+                                            String pickupTimeText, List<PersistentOrderLineCommand> lines) {
+            this.idempotencyKey = idempotencyKey;
+            this.contactMobile = contactMobile;
+            this.pickupTimeText = pickupTimeText;
+            this.lines = lines;
+        }
+
+        public String idempotencyKey() { return idempotencyKey; }
+        public String contactMobile() { return contactMobile; }
+        public String pickupTimeText() { return pickupTimeText; }
+        public List<PersistentOrderLineCommand> lines() { return lines; }
     }
 
     /** 创建订单的单个商品命令。 */
-    public record PersistentOrderLineCommand(Long skuId, int quantity) {
+    public static class PersistentOrderLineCommand {
+        private final Long skuId;
+        private final int quantity;
+        private final List<String> addonNames;
+
+        public PersistentOrderLineCommand(Long skuId, int quantity) {
+            this(skuId, quantity, List.of());
+        }
+
+        public PersistentOrderLineCommand(Long skuId, int quantity, List<String> addonNames) {
+            this.skuId = skuId;
+            this.quantity = quantity;
+            this.addonNames = addonNames == null ? List.of() : List.copyOf(addonNames);
+        }
+
+        public Long skuId() { return skuId; }
+        public int quantity() { return quantity; }
+        public List<String> addonNames() { return addonNames; }
     }
 
     /** 商品订单处理结果。 */
@@ -307,72 +458,151 @@ public class PersistentOrderService {
     public record RefundResult(String refundNo, String status, int amountCent) {
     }
 
-    /** 订单商品成交快照。 */
+    /** 顾客订单列表项。 */
+    public static class OrderSummaryView {
+        private final String orderNo;
+        private final String status;
+        private final int payAmountCent;
+        private final String contactMobile;
+        private final String pickupTimeText;
+        private final LocalDateTime createdAt;
+        private final LocalDateTime expireAt;
+
+        public OrderSummaryView(String orderNo, String status, int payAmountCent, String contactMobile,
+                                String pickupTimeText, LocalDateTime createdAt, LocalDateTime expireAt) {
+            this.orderNo = orderNo;
+            this.status = status;
+            this.payAmountCent = payAmountCent;
+            this.contactMobile = contactMobile;
+            this.pickupTimeText = pickupTimeText;
+            this.createdAt = createdAt;
+            this.expireAt = expireAt;
+        }
+
+        public String getOrderNo() { return orderNo; }
+        public String getStatus() { return status; }
+        public int getPayAmountCent() { return payAmountCent; }
+        public String getContactMobile() { return contactMobile; }
+        public String getPickupTimeText() { return pickupTimeText; }
+        public LocalDateTime getCreatedAt() { return createdAt; }
+        public LocalDateTime getExpireAt() { return expireAt; }
+    }
+
+    /** 顾客订单详情。 */
+    public static class OrderDetailView {
+        private final OrderSummaryView order;
+        private final List<OrderItemView> items;
+        private final List<RefundView> refunds;
+        private final String transactionId;
+
+        public OrderDetailView(OrderSummaryView order, List<OrderItemView> items,
+                               List<RefundView> refunds, String transactionId) {
+            this.order = order;
+            this.items = List.copyOf(items);
+            this.refunds = List.copyOf(refunds);
+            this.transactionId = transactionId;
+        }
+
+        public OrderSummaryView getOrder() { return order; }
+        public List<OrderItemView> getItems() { return items; }
+        public List<RefundView> getRefunds() { return refunds; }
+        public String getTransactionId() { return transactionId; }
+    }
+
+    /** 顾客订单明细。 */
+    public static class OrderItemView {
+        private final Long skuId;
+        private final String productName;
+        private final String skuText;
+        private final int unitPriceCent;
+        private final int addonAmountCent;
+        private final int quantity;
+        private final int subtotalCent;
+        private final List<String> addonNames;
+
+        public OrderItemView(Long skuId, String productName, String skuText, int unitPriceCent,
+                             int addonAmountCent, int quantity, int subtotalCent, List<String> addonNames) {
+            this.skuId = skuId;
+            this.productName = productName;
+            this.skuText = skuText;
+            this.unitPriceCent = unitPriceCent;
+            this.addonAmountCent = addonAmountCent;
+            this.quantity = quantity;
+            this.subtotalCent = subtotalCent;
+            this.addonNames = List.copyOf(addonNames);
+        }
+
+        public Long getSkuId() { return skuId; }
+        public String getProductName() { return productName; }
+        public String getSkuText() { return skuText; }
+        public int getUnitPriceCent() { return unitPriceCent; }
+        public int getAddonAmountCent() { return addonAmountCent; }
+        public int getQuantity() { return quantity; }
+        public int getSubtotalCent() { return subtotalCent; }
+        public List<String> getAddonNames() { return addonNames; }
+    }
+
+    /** 退款明细视图。 */
+    public static class RefundView {
+        private final String refundNo;
+        private final String status;
+        private final int amountCent;
+        private final Integer retryCount;
+        private final String reviewStatus;
+        private final String lastErrorMessage;
+        private final LocalDateTime nextRetryAt;
+
+        public RefundView(String refundNo, String status, int amountCent, Integer retryCount,
+                          String reviewStatus, String lastErrorMessage, LocalDateTime nextRetryAt) {
+            this.refundNo = refundNo;
+            this.status = status;
+            this.amountCent = amountCent;
+            this.retryCount = retryCount;
+            this.reviewStatus = reviewStatus;
+            this.lastErrorMessage = lastErrorMessage;
+            this.nextRetryAt = nextRetryAt;
+        }
+
+        public String getRefundNo() { return refundNo; }
+        public String getStatus() { return status; }
+        public int getAmountCent() { return amountCent; }
+        public Integer getRetryCount() { return retryCount; }
+        public String getReviewStatus() { return reviewStatus; }
+        public String getLastErrorMessage() { return lastErrorMessage; }
+        public LocalDateTime getNextRetryAt() { return nextRetryAt; }
+    }
+
     private record OrderLine(Long skuId, String productName, String specificationText,
-                             int unitPriceCent, int quantity, int subtotalCent) {
+                             int unitPriceCent, int addonAmountCent, int quantity, int subtotalCent,
+                             List<String> addonNames) {
     }
 
-    /** 订单业务状态。 */
     private enum OrderStatus {
-        /** 订单已创建，等待顾客支付。 */
         PENDING_PAYMENT,
-        /** 订单已支付，等待商户核销。 */
         PENDING_VERIFY,
-        /** 订单正在退款处理中。 */
         REFUNDING,
-        /** 订单已完成退款。 */
-        REFUNDED;
+        REFUNDED,
+        CANCELED,
+        COMPLETED;
 
-        String code() {
-            return name();
-        }
-
-        boolean matches(String value) {
-            return code().equals(value);
-        }
+        String code() { return name(); }
+        boolean matches(String value) { return code().equals(value); }
     }
 
-    /** 幂等业务类型。 */
     private enum BusinessType {
-        /** 创建商品订单幂等记录。 */
         ORDER_CREATE,
-        /** 商品订单整单退款幂等记录。 */
         ORDER_REFUND;
-
-        String code() {
-            return name();
-        }
+        String code() { return name(); }
     }
 
-    /** 持久化操作结果。 */
     private enum PersistenceResult {
-        /** 持久化操作成功。 */
         SUCCESS;
-
-        String code() {
-            return name();
-        }
+        String code() { return name(); }
     }
 
-    /** 支付记录状态。 */
-    private enum PaymentStatus {
-        /** 支付记录已确认成功。 */
-        SUCCESS;
-
-        String code() {
-            return name();
-        }
-    }
-
-    /** 退款记录状态。 */
     private enum RefundStatus {
-        /** 退款处理成功。 */
         SUCCESS,
-        /** 退款处理失败。 */
         FAILED;
-
-        String code() {
-            return name();
-        }
+        String code() { return name(); }
     }
 }

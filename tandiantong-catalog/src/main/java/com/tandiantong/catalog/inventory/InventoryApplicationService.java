@@ -41,8 +41,10 @@ public class InventoryApplicationService {
         }
         ProductSkuEntity sku = requireSku(tenantId, storeId, skuId);
         insertRecord(sku, ORDER_LOCK_TYPE, quantity, orderNo, "订单锁定库存");
+        Object productIdValue = value(row, "product_id");
+        long productId = productIdValue == null ? skuId : ((Number) productIdValue).longValue();
         int priceCent = ((Number) value(row, "price_cent")).intValue();
-        return new PricedSku(skuId, String.valueOf(value(row, "product_name")),
+        return new PricedSku(skuId, productId, String.valueOf(value(row, "product_name")),
                 String.valueOf(value(row, "specification_text")), priceCent, quantity, priceCent * quantity);
     }
 
@@ -103,7 +105,7 @@ public class InventoryApplicationService {
     /**
      * 下单时固化的 SKU 成交快照。
      */
-    public record PricedSku(Long skuId, String productName, String specificationText,
+    public record PricedSku(Long skuId, Long productId, String productName, String specificationText,
                             int unitPriceCent, int quantity, int subtotalCent) {
     }
 }

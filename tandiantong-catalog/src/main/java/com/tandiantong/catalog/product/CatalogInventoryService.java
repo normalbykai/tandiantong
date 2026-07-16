@@ -70,10 +70,63 @@ public class CatalogInventoryService {
         return true;
     }
 
+    /**
+     * 按商品可用加料规则校验并返回加料金额。
+     */
+    public AddonQuote quoteAddonSelection(Long productId, List<String> selectedOptionNames) {
+        if (selectedOptionNames == null || selectedOptionNames.isEmpty()) {
+            return new AddonQuote(List.of(), 0);
+        }
+        List<AddonGroupProfile> groups = addonGroupsByProduct.getOrDefault(productId, List.of());
+        AddonGroupProfile matchedGroup = null;
+        Map<String, Integer> matchedOptions = Map.of();
+        for (AddonGroupProfile group : groups) {
+            Map<String, Integer> groupOptions = group.options().stream()
+                    .filter(AddonOptionProfile::enabled)
+                    .collect(Collectors.toMap(AddonOptionProfile::name, AddonOptionProfile::priceCent));
+            if (groupOptions.keySet().containsAll(selectedOptionNames)) {
+                if (matchedGroup != null) {
+                    throw businessError("加料项跨分组选择不合法");
+                }
+                matchedGroup = group;
+                matchedOptions = groupOptions;
+            }
+        }
+        if (matchedGroup == null) {
+            throw businessError("加料项不存在或已停用");
+        }
+        int selectedCount = selectedOptionNames.size();
+        if (selectedCount < matchedGroup.minSelect() || selectedCount > matchedGroup.maxSelect()) {
+            throw businessError("加料选择数量不符合要求");
+        }
+        int amountCent = 0;
+        for (String optionName : selectedOptionNames) {
+            Integer priceCent = matchedOptions.get(optionName);
+            if (priceCent == null) {
+                throw businessError("加料项不存在或已停用");
+            }
+            amountCent += priceCent;
+        }
+        return new AddonQuote(List.copyOf(selectedOptionNames), amountCent);
+    }
+
     public ProductSkuProfile findSku(TenantStoreScope scope, Long skuId) {
         ProductSkuProfile sku = skus.get(skuId);
         ensureSkuBelongsToScope(scope, sku);
         return sku;
+    }
+
+    /**
+     * 按 SKU 查询商品资料，用于下单快照固化商品名称。
+     */
+    public ProductProfile findProductBySku(TenantStoreScope scope, Long skuId) {
+        ProductSkuProfile sku = findSku(scope, skuId);
+        ProductProfile product = products.get(sku.productId());
+        if (product == null) {
+            throw businessError("商品资源不存在");
+        }
+        ensureProductBelongsToScope(scope, product);
+        return product;
     }
 
     public List<InventoryRecord> recordsOfSku(TenantStoreScope scope, Long skuId) {
@@ -233,6 +286,12 @@ public class CatalogInventoryService {
         }
     }
 
+    private void ensureProductBelongsToScope(TenantStoreScope scope, ProductProfile product) {
+        if (product == null || !product.tenantId().equals(scope.tenantId()) || !product.storeId().equals(scope.storeId())) {
+            throw businessError("商品资源不属于当前租户或门店");
+        }
+    }
+
     private void validatePositiveQuantity(int quantity) {
         if (quantity <= 0) {
             throw businessError("库存数量必须大于零");
@@ -250,5 +309,9 @@ public class CatalogInventoryService {
 
     private BusinessException businessError(String message) {
         return new BusinessException(ErrorCode.VALIDATION_FAILED, message);
+    }
+
+    /** 加料报价结果。 */
+    public record AddonQuote(List<String> addonNames, int addonAmountCent) {
     }
 }
