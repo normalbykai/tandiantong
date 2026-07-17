@@ -41,11 +41,20 @@ public class ServiceReservationEntity {
     /** 联系手机号。 */
     private String contactMobile;
 
+    /** 支付金额，单位为分。 */
+    private Integer payAmountCent;
+
+    /** 微信预支付标识。 */
+    private String prepayId;
+
     /** 预约凭证码。 */
     private String voucherCode;
 
     /** 微信支付流水号。 */
     private String transactionId;
+
+    /** 待支付预约过期时间。 */
+    private LocalDateTime expireAt;
 
     /** 创建时间。 */
     private LocalDateTime createdAt;

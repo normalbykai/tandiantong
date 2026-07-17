@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -459,13 +460,21 @@ public class PersistentOrderService {
     }
 
     /** 顾客订单列表项。 */
+    @Schema(description = "顾客订单列表项")
     public static class OrderSummaryView {
+        @Schema(description = "平台商品订单号", example = "SO10001ABCDEF123456")
         private final String orderNo;
+        @Schema(description = "订单状态", example = "PENDING_PAYMENT")
         private final String status;
+        @Schema(description = "订单实付金额，单位为分", example = "3600")
         private final int payAmountCent;
+        @Schema(description = "顾客联系电话", example = "13800000000")
         private final String contactMobile;
+        @Schema(description = "顾客自填取餐时间", example = "2026-07-17 18:30")
         private final String pickupTimeText;
+        @Schema(description = "订单创建时间")
         private final LocalDateTime createdAt;
+        @Schema(description = "待支付订单过期时间")
         private final LocalDateTime expireAt;
 
         public OrderSummaryView(String orderNo, String status, int payAmountCent, String contactMobile,
@@ -489,10 +498,15 @@ public class PersistentOrderService {
     }
 
     /** 顾客订单详情。 */
+    @Schema(description = "顾客订单详情")
     public static class OrderDetailView {
+        @Schema(description = "订单概要")
         private final OrderSummaryView order;
+        @Schema(description = "订单商品明细")
         private final List<OrderItemView> items;
+        @Schema(description = "订单退款记录")
         private final List<RefundView> refunds;
+        @Schema(description = "微信支付交易流水号，未支付时为空", example = "4200000000202607140000000001")
         private final String transactionId;
 
         public OrderDetailView(OrderSummaryView order, List<OrderItemView> items,
@@ -510,14 +524,23 @@ public class PersistentOrderService {
     }
 
     /** 顾客订单明细。 */
+    @Schema(description = "顾客订单商品明细")
     public static class OrderItemView {
+        @Schema(description = "商品 SKU ID", example = "11")
         private final Long skuId;
+        @Schema(description = "成交时商品名称", example = "桂花拿铁")
         private final String productName;
+        @Schema(description = "成交时 SKU 规格", example = "杯型:中杯;温度:热")
         private final String skuText;
+        @Schema(description = "SKU 单价，单位为分", example = "1800")
         private final int unitPriceCent;
+        @Schema(description = "加料金额，单位为分", example = "300")
         private final int addonAmountCent;
+        @Schema(description = "购买数量", example = "2")
         private final int quantity;
+        @Schema(description = "小计金额，单位为分", example = "4200")
         private final int subtotalCent;
+        @Schema(description = "加料名称快照")
         private final List<String> addonNames;
 
         public OrderItemView(Long skuId, String productName, String skuText, int unitPriceCent,
@@ -543,13 +566,21 @@ public class PersistentOrderService {
     }
 
     /** 退款明细视图。 */
+    @Schema(description = "订单退款明细")
     public static class RefundView {
+        @Schema(description = "平台退款单号", example = "RF10001ABCDEF123456")
         private final String refundNo;
+        @Schema(description = "退款状态", example = "SUCCESS")
         private final String status;
+        @Schema(description = "退款金额，单位为分", example = "3600")
         private final int amountCent;
+        @Schema(description = "已重试次数", example = "1")
         private final Integer retryCount;
+        @Schema(description = "人工排查状态", example = "PENDING_RETRY")
         private final String reviewStatus;
+        @Schema(description = "最后一次退款错误信息")
         private final String lastErrorMessage;
+        @Schema(description = "下次重试时间")
         private final LocalDateTime nextRetryAt;
 
         public RefundView(String refundNo, String status, int amountCent, Integer retryCount,

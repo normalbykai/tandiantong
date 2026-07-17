@@ -43,37 +43,15 @@ public class VerificationPersistenceService {
      */
     @Transactional
     public Credential issueOrderCredential(Long tenantId, Long storeId, String orderNo, String summary) {
-        VerificationCredentialEntity existing = verificationCredentialMapper.selectOne(
-                Wrappers.<VerificationCredentialEntity>lambdaQuery()
-                        .eq(VerificationCredentialEntity::getTenantId, tenantId)
-                        .eq(VerificationCredentialEntity::getStoreId, storeId)
-                        .eq(VerificationCredentialEntity::getBusinessType, BusinessType.PRODUCT_ORDER.code())
-                        .eq(VerificationCredentialEntity::getBusinessNo, orderNo));
-        if (existing != null) {
-            return new Credential(existing.getBusinessNo(), existing.getPickupNo(), null, existing.getStatus());
-        }
+        return issueCredential(tenantId, storeId, BusinessType.PRODUCT_ORDER.code(), orderNo, summary);
+    }
 
-        LocalDate businessDate = LocalDate.now(BUSINESS_ZONE_ID);
-        pickupNoSequenceMapper.increment(tenantId, storeId, businessDate);
-        Integer current = pickupNoSequenceMapper.selectCurrentValue(tenantId, storeId, businessDate);
-        if (current == null) {
-            throw new IllegalStateException("数据库未返回取餐号序列");
-        }
-        String token = "vk-" + randomPart() + randomPart();
-        String pickupNo = "A" + String.format("%03d", current);
-
-        VerificationCredentialEntity credential = new VerificationCredentialEntity();
-        credential.setTenantId(tenantId);
-        credential.setStoreId(storeId);
-        credential.setBusinessType(BusinessType.PRODUCT_ORDER.code());
-        credential.setBusinessNo(orderNo);
-        credential.setSummary(summary);
-        credential.setBusinessDate(businessDate);
-        credential.setPickupNo(pickupNo);
-        credential.setTokenHash(sha256(token));
-        credential.setStatus(CredentialStatus.PENDING.code());
-        verificationCredentialMapper.insert(credential);
-        return new Credential(orderNo, pickupNo, token, CredentialStatus.PENDING.code());
+    /**
+     * 为已确认服务预约签发不可猜测核销令牌。
+     */
+    @Transactional
+    public Credential issueReservationCredential(Long tenantId, Long storeId, String reservationNo, String summary) {
+        return issueCredential(tenantId, storeId, BusinessType.RESERVATION.code(), reservationNo, summary);
     }
 
     /**
@@ -131,6 +109,41 @@ public class VerificationPersistenceService {
         verificationRecordMapper.insert(record);
     }
 
+    private Credential issueCredential(Long tenantId, Long storeId, String businessType,
+                                       String businessNo, String summary) {
+        VerificationCredentialEntity existing = verificationCredentialMapper.selectOne(
+                Wrappers.<VerificationCredentialEntity>lambdaQuery()
+                        .eq(VerificationCredentialEntity::getTenantId, tenantId)
+                        .eq(VerificationCredentialEntity::getStoreId, storeId)
+                        .eq(VerificationCredentialEntity::getBusinessType, businessType)
+                        .eq(VerificationCredentialEntity::getBusinessNo, businessNo));
+        if (existing != null) {
+            return new Credential(existing.getBusinessNo(), existing.getPickupNo(), null, existing.getStatus());
+        }
+
+        LocalDate businessDate = LocalDate.now(BUSINESS_ZONE_ID);
+        pickupNoSequenceMapper.increment(tenantId, storeId, businessDate);
+        Integer current = pickupNoSequenceMapper.selectCurrentValue(tenantId, storeId, businessDate);
+        if (current == null) {
+            throw new IllegalStateException("数据库未返回取餐号序列");
+        }
+        String token = "vk-" + randomPart() + randomPart();
+        String pickupNo = "A" + String.format("%03d", current);
+
+        VerificationCredentialEntity credential = new VerificationCredentialEntity();
+        credential.setTenantId(tenantId);
+        credential.setStoreId(storeId);
+        credential.setBusinessType(businessType);
+        credential.setBusinessNo(businessNo);
+        credential.setSummary(summary);
+        credential.setBusinessDate(businessDate);
+        credential.setPickupNo(pickupNo);
+        credential.setTokenHash(sha256(token));
+        credential.setStatus(CredentialStatus.PENDING.code());
+        verificationCredentialMapper.insert(credential);
+        return new Credential(businessNo, pickupNo, token, CredentialStatus.PENDING.code());
+    }
+
     private String randomPart() {
         return UUID.randomUUID().toString().replace("-", "");
     }
@@ -145,17 +158,48 @@ public class VerificationPersistenceService {
     }
 
     /** 核销凭证签发结果，令牌明文只在首次签发时返回。 */
-    public record Credential(String businessNo, String pickupNo, String token, String status) {
+    public static class Credential {
+        private final String businessNo;
+        private final String pickupNo;
+        private final String token;
+        private final String status;
+
+        public Credential(String businessNo, String pickupNo, String token, String status) {
+            this.businessNo = businessNo;
+            this.pickupNo = pickupNo;
+            this.token = token;
+            this.status = status;
+        }
+
+        public String businessNo() { return businessNo; }
+        public String pickupNo() { return pickupNo; }
+        public String token() { return token; }
+        public String status() { return status; }
     }
 
     /** 核销处理结果。 */
-    public record VerificationResult(String businessNo, String pickupNo, String status) {
+    public static class VerificationResult {
+        private final String businessNo;
+        private final String pickupNo;
+        private final String status;
+
+        public VerificationResult(String businessNo, String pickupNo, String status) {
+            this.businessNo = businessNo;
+            this.pickupNo = pickupNo;
+            this.status = status;
+        }
+
+        public String businessNo() { return businessNo; }
+        public String pickupNo() { return pickupNo; }
+        public String status() { return status; }
     }
 
     /** 支持核销的业务类型。 */
     private enum BusinessType {
         /** 商品订单核销凭证。 */
-        PRODUCT_ORDER;
+        PRODUCT_ORDER,
+        /** 服务预约核销凭证。 */
+        RESERVATION;
 
         String code() {
             return name();

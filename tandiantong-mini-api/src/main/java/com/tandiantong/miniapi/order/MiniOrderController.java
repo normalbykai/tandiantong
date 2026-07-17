@@ -5,6 +5,7 @@ import com.tandiantong.miniapi.order.dto.OrderResponse;
 import com.tandiantong.order.app.PersistentOrderService;
 import com.tandiantong.security.context.SecurityContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -44,16 +45,22 @@ public class MiniOrderController {
 
     @Operation(summary = "查询订单列表", description = "按当前租户门店和联系电话查询顾客订单列表")
     @GetMapping
-    public List<PersistentOrderService.OrderSummaryView> list(@RequestParam("contactMobile") String contactMobile,
-                                                             @RequestParam(value = "status", required = false) String status) {
+    public List<PersistentOrderService.OrderSummaryView> list(
+            @Parameter(description = "顾客联系电话", example = "13800000000", required = true)
+            @RequestParam("contactMobile") String contactMobile,
+            @Parameter(description = "订单状态筛选，不传则查询全部状态", example = "PENDING_PAYMENT")
+            @RequestParam(value = "status", required = false) String status) {
         var user = SecurityContextHolder.currentUser();
         return persistentOrderService.listCustomerOrders(user.tenantId(), user.storeId(), contactMobile, status);
     }
 
     @Operation(summary = "查询订单详情", description = "按订单号查询当前顾客订单详情")
     @GetMapping("/{orderNo}")
-    public PersistentOrderService.OrderDetailView detail(@PathVariable("orderNo") String orderNo,
-                                                         @RequestParam("contactMobile") String contactMobile) {
+    public PersistentOrderService.OrderDetailView detail(
+            @Parameter(description = "平台商品订单号", example = "SO10001ABCDEF123456", required = true)
+            @PathVariable("orderNo") String orderNo,
+            @Parameter(description = "顾客联系电话", example = "13800000000", required = true)
+            @RequestParam("contactMobile") String contactMobile) {
         var user = SecurityContextHolder.currentUser();
         return persistentOrderService.getCustomerOrderDetail(user.tenantId(), user.storeId(), orderNo, contactMobile);
     }
@@ -61,7 +68,11 @@ public class MiniOrderController {
     @Operation(summary = "取消待支付订单", description = "顾客取消未支付订单并释放库存")
     @DeleteMapping("/{orderNo}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void cancel(@PathVariable("orderNo") String orderNo, @RequestParam("reason") String reason) {
+    public void cancel(
+            @Parameter(description = "平台商品订单号", example = "SO10001ABCDEF123456", required = true)
+            @PathVariable("orderNo") String orderNo,
+            @Parameter(description = "顾客取消原因", example = "临时有事取消", required = true)
+            @RequestParam("reason") String reason) {
         var user = SecurityContextHolder.currentUser();
         persistentOrderService.cancelPendingOrder(user.tenantId(), user.storeId(), orderNo, reason);
     }

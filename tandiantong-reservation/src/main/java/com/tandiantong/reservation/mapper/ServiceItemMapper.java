@@ -13,6 +13,25 @@ import org.apache.ibatis.annotations.Select;
 public interface ServiceItemMapper extends BaseMapper<ServiceItemEntity> {
 
     /**
+     * 校验服务与时段是否属于同一租户门店，并返回服务定价信息。
+     */
+    @Select("""
+            select i.id, i.tenant_id, i.store_id, i.name, i.payment_mode,
+                   i.price_cent, i.duration_minutes, i.status
+              from service_item i
+              join service_slot s on s.service_id = i.id
+                   and s.tenant_id = i.tenant_id and s.store_id = i.store_id
+             where i.id = #{serviceId} and s.id = #{slotId}
+               and i.tenant_id = #{tenantId} and i.store_id = #{storeId}
+               and i.status = #{enabledStatus}
+            """)
+    ServiceItemEntity selectReservableService(@Param("tenantId") Long tenantId,
+                                              @Param("storeId") Long storeId,
+                                              @Param("serviceId") Long serviceId,
+                                              @Param("slotId") Long slotId,
+                                              @Param("enabledStatus") String enabledStatus);
+
+    /**
      * 校验服务与时段是否属于同一租户门店，并返回服务支付模式。
      */
     @Select("""

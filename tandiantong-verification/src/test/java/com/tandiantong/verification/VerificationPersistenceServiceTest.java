@@ -6,7 +6,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.tandiantong.common.exception.BusinessException;
 import com.tandiantong.verification.app.VerificationBusinessCompletionHandler;
 import com.tandiantong.verification.app.VerificationPersistenceService;
 import com.tandiantong.verification.entity.VerificationCredentialEntity;
@@ -61,6 +63,61 @@ class VerificationPersistenceServiceTest {
         VerificationPersistenceService.VerificationResult result = service.verify(1L, 2L, 9L, "vk-test", null);
 
         assertThat(result.status()).isEqualTo("VERIFIED");
+        verify(recordMapper, never()).insert(any(VerificationRecordEntity.class));
+        verify(completionHandler, never()).complete(any(), any(), anyString());
+    }
+
+    @Test
+    void shouldDispatchReservationCredentialToReservationCompletionHandler() {
+        VerificationBusinessCompletionHandler reservationHandler = Mockito.mock(VerificationBusinessCompletionHandler.class);
+        when(completionHandler.supports("RESERVATION")).thenReturn(false);
+        when(reservationHandler.supports("RESERVATION")).thenReturn(true);
+        service = new VerificationPersistenceService(Mockito.mock(PickupNoSequenceMapper.class),
+                credentialMapper, recordMapper, List.of(completionHandler, reservationHandler));
+        VerificationCredentialEntity credential = credential("PENDING");
+        credential.setBusinessType("RESERVATION");
+        credential.setBusinessNo("YY1001");
+        credential.setSummary("服务预约 YY1001");
+        when(credentialMapper.selectOne(any())).thenReturn(credential);
+        when(credentialMapper.updateStatusByToken(any(), any(), anyString(), anyString(), anyString())).thenReturn(1);
+
+        VerificationPersistenceService.VerificationResult result = service.verify(1L, 2L, 9L, "vk-test", "到店履约");
+
+        assertThat(result.businessNo()).isEqualTo("YY1001");
+        verify(recordMapper).insert(any(VerificationRecordEntity.class));
+        verify(reservationHandler).complete(1L, 2L, "YY1001");
+        verify(completionHandler, never()).complete(any(), any(), anyString());
+    }
+
+    @Test
+    void shouldNotRepeatReservationCompletionForVerifiedCredential() {
+        VerificationBusinessCompletionHandler reservationHandler = Mockito.mock(VerificationBusinessCompletionHandler.class);
+        when(reservationHandler.supports("RESERVATION")).thenReturn(true);
+        service = new VerificationPersistenceService(Mockito.mock(PickupNoSequenceMapper.class),
+                credentialMapper, recordMapper, List.of(reservationHandler));
+        VerificationCredentialEntity credential = credential("VERIFIED");
+        credential.setBusinessType("RESERVATION");
+        credential.setBusinessNo("YY1002");
+        credential.setSummary("服务预约 YY1002");
+        when(credentialMapper.selectOne(any())).thenReturn(credential);
+        when(credentialMapper.updateStatusByToken(any(), any(), anyString(), anyString(), anyString())).thenReturn(0);
+
+        VerificationPersistenceService.VerificationResult result = service.verify(1L, 2L, 9L, "vk-test", "重复核销");
+
+        assertThat(result.status()).isEqualTo("VERIFIED");
+        verify(recordMapper, never()).insert(any(VerificationRecordEntity.class));
+        verify(reservationHandler, never()).complete(any(), any(), anyString());
+    }
+
+    @Test
+    void shouldRejectCanceledCredentialWithoutBusinessSideEffects() {
+        VerificationCredentialEntity credential = credential("CANCELED");
+        when(credentialMapper.selectOne(any())).thenReturn(credential);
+        when(credentialMapper.updateStatusByToken(any(), any(), anyString(), anyString(), anyString())).thenReturn(0);
+
+        assertThatThrownBy(() -> service.verify(1L, 2L, 9L, "vk-test", "凭证已取消后核销"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("当前凭证不能核销");
         verify(recordMapper, never()).insert(any(VerificationRecordEntity.class));
         verify(completionHandler, never()).complete(any(), any(), anyString());
     }
