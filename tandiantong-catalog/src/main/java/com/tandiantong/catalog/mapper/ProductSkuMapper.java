@@ -18,7 +18,7 @@ public interface ProductSkuMapper extends BaseMapper<ProductSkuEntity> {
      * 查询可下单 SKU 及商品快照信息。
      */
     @Select("""
-            select s.id sku_id, p.name product_name, s.specification_text specification_text,
+            select s.id sku_id, p.id product_id, p.name product_name, s.specification_text specification_text,
                    s.price_cent price_cent
               from product_sku s
               join product p on p.id = s.product_id

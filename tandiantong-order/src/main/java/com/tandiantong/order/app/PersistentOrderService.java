@@ -1,9 +1,9 @@
 package com.tandiantong.order.app;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.tandiantong.catalog.inventory.CatalogAddonPricingService;
+import com.tandiantong.catalog.inventory.CatalogAddonPricingService.AddonQuote;
 import com.tandiantong.catalog.inventory.InventoryApplicationService;
-import com.tandiantong.catalog.product.CatalogInventoryService;
-import com.tandiantong.catalog.product.CatalogInventoryService.AddonQuote;
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
 import com.tandiantong.integration.wechatpay.WechatPayClient;
@@ -47,7 +47,7 @@ public class PersistentOrderService {
     private final BusinessIdempotencyRecordMapper idempotencyRecordMapper;
     private final PaymentRecordMapper paymentRecordMapper;
     private final RefundRecordMapper refundRecordMapper;
-    private final CatalogInventoryService catalogInventoryService;
+    private final CatalogAddonPricingService catalogAddonPricingService;
     private final InventoryApplicationService inventoryApplicationService;
     private final MerchantSceneService merchantSceneService;
     private final WechatPayClient wechatPayClient;
@@ -238,7 +238,7 @@ public class PersistentOrderService {
 
     private OrderLine lockAndPrice(MerchantSceneScope scope, PersistentOrderLineCommand line, String orderNo) {
         InventoryApplicationService.PricedSku sku = inventoryApplicationService.lockAndPrice(scope.tenantId(), scope.storeId(), line.skuId(), line.quantity(), orderNo);
-        AddonQuote addonQuote = catalogInventoryService.quoteAddonSelection(sku.productId(), line.addonNames());
+        AddonQuote addonQuote = catalogAddonPricingService.quoteAddonSelection(scope.tenantId(), scope.storeId(), sku.productId(), line.addonNames());
         return new OrderLine(sku.skuId(), sku.productName(), sku.specificationText(),
                 sku.unitPriceCent(), addonQuote.addonAmountCent(), sku.quantity(),
                 (sku.unitPriceCent() + addonQuote.addonAmountCent()) * sku.quantity(), addonQuote.addonNames());
