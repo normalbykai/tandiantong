@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>摊点通 · 登录</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="login-wrap" id="login-wrap">
+
+  <!-- 品牌呼吸光晕（中心微弱光） -->
+  <div class="login-glow"></div>
+
+  <!-- 多色极光光斑（5 个不同色相缓慢漂移） -->
+  <div style="position:absolute;top:12%;left:8%;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(64,130,109,.28),transparent 70%);filter:blur(50px);pointer-events:none;animation:auroraDrift 24s ease-in-out infinite;z-index:1"></div>
+  <div style="position:absolute;bottom:8%;right:6%;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(45,138,132,.32),transparent 70%);filter:blur(60px);pointer-events:none;animation:auroraDrift2 30s ease-in-out infinite;z-index:1"></div>
+  <div style="position:absolute;top:55%;left:65%;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(255,140,60,.18),transparent 70%);filter:blur(45px);pointer-events:none;animation:auroraDrift3 20s ease-in-out infinite;z-index:1"></div>
+  <div style="position:absolute;top:20%;right:18%;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(107,78,140,.20),transparent 70%);filter:blur(40px);pointer-events:none;animation:auroraDrift 28s ease-in-out infinite reverse;z-index:1"></div>
+  <div style="position:absolute;bottom:25%;left:25%;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(58,107,156,.16),transparent 70%);filter:blur(40px);pointer-events:none;animation:auroraDrift2 22s ease-in-out infinite reverse;z-index:1"></div>
+
+  <!-- 流动光带（横向扫描） -->
+  <div class="login-band"></div>
+
+  <!-- 漂浮粒子（24 个错落小光点） -->
+  <div class="login-particles">
+    <div class="lp" style="top:8%;left:12%;animation-delay:.0s"></div>
+    <div class="lp" style="top:15%;left:78%;width:2px;height:2px;animation-delay:.4s"></div>
+    <div class="lp" style="top:25%;left:35%;animation-delay:.8s"></div>
+    <div class="lp" style="top:35%;left:85%;width:4px;height:4px;animation-delay:1.2s"></div>
+    <div class="lp" style="top:42%;left:8%;width:2px;height:2px;animation-delay:1.6s"></div>
+    <div class="lp" style="top:55%;left:60%;animation-delay:2.0s"></div>
+    <div class="lp" style="top:62%;left:25%;width:2px;height:2px;animation-delay:2.4s"></div>
+    <div class="lp" style="top:70%;left:72%;animation-delay:2.8s"></div>
+    <div class="lp" style="top:78%;left:15%;animation-delay:3.2s"></div>
+    <div class="lp" style="top:85%;left:55%;width:4px;height:4px;animation-delay:3.6s"></div>
+    <div class="lp" style="top:10%;left:48%;width:2px;height:2px;animation-delay:.6s"></div>
+    <div class="lp" style="top:18%;left:62%;animation-delay:1.4s"></div>
+    <div class="lp" style="top:30%;left:5%;width:2px;height:2px;animation-delay:2.2s"></div>
+    <div class="lp" style="top:48%;left:92%;animation-delay:3.0s"></div>
+    <div class="lp" style="top:58%;left:42%;width:2px;height:2px;animation-delay:1.0s"></div>
+    <div class="lp" style="top:68%;left:88%;animation-delay:1.8s"></div>
+    <div class="lp" style="top:75%;left:38%;width:4px;height:4px;animation-delay:2.6s"></div>
+    <div class="lp" style="top:88%;left:70%;animation-delay:3.4s"></div>
+    <div class="lp" style="top:5%;left:28%;width:2px;height:2px;animation-delay:.2s"></div>
+    <div class="lp" style="top:38%;left:18%;animation-delay:1.0s"></div>
+    <div class="lp" style="top:52%;left:78%;width:2px;height:2px;animation-delay:1.6s"></div>
+    <div class="lp" style="top:72%;left:5%;animation-delay:2.4s"></div>
+    <div class="lp" style="top:82%;left:48%;width:2px;height:2px;animation-delay:3.0s"></div>
+    <div class="lp" style="top:92%;left:25%;animation-delay:3.8s"></div>
+  </div>
+
+  <!-- 背景大字"摊"（极淡浮动） -->
+  <div class="login-bg-mark">摊</div>
+
+  <!-- 登录失效提示（演示） -->
+  <div class="login-expired" id="login-expired-demo" style="display:none">
+    <div class="ic">!</div>
+    <div class="tx"><b>登录状态已失效</b><span>您的登录凭证已过期或已在其他设备登录，请重新登录。</span></div>
+  </div>
+
+  <div class="login-card" id="login-card">
+    <div class="login-logo" id="login-logo">
+      <div class="login-logo-img">
+        <img src="assets/tandiantong-logo-icon.png" alt="摊点通">
+      </div>
+      <div>
+        <div class="name">摊点通</div>
+        <div class="name-sub">门店经营管理后台</div>
+      </div>
+    </div>
+
+    <div class="login-domain" id="login-domain">
+      <button class="active" data-domain="platform" onclick="switchDomain('platform')">平台管理端</button>
+      <button data-domain="merchant" onclick="switchDomain('merchant')">商户管理端</button>
+    </div>
+
+    <div class="login-field">
+      <label>账号</label>
+      <div class="login-input" id="login-account-wrap"><input type="text" placeholder="手机号或登录账号" autofocus></div>
+    </div>
+    <div class="login-field">
+      <label>密码</label>
+      <div class="login-input" id="login-pwd-wrap"><input type="password" placeholder="请输入登录密码" style="letter-spacing:3px"></div>
+    </div>
+
+    <div class="login-options" id="login-options">
+      <label><input type="checkbox"> 7 天内自动登录</label>
+      <a class="login-link" id="forgot-link" onclick="toast('info','已发送密码重置链接到您的手机，请注意查收')">忘记密码？</a>
+    </div>
+
+    <button class="login-btn" id="login-btn" onclick="doLogin()">登 录</button>
+
+    <div class="login-foot">© 2026 摊点通</div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+<script src="shared.js"></script>
+<script>
+function switchDomain(d){
+  var isMerc = d === 'merchant';
+  document.querySelectorAll('.login-domain button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.domain === d);
+    b.classList.toggle('merc', isMerc && b.dataset.domain === d);
+  });
+  document.getElementById('login-card').classList.toggle('merc', isMerc);
+  document.getElementById('login-logo').classList.toggle('merc', isMerc);
+  ['login-account-wrap','login-pwd-wrap'].forEach(function(id){
+    document.getElementById(id).classList.toggle('merc', isMerc);
+  });
+  document.getElementById('login-btn').classList.toggle('merc', isMerc);
+  document.getElementById('forgot-link').classList.toggle('merc', isMerc);
+  document.getElementById('login-options').classList.toggle('merc', isMerc);
+  switchLoginBg(isMerc);
+}
+
+function doLogin(){
+  var domain = document.querySelector('.login-domain button.active').dataset.domain;
+  toast('success', '登录成功，正在进入' + (domain === 'platform' ? '平台管理端' : '商户管理端'));
+  setTimeout(function(){
+    window.location.href = domain === 'platform' ? '平台-首页.html' : '商户-首页.html';
+  }, 700);
+}
+
+document.querySelectorAll('.login-input input').forEach(function(inp){
+  inp.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') doLogin();
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>摊点通 · 租户管理</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body data-domain="platform">
+
+<div class="app-shell">
+  <!-- ===== 深墨侧边栏 ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="mark">摊</div>
+      <div class="txt"><b>摊点通</b><small>平台管理端</small></div>
+    </div>
+    <div class="sidebar-domain"><span class="ic"></span>当前权限域：平台管理</div>
+    <nav class="sidebar-menu">
+      <div class="menu-group-title">运营管理</div>
+      <a class="menu-item" href="平台-首页.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>工作台</a>
+      <a class="menu-item active" href="平台-租户管理.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg></span>租户管理</a>
+      <div class="menu-group-title">权限管理</div>
+      <a class="menu-item" href="平台-账号管理.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>平台账号</a>
+      <a class="menu-item" href="平台-角色管理.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></span>平台角色</a>
+      <a class="menu-item" href="平台-权限点列表.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>平台权限</a>
+      <div class="menu-group-title">系统</div>
+      <a class="menu-item" href="平台-操作日志.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>操作日志</a>
+      <a class="menu-item" href="javascript:void(0)" onclick="toast('info','系统配置功能将在后续阶段开放')"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>系统配置</a>
+    </nav>
+    <div class="sidebar-foot"><span>摊点通 v1.2.0</span><span class="ver-tag">墨璃</span></div>
+  </aside>
+
+  <!-- ===== 主区域 ===== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="breadcrumb"><span class="cur">租户管理</span></div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-actions">
+        <div class="tb-icon" title="搜索" onclick="toast('info','全局搜索功能开发中')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+        <div class="tb-icon" title="帮助" onclick="toast('info','帮助中心开发中')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg></div>
+        <div class="tb-icon" title="通知" onclick="toast('info','暂无新通知')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></div>
+        <div class="tb-divider"></div>
+        <div class="tb-user"><div class="avatar">周</div><div class="uinfo"><b>周建国</b><small>平台运营员</small></div><svg class="ic" style="width:12px;color:var(--text-tertiary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="tb-divider"></div>
+        <div class="tb-icon" title="退出登录" onclick="window.location.href='登录.html'"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <div class="breadcrumb"><a href="平台-首页.html">工作台</a><span class="sep">/</span><span class="cur">租户管理</span></div>
+          <div class="page-title"><span class="accent-bar"></span>租户管理</div>
+          <div class="page-desc">管理接入摊点通平台的商户租户，包括基础信息、联系人、状态与启用停用。<b>停用后租户无法发起新业务操作，但历史数据保留。</b></div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary" onclick="toast('info','正在导出租户清单…')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>导出</button>
+          <button class="btn btn-primary" onclick="openDrawer('tenant-add')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>新增租户</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-item"><label>租户名称</label><input class="inp" placeholder="请输入租户名称搜索"></div>
+        <div class="filter-item"><label>状态</label><select><option>全部状态</option><option>启用</option><option>停用</option></select></div>
+        <div class="filter-item"><label>创建时间</label><div class="date-range"><input class="inp" value="2026-06-01"><span class="text-tertiary">至</span><input class="inp" value="2026-07-18"></div></div>
+        <div class="filter-actions"><button class="btn btn-primary btn-sm" onclick="toast('info','查询完成')">查询</button><button class="btn btn-secondary btn-sm">重置</button></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-tool"><div class="left">共 <b>128</b> 条记录，当前显示第 <b>1-10</b> 条</div><div class="right"><button class="btn btn-secondary btn-sm">刷新</button><button class="btn btn-secondary btn-sm">导出</button></div></div>
+        <table class="table">
+          <thead><tr><th class="table-check"><span class="checkbox"></span></th><th>租户名称 <span class="sort">▼</span></th><th>联系人</th><th>联系电话</th><th>状态</th><th>创建时间 <span class="sort">▼</span></th><th>最后更新时间</th><th class="col-actions">操作</th></tr></thead>
+          <tbody>
+            <tr><td><span class="checkbox"></span></td><td><a class="link-text" href="平台-租户详情.html">湖滨小吃铺</a></td><td>张明</td><td class="mono">138****2468</td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-03-12 09:24</td><td class="secondary-text">2026-07-16 14:08</td><td class="col-actions"><a class="btn-link" href="平台-租户详情.html">查看</a><button class="btn-link" onclick="openDrawer('tenant-edit')">编辑</button><button class="btn-link danger" onclick="openModal('tenant-disable')">停用</button></td></tr>
+            <tr><td><span class="checkbox"></span></td><td><a class="link-text" href="平台-租户详情.html">南门咖啡档</a></td><td>李晓雨</td><td class="mono">139****1152</td><td><span class="tag tag-gray">停用</span></td><td class="secondary-text">2026-02-28 16:40</td><td class="secondary-text">2026-07-11 11:42</td><td class="col-actions"><a class="btn-link" href="平台-租户详情.html">查看</a><button class="btn-link" onclick="openDrawer('tenant-edit')">编辑</button><button class="btn-link" onclick="openModal('tenant-enable')">启用</button></td></tr>
+            <tr><td><span class="checkbox"></span></td><td><a class="link-text" href="平台-租户详情.html">青禾甜品站</a></td><td>陈思远</td><td class="mono">137****8830</td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-04-05 10:12</td><td class="secondary-text">2026-07-18 12:08</td><td class="col-actions"><a class="btn-link" href="平台-租户详情.html">查看</a><button class="btn-link" onclick="openDrawer('tenant-edit')">编辑</button><button class="btn-link danger" onclick="openModal('tenant-disable')">停用</button></td></tr>
+            <tr><td><span class="checkbox"></span></td><td><a class="link-text" href="平台-租户详情.html">巷口烧烤社</a></td><td>王磊</td><td class="mono">135****6677</td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-05-20 08:55</td><td class="secondary-text">2026-07-15 17:30</td><td class="col-actions"><a class="btn-link" href="平台-租户详情.html">查看</a><button class="btn-link" onclick="openDrawer('tenant-edit')">编辑</button><button class="btn-link danger" onclick="openModal('tenant-disable')">停用</button></td></tr>
+            <tr><td><span class="checkbox"></span></td><td><a class="link-text" href="平台-租户详情.html">老周面馆</a></td><td>周建国</td><td class="mono">136****4409</td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-01-15 14:22</td><td class="secondary-text">2026-07-10 09:18</td><td class="col-actions"><a class="btn-link" href="平台-租户详情.html">查看</a><button class="btn-link" onclick="openDrawer('tenant-edit')">编辑</button><button class="btn-link danger" onclick="openModal('tenant-disable')">停用</button></td></tr>
+            <tr><td><span class="checkbox"></span></td><td><a class="link-text" href="平台-租户详情.html">清晨豆浆铺</a></td><td>林芳</td><td class="mono">188****2025</td><td><span class="tag tag-gray">停用</span></td><td class="secondary-text">2026-03-30 11:05</td><td class="secondary-text">2026-06-28 16:14</td><td class="col-actions"><a class="btn-link" href="平台-租户详情.html">查看</a><button class="btn-link" onclick="openDrawer('tenant-edit')">编辑</button><button class="btn-link" onclick="openModal('tenant-enable')">启用</button></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="info">共 128 条 · 每页 <div class="page-size"><select><option>10 条/页</option><option>20 条/页</option><option>50 条/页</option></select></div></div>
+          <div class="pager"><button class="page-btn disabled">‹</button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">3</button><button class="page-btn">4</button><span class="text-tertiary">…</span><button class="page-btn">13</button><button class="page-btn">›</button><div class="page-jump">前往 <input value="1"> 页</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

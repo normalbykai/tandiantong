@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>摊点通 · 员工账号</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body data-domain="merchant">
+
+<div class="app-shell">
+  <!-- ===== 深墨侧边栏 ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo merc">
+      <div class="mark">摊</div>
+      <div class="txt"><b>摊点通</b><small>商户管理端</small></div>
+    </div>
+    <div class="sidebar-domain merc"><span class="ic"></span>当前权限域：商户管理</div>
+    <nav class="sidebar-menu">
+      <div class="menu-group-title">经营管理</div>
+      <a class="menu-item merc" href="商户-首页.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>工作台</a>
+      <a class="menu-item merc" href="商户-门店信息.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6"/></svg></span>门店信息</a>
+      <div class="menu-group-title">权限管理</div>
+      <a class="menu-item merc active" href="商户-员工账号.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>员工账号</a>
+      <a class="menu-item merc" href="商户-角色管理.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></span>商户角色</a>
+      <a class="menu-item merc" href="商户-权限说明.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>商户权限</a>
+      <div class="menu-group-title">系统</div>
+      <a class="menu-item merc" href="商户-操作日志.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>操作日志</a>
+      <a class="menu-item merc" href="javascript:void(0)" onclick="toast('info','个人设置功能开发中')"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>个人设置</a>
+    </nav>
+    <div class="sidebar-foot"><span>摊点通 v1.2.0</span><span class="ver-tag">墨璃</span></div>
+  </aside>
+
+  <!-- ===== 主区域 ===== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-store"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6"/></svg><b>湖滨小吃铺</b><span class="tag-single">单门店</span><span class="arr">▼</span></div>
+        <span class="text-tertiary text-xs">·</span>
+        <span class="text-xs text-secondary">商户：湖滨小吃铺</span>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-actions">
+        <div class="tb-icon" title="搜索" onclick="toast('info','全局搜索功能开发中')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+        <div class="tb-icon" title="帮助" onclick="toast('info','帮助中心开发中')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg></div>
+        <div class="tb-icon" title="通知" onclick="toast('info','暂无新通知')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></div>
+        <div class="tb-divider"></div>
+        <div class="tb-user merc"><div class="avatar">张</div><div class="uinfo"><b>张明</b><small>商户管理员</small></div><svg class="ic" style="width:12px;color:var(--text-tertiary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="tb-divider"></div>
+        <div class="tb-icon" title="退出登录" onclick="window.location.href='登录.html'"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <div class="breadcrumb"><a href="商户-首页.html">工作台</a><span class="sep">/</span><span class="cur">员工账号</span></div>
+          <div class="page-title merc"><span class="accent-bar"></span>员工账号</div>
+          <div class="page-desc">管理本商户内的员工账号。<b>商户管理员只能管理本商户范围内的员工、角色和权限。</b>停用后员工无法登录商户管理端。</div>
+        </div>
+        <div class="page-actions"><button class="btn btn-primary merc" onclick="openDrawer('m-staff-add')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>新增员工</button></div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-item"><label>员工姓名</label><input class="inp" placeholder="请输入员工姓名"></div>
+        <div class="filter-item"><label>手机号</label><input class="inp" placeholder="请输入手机号"></div>
+        <div class="filter-item"><label>角色</label><select><option>全部角色</option><option>商户管理员</option><option>门店店员</option><option>财务查看员</option></select></div>
+        <div class="filter-item"><label>状态</label><select><option>全部状态</option><option>启用</option><option>停用</option></select></div>
+        <div class="filter-actions"><button class="btn btn-primary merc btn-sm">查询</button><button class="btn btn-secondary merc btn-sm">重置</button></div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-tool"><div class="left">共 <b>6</b> 条记录</div><div class="right"><button class="btn btn-secondary merc btn-sm">导出</button></div></div>
+        <table class="table">
+          <thead><tr><th>员工姓名</th><th>手机号</th><th>登录账号</th><th>角色</th><th>状态</th><th>最近登录时间</th><th>创建时间</th><th class="col-actions">操作</th></tr></thead>
+          <tbody>
+            <tr><td><div class="flex items-center gap-8"><div class="avatar" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:linear-gradient(135deg,var(--merc-700),var(--merc-500));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600">张</div><span class="primary-text">张明</span><span class="tag tag-merc no-dot" style="margin-left:4px">我</span></div></td><td class="mono">138****2468</td><td class="mono">zhangming</td><td><span class="tag tag-merc no-dot">商户管理员</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-07-18 09:42</td><td class="secondary-text">2026-03-12 09:24</td><td class="col-actions"><button class="btn-link merc" onclick="openDrawer('m-staff-edit')">编辑</button><button class="btn-link merc" onclick="openModal('reset-pwd')">重置密码</button><button class="btn-link danger" onclick="openModal('account-disable')">停用</button></td></tr>
+            <tr><td><div class="flex items-center gap-8"><div class="avatar" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600">李</div><span class="primary-text">李秀芬</span></div></td><td class="mono">139****5521</td><td class="mono">lixiufen</td><td><span class="tag tag-gray no-dot">门店店员</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-07-18 08:30</td><td class="secondary-text">2026-07-05 16:22</td><td class="col-actions"><button class="btn-link merc" onclick="openDrawer('m-staff-edit')">编辑</button><button class="btn-link merc" onclick="openModal('reset-pwd')">重置密码</button><button class="btn-link danger" onclick="openModal('account-disable')">停用</button></td></tr>
+            <tr><td><div class="flex items-center gap-8"><div class="avatar" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#4ade80);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600">王</div><span class="primary-text">王芳</span></div></td><td class="mono">137****6688</td><td class="mono">wangfang</td><td><span class="tag tag-gray no-dot">门店店员</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-07-17 19:12</td><td class="secondary-text">2026-04-10 10:05</td><td class="col-actions"><button class="btn-link merc" onclick="openDrawer('m-staff-edit')">编辑</button><button class="btn-link merc" onclick="openModal('reset-pwd')">重置密码</button><button class="btn-link danger" onclick="openModal('account-disable')">停用</button></td></tr>
+            <tr><td><div class="flex items-center gap-8"><div class="avatar" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600">陈</div><span class="primary-text">陈志强</span></div></td><td class="mono">135****3344</td><td class="mono">chenzhiqiang</td><td><span class="tag tag-gray no-dot">财务查看员</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-07-16 17:40</td><td class="secondary-text">2026-05-18 14:00</td><td class="col-actions"><button class="btn-link merc" onclick="openDrawer('m-staff-edit')">编辑</button><button class="btn-link merc" onclick="openModal('reset-pwd')">重置密码</button><button class="btn-link danger" onclick="openModal('account-disable')">停用</button></td></tr>
+            <tr><td><div class="flex items-center gap-8"><div class="avatar" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:linear-gradient(135deg,#dc2626,#f87171);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600">赵</div><span class="primary-text">赵小敏</span></div></td><td class="mono">188****9090</td><td class="mono">zhaoxiaomin</td><td><span class="tag tag-gray no-dot">门店店员</span></td><td><span class="tag tag-gray">停用</span></td><td class="secondary-text">2026-06-30 20:15</td><td class="secondary-text">2026-03-25 09:30</td><td class="col-actions"><button class="btn-link merc" onclick="openDrawer('m-staff-edit')">编辑</button><button class="btn-link merc" onclick="openModal('reset-pwd')">重置密码</button><button class="btn-link" onclick="openModal('account-enable')">启用</button></td></tr>
+            <tr><td><div class="flex items-center gap-8"><div class="avatar" style="width:28px;height:28px;font-size:11px;border-radius:50%;background:linear-gradient(135deg,#0891b2,#22d3ee);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600">孙</div><span class="primary-text">孙建华</span></div></td><td class="mono">136****1212</td><td class="mono">sunjianhua</td><td><span class="tag tag-gray no-dot">门店店员</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-07-18 07:50</td><td class="secondary-text">2026-04-22 11:18</td><td class="col-actions"><button class="btn-link merc" onclick="openDrawer('m-staff-edit')">编辑</button><button class="btn-link merc" onclick="openModal('reset-pwd')">重置密码</button><button class="btn-link danger" onclick="openModal('account-disable')">停用</button></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination"><div class="info">共 6 条 · 每页 <div class="page-size"><select><option>10 条/页</option></select></div></div><div class="pager"><button class="page-btn merc disabled">‹</button><button class="page-btn merc active">1</button><button class="page-btn merc disabled">›</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

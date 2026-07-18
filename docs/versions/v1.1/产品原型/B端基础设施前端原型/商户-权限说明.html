@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>摊点通 · 商户权限说明</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body data-domain="merchant">
+
+<div class="app-shell">
+  <!-- ===== 深墨侧边栏 ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo merc"><div class="mark">摊</div><div class="txt"><b>摊点通</b><small>商户管理端</small></div></div>
+    <div class="sidebar-domain merc"><span class="ic"></span>当前权限域：商户管理</div>
+    <nav class="sidebar-menu">
+      <div class="menu-group-title">经营管理</div>
+      <a class="menu-item merc" href="商户-首页.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>工作台</a>
+      <a class="menu-item merc" href="商户-门店信息.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6"/></svg></span>门店信息</a>
+      <div class="menu-group-title">权限管理</div>
+      <a class="menu-item merc" href="商户-员工账号.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>员工账号</a>
+      <a class="menu-item merc" href="商户-角色管理.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></span>商户角色</a>
+      <a class="menu-item merc active" href="商户-权限说明.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>商户权限</a>
+      <div class="menu-group-title">系统</div>
+      <a class="menu-item merc" href="商户-操作日志.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>操作日志</a>
+      <a class="menu-item merc" href="javascript:void(0)" onclick="toast('info','个人设置功能将在后续阶段开放')"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>个人设置</a>
+    </nav>
+    <div class="sidebar-foot"><span>摊点通 v1.2.0</span><span class="ver-tag">墨璃</span></div>
+  </aside>
+
+  <!-- ===== 主区域 ===== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-store"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6"/></svg><b>湖滨小吃铺</b><span class="tag-single">单门店</span><span class="arr">▼</span></div>
+        <span class="text-tertiary text-xs">·</span>
+        <span class="text-xs text-secondary">商户：湖滨小吃铺</span>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-actions">
+        <div class="tb-icon" title="搜索" onclick="toast('info','全局搜索功能开发中')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+        <div class="tb-icon" title="帮助" onclick="toast('info','帮助中心开发中')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg></div>
+        <div class="tb-icon" title="通知" onclick="toast('info','暂无新通知')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <div class="tb-divider"></div>
+        <div class="tb-user merc"><div class="avatar">张</div><div class="uinfo"><b>张明</b><small>商户管理员</small></div><svg class="ic" style="width:12px;color:var(--text-tertiary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="tb-divider"></div>
+        <div class="tb-icon" title="退出登录" onclick="window.location.href='登录.html'"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <div class="breadcrumb"><a href="商户-首页.html">工作台</a><span class="sep">/</span><span class="cur">商户权限</span></div>
+          <div class="page-title merc"><span class="accent-bar"></span>商户权限说明</div>
+          <div class="page-desc">查看本商户可用的全部权限点。<b>权限点编码由系统维护，商户管理员不能创建新的权限编码</b>，本页面为只读展示。</div>
+        </div>
+        <div class="page-actions"><button class="btn btn-secondary merc" onclick="toast('info','权限清单导出中…')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>导出权限清单</button></div>
+      </div>
+      <div class="info-banner warn"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><div>商户权限点由平台统一定义和维护，<b>商户管理员不能创建新的权限编码</b>。如需新增权限点，请联系平台运营提交申请。</div></div>
+      <div class="filter-bar">
+        <div class="filter-item"><label>权限名称 / 编码</label><input class="inp" placeholder="请输入权限名称或编码"></div>
+        <div class="filter-item"><label>所属模块</label><select><option>全部模块</option><option>工作台</option><option>门店信息</option><option>员工账号</option><option>商户角色</option><option>商户权限</option><option>操作日志</option><option>个人设置</option></select></div>
+        <div class="filter-item"><label>权限类型</label><select><option>全部类型</option><option>菜单</option><option>按钮</option><option>接口</option></select></div>
+        <div class="filter-actions"><button class="btn btn-primary merc btn-sm">查询</button><button class="btn btn-secondary merc btn-sm">重置</button></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-tool"><div class="left">共 <b>22</b> 个权限点</div></div>
+        <table class="table">
+          <thead><tr><th>权限名称</th><th>权限编码</th><th>所属模块</th><th>权限类型</th><th>状态</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>查看工作台</td><td class="mono">workbench:view</td><td><span class="tag tag-merc no-dot">工作台</span></td><td><span class="ptype ptype-menu"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>菜单</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text ellipsis">进入商户工作台首页</td></tr>
+            <tr><td>查看门店信息</td><td class="mono">store:view</td><td><span class="tag tag-merc no-dot">门店信息</span></td><td><span class="ptype ptype-menu"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>菜单</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text ellipsis">查看门店基础信息</td></tr>
+            <tr><td>编辑门店信息</td><td class="mono">store:update</td><td><span class="tag tag-merc no-dot">门店信息</span></td><td><span class="ptype ptype-btn"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="8" width="18" height="8" rx="2"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>按钮</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text ellipsis">修改门店基础信息</td></tr>
+            <tr><td>查看员工列表</td><td class="mono">staff:view</td><td><span class="tag tag-merc no-dot">员工账号</span></td><td><span class="ptype ptype-menu"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>菜单</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text ellipsis">进入员工账号列表页</td></tr>
+            <tr><td>新增员工</td><td class="mono">staff:create</td><td><span class="tag tag-merc no-dot">员工账号</span></td><td><span class="ptype ptype-btn"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="8" width="18" height="8" rx="2"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>按钮</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text ellipsis">新增本商户员工账号</td></tr>
+            <tr><td>重置员工密码</td><td class="mono">staff:resetpwd</td><td><span class="tag tag-merc no-dot">员工账号</span></td><td><span class="ptype ptype-btn"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="8" width="18" height="8" rx="2"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>按钮</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text ellipsis">重置员工登录密码</td></tr>
+            <tr><td>配置角色权限</td><td class="mono">mrole:perm</td><td><span class="tag tag-merc no-dot">商户角色</span></td><td><span class="ptype ptype-btn"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="8" width="18" height="8" rx="2"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>按钮</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text ellipsis">为本商户角色分配权限</td></tr>
+            <tr><td>查看商户权限说明</td><td class="mono">mperm:view</td><td><span class="tag tag-merc no-dot">商户权限</span></td><td><span class="ptype ptype-menu"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>菜单</span></td><td><span class="tag tag-success">启用</span></td><td class="secondary-text ellipsis">查看权限点清单（只读）</td></tr>
+          </tbody>
+        </table>
+        <div class="pagination"><div class="info">共 22 条</div><div class="pager"><button class="page-btn merc disabled">‹</button><button class="page-btn merc active">1</button><button class="page-btn merc">2</button><button class="page-btn merc">3</button><button class="page-btn merc">›</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

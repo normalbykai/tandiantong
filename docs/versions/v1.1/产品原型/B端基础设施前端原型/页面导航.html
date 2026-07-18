@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>摊点通 v1.2 · 原型页面导航</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+.nav-body{min-height:100vh;background:#0E1013;display:flex;flex-direction:column;align-items:center;padding:64px 32px 48px;position:relative;overflow-x:hidden}
+.nav-body::before{content:"";position:absolute;inset:-50%;background:
+  radial-gradient(ellipse 50% 40% at 15% 15%,rgba(64,130,109,.32),transparent 60%),
+  radial-gradient(ellipse 45% 50% at 85% 80%,rgba(45,138,132,.28),transparent 60%),
+  radial-gradient(ellipse 40% 30% at 50% 100%,rgba(156,124,78,.14),transparent 65%);
+  animation:auroraMove 22s ease-in-out infinite alternate}
+.nav-body::after{content:"";position:absolute;inset:0;background-image:
+  linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:56px 56px;opacity:.6;
+  mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%)}
+
+.nav-bg-mark{position:absolute;font-family:var(--font-serif);font-size:440px;font-weight:700;color:rgba(255,255,255,.018);letter-spacing:-30px;user-select:none;pointer-events:none;line-height:.8;top:42%;left:50%;transform:translate(-50%,-50%);animation:floatMark 14s ease-in-out infinite}
+
+.nav-container{position:relative;z-index:2;width:100%;max-width:1120px}
+
+/* 头部 */
+.nav-header{text-align:center;margin-bottom:56px;animation:cardIn .8s var(--transition-slow) both}
+.nav-header .nav-brand-line{display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;padding:6px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:24px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav-brand-line .dot{width:7px;height:7px;border-radius:50%;background:var(--plat-400);box-shadow:0 0 12px var(--plat-400);animation:pulse 2.4s infinite}
+.nav-brand-line .txt{font-size:11px;color:var(--text-on-dark-2);letter-spacing:2.5px;font-weight:500}
+
+.nav-header .nav-logo{display:inline-flex;align-items:center;gap:18px;margin-bottom:20px}
+.nav-header .nav-logo .mark{width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,#FFF4E8 0%,#FFE4D0 50%,#FFD4B8 100%);display:flex;align-items:center;justify-content:center;color:#fff;position:relative;overflow:hidden;padding:10px;box-shadow:0 20px 50px -10px rgba(255,140,60,.55),0 8px 20px -4px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.6)}
+.nav-header .nav-logo .mark img{width:100%;height:100%;object-fit:contain;position:relative;z-index:1}
+.nav-header .nav-logo .mark::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.5),transparent 50%);pointer-events:none}
+.nav-header .nav-logo .mark::after{content:"";position:absolute;inset:-4px;border-radius:24px;background:conic-gradient(from 0deg,#FF8A4C,#4FA8A2,#FFB87A,#4FA8A2,#FF8A4C);opacity:.45;z-index:-1;filter:blur(10px);animation:floatBand 10s linear infinite}
+.nav-header .nav-logo .name{font-size:36px;font-weight:600;letter-spacing:1px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.7) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 40px rgba(255,255,255,.1)}
+
+.nav-header .nav-sub{font-size:14px;color:var(--text-on-dark-2);letter-spacing:1.2px;margin-bottom:12px}
+.nav-header .nav-ver{display:inline-flex;align-items:center;gap:10px;font-size:11px;color:var(--accent-400);letter-spacing:1.5px;margin-bottom:8px}
+.nav-header .nav-ver .tag-v{padding:4px 12px;background:linear-gradient(135deg,rgba(156,124,78,.22),rgba(156,124,78,.14));border:1px solid rgba(156,124,78,.3);border-radius:6px;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.5px;box-shadow:0 0 12px rgba(156,124,78,.15)}
+.nav-header .nav-ver .upgrade-tag{padding:3px 9px;background:rgba(64,130,109,.18);border:1px solid rgba(64,130,109,.3);border-radius:5px;color:var(--plat-400);font-size:9px;letter-spacing:.8px;font-weight:600}
+.nav-header .nav-desc{font-size:13px;color:var(--text-on-dark-2);max-width:580px;margin:18px auto 0;line-height:1.8}
+
+/* 统计 */
+.nav-stats{display:flex;justify-content:center;gap:48px;margin:32px 0 0;padding:24px 32px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav-stat{text-align:center;position:relative}
+.nav-stat:not(:last-child)::after{content:"";position:absolute;right:-24px;top:50%;transform:translateY(-50%);width:1px;height:32px;background:rgba(255,255,255,.08)}
+.nav-stat .ns-val{font-size:30px;font-weight:700;font-family:var(--font-mono);background:linear-gradient(135deg,#fff,rgba(255,255,255,.6));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px;line-height:1}
+.nav-stat .ns-label{font-size:11px;color:var(--text-on-dark-3);letter-spacing:1px;margin-top:8px;font-weight:500}
+
+/* 升级亮点 */
+.nav-upgrade{margin:24px auto 48px;padding:18px 24px;background:linear-gradient(135deg,rgba(64,130,109,.08),rgba(45,138,132,.06));border:1px solid rgba(64,130,109,.18);border-radius:12px;max-width:680px;display:flex;align-items:center;gap:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav-upgrade .ug-ic{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--plat-700),var(--plat-500));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 8px 20px -4px rgba(64,130,109,.4)}
+.nav-upgrade .ug-ic svg{width:20px;height:20px}
+.nav-upgrade .ug-txt{flex:1;font-size:12.5px;color:var(--text-on-dark-2);line-height:1.65}
+.nav-upgrade .ug-txt b{color:var(--text-on-dark);font-weight:600}
+.nav-upgrade .ug-features{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.nav-upgrade .ug-features span{padding:2px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:4px;font-size:10px;color:var(--plat-400);letter-spacing:.3px}
+
+/* 区块标题 */
+.nav-section{margin-bottom:48px;animation:cardIn .7s var(--transition-slow) both}
+.nav-section:nth-child(2){animation-delay:.1s}
+.nav-section:nth-child(3){animation-delay:.2s}
+.nav-section:nth-child(4){animation-delay:.3s}
+.nav-section:nth-child(5){animation-delay:.4s}
+.nav-section-head{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.06)}
+.nav-section-head .nav-section-ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:var(--transition)}
+.nav-section-head .nav-section-ic.plat{background:linear-gradient(135deg,rgba(64,130,109,.25),rgba(64,130,109,.15));color:var(--plat-400);border:1px solid rgba(64,130,109,.3);box-shadow:0 0 16px rgba(64,130,109,.15)}
+.nav-section-head .nav-section-ic.merc{background:linear-gradient(135deg,rgba(45,138,132,.25),rgba(45,138,132,.15));color:var(--merc-400);border:1px solid rgba(45,138,132,.3);box-shadow:0 0 16px rgba(45,138,132,.15)}
+.nav-section-head .nav-section-ic.entry{background:linear-gradient(135deg,rgba(156,124,78,.22),rgba(156,124,78,.12));color:var(--accent-400);border:1px solid rgba(156,124,78,.3);box-shadow:0 0 16px rgba(156,124,78,.15)}
+.nav-section-head .nav-section-ic.states{background:linear-gradient(135deg,rgba(58,107,156,.22),rgba(58,107,156,.12));color:#6B9CC8;border:1px solid rgba(58,107,156,.3);box-shadow:0 0 16px rgba(58,107,156,.15)}
+.nav-section-head:hover .nav-section-ic{transform:translateY(-2px) scale(1.05)}
+.nav-section-head .nav-section-ic svg{width:18px;height:18px}
+.nav-section-head .nav-section-title{font-size:18px;font-weight:600;color:var(--text-on-dark);letter-spacing:.5px}
+.nav-section-head .nav-section-count{font-size:11px;color:var(--text-on-dark-3);margin-left:auto;letter-spacing:.5px;padding:4px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px}
+
+/* 卡片网格 */
+.nav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.nav-card{display:block;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:20px 22px;transition:all 280ms cubic-bezier(.4,0,.2,1);text-decoration:none;position:relative;overflow:hidden;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--plat-400),transparent);opacity:0;transition:280ms}
+.nav-card.merc::before{background:linear-gradient(90deg,transparent,var(--merc-400),transparent)}
+.nav-card.accent::before{background:linear-gradient(90deg,transparent,var(--accent-400),transparent)}
+.nav-card::after{content:"";position:absolute;top:-50%;right:-30%;width:160px;height:160px;background:radial-gradient(circle,rgba(64,130,109,.12),transparent 70%);pointer-events:none;opacity:0;transition:280ms}
+.nav-card.merc::after{background:radial-gradient(circle,rgba(45,138,132,.12),transparent 70%)}
+.nav-card.accent::after{background:radial-gradient(circle,rgba(156,124,78,.12),transparent 70%)}
+.nav-card:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.16);transform:translateY(-3px);box-shadow:0 16px 36px -10px rgba(0,0,0,.45)}
+.nav-card:hover::before{opacity:1}
+.nav-card:hover::after{opacity:1}
+.nav-card .nc-top{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.nav-card .nc-ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:linear-gradient(135deg,rgba(64,130,109,.18),rgba(64,130,109,.08));color:var(--plat-400);border:1px solid rgba(64,130,109,.2);transition:var(--transition)}
+.nav-card.merc .nc-ic{background:linear-gradient(135deg,rgba(45,138,132,.18),rgba(45,138,132,.08));color:var(--merc-400);border-color:rgba(45,138,132,.2)}
+.nav-card.accent .nc-ic{background:linear-gradient(135deg,rgba(156,124,78,.15),rgba(156,124,78,.08));color:var(--accent-400);border-color:rgba(156,124,78,.2)}
+.nav-card:hover .nc-ic{transform:scale(1.06) rotate(-3deg);box-shadow:0 6px 16px -4px rgba(64,130,109,.3)}
+.nav-card.merc:hover .nc-ic{box-shadow:0 6px 16px -4px rgba(45,138,132,.3)}
+.nav-card .nc-ic svg{width:19px;height:19px}
+.nav-card .nc-title{font-size:15px;font-weight:600;color:var(--text-on-dark);letter-spacing:.3px}
+.nav-card .nc-desc{font-size:11.5px;color:var(--text-on-dark-2);line-height:1.7;margin-bottom:10px}
+.nav-card .nc-meta{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text-on-dark-3);letter-spacing:.3px}
+.nav-card .nc-meta .nc-arrow{margin-left:auto;color:var(--text-on-dark-3);transition:280ms;font-size:14px;font-weight:600}
+.nav-card:hover .nc-arrow{color:var(--plat-400);transform:translateX(4px)}
+.nav-card.merc:hover .nc-arrow{color:var(--merc-400)}
+.nav-card.accent:hover .nc-arrow{color:var(--accent-400)}
+.nav-card .nc-tag{padding:2px 8px;border-radius:4px;font-size:9px;font-weight:600;letter-spacing:.3px}
+.nc-tag-plat{background:rgba(64,130,109,.22);color:var(--plat-400);border:1px solid rgba(64,130,109,.25)}
+.nc-tag-merc{background:rgba(45,138,132,.22);color:var(--merc-400);border:1px solid rgba(45,138,132,.25)}
+.nc-tag-accent{background:rgba(156,124,78,.18);color:var(--accent-400);border:1px solid rgba(156,124,78,.22)}
+
+/* 底部 */
+.nav-foot{text-align:center;margin-top:56px;padding-top:36px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:var(--text-on-dark-3);letter-spacing:.5px;line-height:1.9}
+.nav-foot b{color:var(--text-on-dark-2)}
+.nav-foot .nav-foot-row{margin-top:10px}
+.nav-foot .nav-tech-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;margin:0 4px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;color:var(--text-on-dark-2);font-family:var(--font-mono);font-size:10px}
+</style>
+</head>
+<body>
+<div class="nav-body">
+  <div class="nav-bg-mark">摊</div>
+  <div class="nav-container">
+
+    <!-- 头部 -->
+    <div class="nav-header">
+      <div class="nav-brand-line"><span class="dot"></span><span class="txt">INTELLIGENT STALL MANAGEMENT PLATFORM</span><span class="dot"></span></div>
+      <div class="nav-logo">
+        <div class="mark"><img src="assets/tandiantong-logo-icon.png" alt="摊点通"></div>
+        <div class="name">摊点通</div>
+      </div>
+      <div class="nav-sub">门店经营管理后台 · 高保真原型</div>
+      <div class="nav-ver"><span class="tag-v">v1.2.0</span><span class="upgrade-tag">第四版 · 墨璃升级</span></div>
+      <div class="nav-desc">平台管理端与商户管理端双域权限体系，覆盖租户管理、账号管理、角色权限、操作日志等核心模块。第四版「墨璃」引入玻璃拟态、动态光效、微交互动效与数据可视化，提升整体视觉冲击与辨识度。</div>
+      <div class="nav-stats">
+        <div class="nav-stat"><div class="ns-val">16</div><div class="ns-label">原型页面</div></div>
+        <div class="nav-stat"><div class="ns-val">2</div><div class="ns-label">权限域</div></div>
+        <div class="nav-stat"><div class="ns-val">50+</div><div class="ns-label">权限点</div></div>
+        <div class="nav-stat"><div class="ns-val">10+</div><div class="ns-label">交互状态</div></div>
+      </div>
+    </div>
+
+    <!-- 升级亮点 -->
+    <div class="nav-upgrade">
+      <div class="ug-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
+      <div class="ug-txt">
+        <b>第四版「墨璃」设计升级</b>
+        <div class="ug-features">
+          <span>玻璃拟态</span><span>动态光效</span><span>微交互动效</span><span>数据可视化</span><span>按钮涟漪</span><span>实时时钟</span><span>Ctrl+K 快捷搜索</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 入口 -->
+    <div class="nav-section">
+      <div class="nav-section-head">
+        <div class="nav-section-ic entry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></div>
+        <div class="nav-section-title">系统入口</div>
+        <div class="nav-section-count">1 个页面</div>
+      </div>
+      <div class="nav-grid">
+        <a class="nav-card accent" href="登录.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></div><div class="nc-title">登录页</div></div>
+          <div class="nc-desc">动态光斑背景 + 玻璃拟态登录卡 + 双域滑块切换，含图形验证码、忘记密码、登录失效提示。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-accent">入口</span><span>双域切换 · 品牌门户</span><span class="nc-arrow">→</span></div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 平台管理端 -->
+    <div class="nav-section">
+      <div class="nav-section-head">
+        <div class="nav-section-ic plat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg></div>
+        <div class="nav-section-title">平台管理端</div>
+        <div class="nav-section-count">8 个页面 · 墨绿域</div>
+      </div>
+      <div class="nav-grid">
+        <a class="nav-card" href="平台-首页.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div><div class="nc-title">工作台</div></div>
+          <div class="nc-desc">英雄数据区 + 7 天趋势条形图 + 待办优先级排序 + 实时时钟。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-plat">平台</span><span>仪表盘 · 英雄区</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card" href="平台-租户管理.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg></div><div class="nc-title">租户管理</div></div>
+          <div class="nc-desc">商户租户列表，含筛选、新增/编辑抽屉、启用停用确认、分页。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-plat">平台</span><span>列表 + 抽屉</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card" href="平台-租户详情.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4M9 11V7a3 3 0 0 1 6 0v4"/></svg></div><div class="nc-title">租户详情</div></div>
+          <div class="nc-desc">租户基础信息、概况统计、操作记录时间线、风险提示。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-plat">平台</span><span>详情页</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card" href="平台-账号管理.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nc-title">平台账号</div></div>
+          <div class="nc-desc">平台运营人员账号管理，含角色分配、重置密码、启用停用。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-plat">平台</span><span>列表 + 抽屉</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card" href="平台-角色管理.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div><div class="nc-title">平台角色</div></div>
+          <div class="nc-desc">平台角色列表，含角色编码、账号数量、启用停用、权限配置入口。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-plat">平台</span><span>列表</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card" href="平台-角色编辑.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></div><div class="nc-title">角色编辑</div></div>
+          <div class="nc-desc">角色基础信息 + 权限树配置（6 组 28 项权限点），含全选/清空/展开。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-plat">平台</span><span>权限树</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card" href="平台-权限点列表.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="nc-title">平台权限点</div></div>
+          <div class="nc-desc">权限点只读列表，含模块/类型/状态筛选，权限编码系统维护不可修改。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-plat">平台</span><span>只读列表</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card" href="平台-操作日志.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div><div class="nc-title">操作日志</div></div>
+          <div class="nc-desc">平台敏感操作审计日志，含追踪号、操作类型/对象/结果筛选，不可删除。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-plat">平台</span><span>审计日志</span><span class="nc-arrow">→</span></div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 商户管理端 -->
+    <div class="nav-section">
+      <div class="nav-section-head">
+        <div class="nav-section-ic merc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6"/></svg></div>
+        <div class="nav-section-title">商户管理端</div>
+        <div class="nav-section-count">7 个页面 · 墨青域</div>
+      </div>
+      <div class="nav-grid">
+        <a class="nav-card merc" href="商户-首页.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div><div class="nc-title">工作台</div></div>
+          <div class="nc-desc">英雄数据区 + 6 宫格快捷入口 + 操作日志时间线，含实时时钟。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-merc">商户</span><span>仪表盘 · 英雄区</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card merc" href="商户-门店信息.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6"/></svg></div><div class="nc-title">门店信息</div></div>
+          <div class="nc-desc">单门店基础信息维护，含营业状态开关、编辑抽屉。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-merc">商户</span><span>详情 + 抽屉</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card merc" href="商户-员工账号.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nc-title">员工账号</div></div>
+          <div class="nc-desc">本商户员工账号管理，含角色分配、重置密码、启用停用。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-merc">商户</span><span>列表 + 抽屉</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card merc" href="商户-角色管理.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div><div class="nc-title">商户角色</div></div>
+          <div class="nc-desc">本商户角色列表，商户角色与平台角色属不同权限域不能混用。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-merc">商户</span><span>列表</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card merc" href="商户-角色权限.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></div><div class="nc-title">角色权限配置</div></div>
+          <div class="nc-desc">商户角色权限树配置（7 组 22 项），仅限本商户范围权限点。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-merc">商户</span><span>权限树</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card merc" href="商户-权限说明.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="nc-title">商户权限说明</div></div>
+          <div class="nc-desc">本商户可用权限点只读清单，编码由平台维护不可创建。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-merc">商户</span><span>只读列表</span><span class="nc-arrow">→</span></div>
+        </a>
+        <a class="nav-card merc" href="商户-操作日志.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div><div class="nc-title">操作日志</div></div>
+          <div class="nc-desc">本商户范围内操作审计日志，不可删除，保留 180 天。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-merc">商户</span><span>审计日志</span><span class="nc-arrow">→</span></div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 组件状态 -->
+    <div class="nav-section">
+      <div class="nav-section-head">
+        <div class="nav-section-ic states"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="nav-section-title">组件与交互状态</div>
+        <div class="nav-section-count">1 个页面</div>
+      </div>
+      <div class="nav-grid">
+        <a class="nav-card accent" href="组件状态.html">
+          <div class="nc-top"><div class="nc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div><div class="nc-title">组件状态与交互</div></div>
+          <div class="nc-desc">空状态、加载骨架、筛选无结果、确认弹窗、表单校验、Toast、权限不足、登录失效等全部交互状态。</div>
+          <div class="nc-meta"><span class="nc-tag nc-tag-accent">组件</span><span>10+ 状态</span><span class="nc-arrow">→</span></div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="nav-foot">
+      <div>摊点通 v1.2.0 · 第四版「墨璃」设计系统 · 高保真原型</div>
+      <div class="nav-foot-row"><b>设计系统</b>：玻璃拟态 · 动态光效 · 微交互动效 · 数据可视化 · 墨绿/墨青双色域 + 古铜金点缀</div>
+      <div class="nav-foot-row">
+        <span class="nav-tech-tag">CSS3</span>
+        <span class="nav-tech-tag">IntersectionObserver</span>
+        <span class="nav-tech-tag">MutationObserver</span>
+        <span class="nav-tech-tag">requestAnimationFrame</span>
+        <span class="nav-tech-tag">backdrop-filter</span>
+      </div>
+      <div class="nav-foot-row">所有示例数据均为虚构脱敏，不涉及真实个人信息 · © 2026 摊点通</div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

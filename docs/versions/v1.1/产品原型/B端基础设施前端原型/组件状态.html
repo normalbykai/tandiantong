@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>摊点通 · 组件状态与交互</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body data-domain="platform">
+
+<div style="max-width:1200px;margin:0 auto;padding:32px 24px 48px">
+  <div class="page-head">
+    <div>
+      <div class="page-title"><span class="accent-bar"></span>组件状态与交互</div>
+      <div class="page-desc">展示原型中涉及的关键交互状态：空状态、加载、筛选无结果、确认弹窗、保存提示、表单校验、权限不足、登录失效、日志详情、权限配置确认。</div>
+    </div>
+    <div class="page-actions"><a class="btn btn-secondary" href="页面导航.html">← 返回导航</a></div>
+  </div>
+
+  <!-- 空状态 / 加载 / 无结果 -->
+  <div class="section-title"><span class="accent-bar"></span>空状态 / 加载 / 无结果</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px">
+    <div class="card"><div class="card-head"><h3><span class="accent-dot"></span>表格空状态</h3></div><div class="card-body" style="padding:0"><div class="empty"><div class="eic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6"/></svg></div><div class="etitle">暂无租户数据</div><div class="edesc">您还没有创建任何租户，点击下方按钮新增第一个租户。</div><div class="eaction"><button class="btn btn-primary btn-sm" onclick="openDrawer('tenant-add')">新增租户</button></div></div></div></div>
+    <div class="card"><div class="card-head"><h3><span class="accent-dot"></span>筛选无结果</h3></div><div class="card-body" style="padding:0"><div class="empty"><div class="eic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div><div class="etitle">未找到匹配结果</div><div class="edesc">当前筛选条件下没有数据，请调整筛选条件后重试。</div><div class="eaction"><button class="btn btn-secondary btn-sm">重置筛选</button></div></div></div></div>
+    <div class="card"><div class="card-head"><h3><span class="accent-dot"></span>加载状态</h3></div><div class="card-body" style="padding:0"><div class="skeleton"><div class="sk-line" style="width:90%"></div><div class="sk-line" style="width:60%"></div><div class="sk-line" style="width:75%"></div><div class="sk-line" style="width:50%"></div><div class="sk-line" style="width:80%"></div></div></div></div>
+  </div>
+
+  <!-- 确认弹窗 / 提示 -->
+  <div class="section-title"><span class="accent-bar"></span>确认弹窗 / 提示</div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:28px">
+    <div class="card"><div class="card-head"><h3><span class="accent-dot"></span>停用租户确认</h3></div><div class="card-body"><div class="modal" style="width:100%;box-shadow:none;border:1px solid var(--border-light)"><div class="modal-head"><div class="modal-ic warn">!</div><h3>确认停用租户「湖滨小吃铺」？</h3></div><div class="modal-body"><p class="modal-lead">停用后该租户将无法发起新的业务操作，历史数据予以保留。</p><div class="warn-box"><b>影响范围</b>：该租户下所有员工账号将无法登录商户管理端；门店信息与历史操作日志保留可查；可随时重新启用。该操作将被记录至操作日志。</div></div><div class="modal-foot"><button class="btn btn-secondary">取消</button><button class="btn btn-primary">确认停用</button></div></div></div></div>
+    <div class="card"><div class="card-head"><h3><span class="accent-dot"></span>重置密码确认</h3></div><div class="card-body"><div class="modal" style="width:100%;box-shadow:none;border:1px solid var(--border-light)"><div class="modal-head"><div class="modal-ic warn">!</div><h3>确认重置该账号密码？</h3></div><div class="modal-body"><p class="modal-lead">系统将生成临时密码并通过短信发送至账号绑定手机号。</p><div class="warn-box"><b>安全提示</b>：重置后原密码立即失效，账号需使用临时密码登录后修改。该操作将被记录至操作日志。</div></div><div class="modal-foot"><button class="btn btn-secondary">取消</button><button class="btn btn-primary">确认重置</button></div></div></div></div>
+    <div class="card"><div class="card-head"><h3><span class="accent-dot"></span>权限配置保存确认</h3></div><div class="card-body"><div class="modal" style="width:100%;box-shadow:none;border:1px solid var(--border-light)"><div class="modal-head"><div class="modal-ic info">i</div><h3>保存角色权限配置？</h3></div><div class="modal-body"><p class="modal-lead">权限变更将立即对关联的全部账号生效，请确认配置无误。</p><div class="modal-grid"><div class="row"><div class="k">角色名称</div><div class="v">平台运营</div></div><div class="row"><div class="k">影响账号</div><div class="v">8 个账号</div></div><div class="row"><div class="k">变更权限</div><div class="v">新增 3 项 · 移除 1 项</div></div></div></div><div class="modal-foot"><button class="btn btn-secondary">取消</button><button class="btn btn-primary">确认保存</button></div></div></div></div>
+    <div class="card"><div class="card-head"><h3><span class="accent-dot"></span>权限不足提示</h3></div><div class="card-body"><div class="modal" style="width:100%;box-shadow:none;border:1px solid var(--border-light)"><div class="modal-head"><div class="modal-ic danger">×</div><h3>权限不足</h3></div><div class="modal-body"><p class="modal-lead">您当前角色无权执行此操作，请联系管理员开通相应权限。</p><div class="modal-grid"><div class="row"><div class="k">当前角色</div><div class="v">门店店员</div></div><div class="row"><div class="k">所需权限</div><div class="v"><span class="mono">role:perm</span>（配置角色权限）</div></div><div class="row"><div class="k">提示</div><div class="v">商户管理员可配置本商户范围内的权限</div></div></div></div><div class="modal-foot"><button class="btn btn-primary">我知道了</button></div></div></div></div>
+  </div>
+
+  <!-- 日志详情 / 表单校验 -->
+  <div class="section-title"><span class="accent-bar"></span>日志详情 / 表单校验</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px">
+    <div class="card"><div class="card-head"><h3><span class="accent-dot"></span>操作日志详情</h3></div><div class="card-body"><div class="modal" style="width:100%;box-shadow:none;border:1px solid var(--border-light)"><div class="modal-head"><div class="modal-ic info">i</div><h3>操作日志详情</h3></div><div class="modal-body"><div class="modal-grid"><div class="row"><div class="k">追踪号</div><div class="v"><span class="mono">TR20260718114210002</span></div></div><div class="row"><div class="k">操作人</div><div class="v">系统管理员</div></div><div class="row"><div class="k">操作类型</div><div class="v"><span class="tag tag-warning">停用</span></div></div><div class="row"><div class="k">操作对象</div><div class="v">租户「南门咖啡档」（TNT20260228002）</div></div><div class="row"><div class="k">操作时间</div><div class="v">2026-07-18 11:42:10</div></div><div class="row"><div class="k">操作结果</div><div class="v"><span class="tag tag-success">成功</span></div></div><div class="row"><div class="k">来源 IP</div><div class="v"><span class="mono">10.32.*.*</span></div></div><div class="row"><div class="k">备注</div><div class="v">租户主动申请暂停经营，按要求停用</div></div></div></div><div class="modal-foot"><button class="btn btn-secondary">关闭</button><button class="btn btn-secondary">导出详情</button></div></div></div></div>
+    <div class="card"><div class="card-head"><h3><span class="accent-dot"></span>表单校验错误</h3></div><div class="card-body"><div class="form-grid col-1"><div class="form-item"><label>员工姓名 <span class="req">*</span></label><input class="inp error" value=""><div class="form-error">! 请输入员工姓名</div></div><div class="form-item"><label>手机号 <span class="req">*</span></label><input class="inp error" value="138"><div class="form-error">! 请输入正确的 11 位手机号</div></div><div class="form-item"><label>所属角色 <span class="req">*</span></label><select class="error"><option value="">请选择角色</option></select><div class="form-error">! 请选择所属角色</div></div><div class="form-item"><label>登录账号 <span class="req">*</span></label><input class="inp" value="zhangming"><div class="desc" style="color:var(--success)">账号可用</div></div></div></div></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="section-title"><span class="accent-bar"></span>Toast 提示样式</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+    <div class="toast success" style="position:static;transform:none;animation:none"><span class="ti">✓</span>保存成功</div>
+    <div class="toast warn" style="position:static;transform:none;animation:none"><span class="ti">!</span>该操作需要二次确认</div>
+    <div class="toast danger" style="position:static;transform:none;animation:none"><span class="ti">×</span>停用失败，请稍后重试</div>
+    <div class="toast info" style="position:static;transform:none;animation:none"><span class="ti">i</span>密码重置链接已发送</div>
+  </div>
+
+  <!-- 交互演示按钮 -->
+  <div class="section-title"><span class="accent-bar"></span>交互演示（点击触发）</div>
+  <div class="card mb-20"><div class="card-body">
+    <div class="flex gap-8" style="flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="toast('success','操作成功完成')">成功 Toast</button>
+      <button class="btn btn-primary" onclick="toast('warn','该操作需要二次确认')">警告 Toast</button>
+      <button class="btn btn-danger" onclick="toast('danger','操作失败，请稍后重试')">危险 Toast</button>
+      <button class="btn btn-secondary" onclick="toast('info','提示信息')">信息 Toast</button>
+      <button class="btn btn-secondary" onclick="openDrawer('tenant-add')">新增租户抽屉</button>
+      <button class="btn btn-secondary" onclick="openDrawer('account-add')">新增账号抽屉</button>
+      <button class="btn btn-secondary" onclick="openModal('tenant-disable')">停用确认弹窗</button>
+      <button class="btn btn-secondary" onclick="openModal('reset-pwd')">重置密码弹窗</button>
+      <button class="btn btn-secondary" onclick="openModal('perm-confirm')">权限配置确认</button>
+      <button class="btn btn-secondary" onclick="openModal('log-detail')">日志详情弹窗</button>
+      <button class="btn btn-secondary" onclick="openModal('perm-detail')">权限点详情</button>
+    </div>
+  </div></div>
+
+  <!-- 登录失效提示 -->
+  <div class="section-title"><span class="accent-bar"></span>登录失效提示</div>
+  <div class="card mb-20"><div class="card-body"><div style="position:relative;height:120px;background:linear-gradient(135deg,var(--plat-900),var(--merc-900));border-radius:6px;display:flex;align-items:center;justify-content:center"><div class="login-expired" style="position:static;transform:none"><div class="ic">!</div><div class="tx"><b>登录状态已失效</b><span>您的登录凭证已过期或已在其他设备登录，请重新登录。</span></div></div></div></div></div>
+
+  <!-- 组件库一览 -->
+  <div class="section-title"><span class="accent-bar"></span>组件库一览</div>
+  <div class="card"><div class="card-body">
+    <div class="mb-16"><div class="text-sm text-secondary mb-8">按钮（平台域 · 墨绿）</div><div class="flex gap-8" style="flex-wrap:wrap"><button class="btn btn-primary">主按钮</button><button class="btn btn-secondary">次按钮</button><button class="btn btn-ghost">幽灵按钮</button><button class="btn btn-danger">危险按钮</button><button class="btn btn-accent">古铜金</button><button class="btn btn-link">链接按钮</button><button class="btn btn-link danger">危险链接</button><button class="btn btn-primary disabled">禁用</button></div></div>
+    <div class="mb-16"><div class="text-sm text-secondary mb-8">按钮（商户域 · 墨青）</div><div class="flex gap-8" style="flex-wrap:wrap"><button class="btn btn-primary merc">商户主按钮</button><button class="btn btn-secondary merc">商户次按钮</button><button class="btn btn-link merc">商户链接</button><button class="btn btn-primary merc disabled">禁用</button></div></div>
+    <div class="mb-16"><div class="text-sm text-secondary mb-8">状态标签</div><div class="flex gap-8" style="flex-wrap:wrap"><span class="tag tag-success">启用</span><span class="tag tag-gray">停用</span><span class="tag tag-warning">待处理</span><span class="tag tag-danger">异常</span><span class="tag tag-info">进行中</span><span class="tag tag-plat no-dot">平台角色</span><span class="tag tag-merc no-dot">商户角色</span><span class="tag tag-accent no-dot">VIP</span><span class="tag tag-purple no-dot">特殊</span></div></div>
+    <div class="mb-16"><div class="text-sm text-secondary mb-8">开关 / 单选（平台域）</div><div class="flex gap-16 items-center"><label class="switch on" onclick="this.classList.toggle('on')"><span class="switch-track"></span><span class="switch-label">启用</span></label><label class="switch" onclick="this.classList.toggle('on')"><span class="switch-track"></span><span class="switch-label">停用</span></label><div class="radio-group"><label class="radio checked" onclick="selectRadio(this)"><span class="radio-dot"></span>启用</label><label class="radio" onclick="selectRadio(this)"><span class="radio-dot"></span>停用</label></div></div></div>
+    <div class="mb-16"><div class="text-sm text-secondary mb-8">开关 / 单选（商户域）</div><div class="flex gap-16 items-center"><label class="switch on merc" onclick="this.classList.toggle('on')"><span class="switch-track"></span><span class="switch-label">营业中</span></label><label class="switch merc" onclick="this.classList.toggle('on')"><span class="switch-track"></span><span class="switch-label">休息中</span></label><div class="radio-group"><label class="radio merc checked" onclick="selectRadio(this)"><span class="radio-dot"></span>启用</label><label class="radio merc" onclick="selectRadio(this)"><span class="radio-dot"></span>停用</label></div></div></div>
+    <div class="mb-16"><div class="text-sm text-secondary mb-8">权限类型标签</div><div class="flex gap-8 items-center"><span class="ptype ptype-menu"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>菜单</span><span class="ptype ptype-btn"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="8" width="18" height="8" rx="2"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>按钮</span><span class="ptype ptype-api"><svg class="ptype-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 4C6.5 4 6 5 6 6v3c0 1-.5 2-2 2 1.5 0 2 1 2 2v3c0 1 .5 2 2 2"/><path d="M16 4c1.5 0 2 1 2 2v3c0 1 .5 2 2 2-1.5 0-2 1-2 2v3c0 1-.5 2-2 2"/></svg>接口</span></div></div>
+    <div><div class="text-sm text-secondary mb-8">权限树复选框状态</div><div class="flex gap-12 items-center"><div class="flex items-center gap-6"><span class="tree-check"></span><span class="text-sm">未选</span></div><div class="flex items-center gap-6"><span class="tree-check checked"></span><span class="text-sm">已选</span></div><div class="flex items-center gap-6"><span class="tree-check indeterminate"></span><span class="text-sm">半选</span></div><div class="flex items-center gap-6"><span class="tree-check merc checked"></span><span class="text-sm">商户域已选</span></div></div></div>
+  </div></div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

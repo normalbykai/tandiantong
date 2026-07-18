@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 128" role="img" aria-labelledby="title">
+  <title id="title">摊点通</title>
+  <g transform="translate(16 16)">
+    <path d="M27 22h25M74 43v26c0 3-2 5-5 5H42c-11 0-20-9-20-20V27c0-3 2-5 5-5" fill="none" stroke="#0B625C" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="69" cy="27" r="10" fill="#FF6B4A"/>
+  </g>
+  <text x="136" y="81" fill="#163D3A" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif" font-size="58" font-weight="700" letter-spacing="2">摊点通</text>
+</svg>
