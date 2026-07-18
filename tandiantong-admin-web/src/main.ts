@@ -6,6 +6,8 @@ import router from './router'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/admin.css'
+import './styles/platform-access.css'
 import './styles/refinements.css'
+import './styles/login.css'
 
 createApp(App).use(ElementPlus).use(router).mount('#app')

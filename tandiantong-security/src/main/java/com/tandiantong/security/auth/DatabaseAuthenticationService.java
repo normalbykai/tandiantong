@@ -1,5 +1,6 @@
 package com.tandiantong.security.auth;
 
+import cn.dev33.satoken.stp.SaLoginModel;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.tandiantong.common.api.ErrorCode;
@@ -24,6 +25,7 @@ public class DatabaseAuthenticationService {
 
     private static final String ENABLED_STATUS = "ENABLED";
     private static final String TOKEN_VERSION_KEY = "tokenVersion";
+    private static final long REMEMBER_ME_TIMEOUT_SECONDS = 7 * 24 * 60 * 60L;
 
     private final PlatformUserMapper platformUserMapper;
     private final AdminUserMapper adminUserMapper;
@@ -40,25 +42,25 @@ public class DatabaseAuthenticationService {
     /**
      * 平台管理员登录。
      */
-    public LoginResult loginPlatform(String mobile, String password) {
+    public LoginResult loginPlatform(String mobile, String password, boolean rememberMe) {
         PlatformUserEntity user = requireActivePlatformUser(platformUserMapper.selectOne(
                 new LambdaQueryWrapper<PlatformUserEntity>().eq(PlatformUserEntity::getMobile, mobile)));
         verifyPassword(password, user.getPasswordHash());
         CurrentUser currentUser = CurrentUser.platform(user.getId(), user.getMobile(), user.getDisplayName());
-        return new LoginResult(issueSaToken(user.getId(), AccessDomain.PLATFORM, user.getTokenVersion()), currentUser);
+        return new LoginResult(issueSaToken(user.getId(), AccessDomain.PLATFORM, user.getTokenVersion(), rememberMe), currentUser);
     }
 
     /**
      * 租户后台用户登录。
      */
-    public LoginResult loginTenant(String mobile, String password) {
+    public LoginResult loginTenant(String mobile, String password, boolean rememberMe) {
         AdminUserEntity user = requireActiveTenantUser(adminUserMapper.selectOne(
                 new LambdaQueryWrapper<AdminUserEntity>().eq(AdminUserEntity::getMobile, mobile)));
         verifyPassword(password, user.getPasswordHash());
         ensureTenantEnabled(user.getTenantId());
         CurrentUser currentUser = CurrentUser.tenant(user.getId(), user.getTenantId(), user.getStoreId(),
                 user.getMobile(), user.getDisplayName());
-        return new LoginResult(issueSaToken(user.getId(), AccessDomain.TENANT, user.getTokenVersion()), currentUser);
+        return new LoginResult(issueSaToken(user.getId(), AccessDomain.TENANT, user.getTokenVersion(), rememberMe), currentUser);
     }
 
     /**
@@ -123,8 +125,13 @@ public class DatabaseAuthenticationService {
         }
     }
 
-    private String issueSaToken(Long userId, AccessDomain domain, Integer tokenVersion) {
-        StpUtil.login(new SaTokenLoginId(domain, userId).encode());
+    private String issueSaToken(Long userId, AccessDomain domain, Integer tokenVersion, boolean rememberMe) {
+        if (rememberMe) {
+            SaLoginModel loginModel = new SaLoginModel().setTimeout(REMEMBER_ME_TIMEOUT_SECONDS).setActiveTimeout(REMEMBER_ME_TIMEOUT_SECONDS);
+            StpUtil.login(new SaTokenLoginId(domain, userId).encode(), loginModel);
+        } else {
+            StpUtil.login(new SaTokenLoginId(domain, userId).encode());
+        }
         StpUtil.getTokenSession().set(TOKEN_VERSION_KEY, tokenVersion);
         return StpUtil.getTokenValue();
     }

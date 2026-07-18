@@ -12,6 +12,7 @@ import com.tandiantong.security.mapper.RoleMapper;
 import com.tandiantong.security.mapper.RolePermissionMapper;
 import com.tandiantong.security.mapper.UserRoleMapper;
 import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,11 @@ import org.springframework.stereotype.Service;
 @Service
 @ConditionalOnProperty(prefix = "tandiantong.security", name = "database-enabled", havingValue = "true", matchIfMissing = true)
 public class PermissionAuthorizationService {
+
+    private static final String ENABLED_STATUS = "ENABLED";
+    private static final Set<String> AUTHORITY_ROLE_PERMISSION_CODES = Set.of(
+            "platform:role:read", "platform:role:create", "platform:role:update",
+            "platform:role:status:update", "platform:role:permission:assign", "platform:permission:read");
 
     private final UserRoleMapper userRoleMapper;
     private final RoleMapper roleMapper;
@@ -56,26 +62,30 @@ public class PermissionAuthorizationService {
         List<RoleEntity> roles = roleMapper.selectList(new LambdaQueryWrapper<RoleEntity>()
                 .eq(RoleEntity::getDomain, domain.name())
                 .in(RoleEntity::getId, roleIds)
+                .eq(RoleEntity::getStatus, ENABLED_STATUS)
                 .eq(domain == AccessDomain.TENANT, RoleEntity::getTenantId, tenantId)
                 .isNull(domain == AccessDomain.PLATFORM, RoleEntity::getTenantId));
         Set<Long> verifiedRoleIds = roles.stream().map(RoleEntity::getId).collect(java.util.stream.Collectors.toSet());
-        if (verifiedRoleIds.isEmpty()) {
-            return List.of();
+        Set<String> permissionCodes = new HashSet<>();
+        if (!verifiedRoleIds.isEmpty()) {
+            List<RolePermissionEntity> rolePermissions = rolePermissionMapper.selectList(new LambdaQueryWrapper<RolePermissionEntity>()
+                    .eq(RolePermissionEntity::getDomain, domain.name())
+                    .in(RolePermissionEntity::getRoleId, verifiedRoleIds)
+                    .eq(domain == AccessDomain.TENANT, RolePermissionEntity::getTenantId, tenantId)
+                    .isNull(domain == AccessDomain.PLATFORM, RolePermissionEntity::getTenantId));
+            Set<Long> permissionIds = rolePermissions.stream().map(RolePermissionEntity::getPermissionId)
+                    .collect(java.util.stream.Collectors.toSet());
+            if (!permissionIds.isEmpty()) {
+                permissionCodes.addAll(permissionMapper.selectList(new LambdaQueryWrapper<PermissionEntity>()
+                        .eq(PermissionEntity::getDomain, domain.name())
+                        .in(PermissionEntity::getId, permissionIds)).stream()
+                        .map(PermissionEntity::getPermissionCode)
+                        .toList());
+            }
         }
-        List<RolePermissionEntity> rolePermissions = rolePermissionMapper.selectList(new LambdaQueryWrapper<RolePermissionEntity>()
-                .eq(RolePermissionEntity::getDomain, domain.name())
-                .in(RolePermissionEntity::getRoleId, verifiedRoleIds)
-                .eq(domain == AccessDomain.TENANT, RolePermissionEntity::getTenantId, tenantId)
-                .isNull(domain == AccessDomain.PLATFORM, RolePermissionEntity::getTenantId));
-        Set<Long> permissionIds = rolePermissions.stream().map(RolePermissionEntity::getPermissionId)
-                .collect(java.util.stream.Collectors.toSet());
-        if (permissionIds.isEmpty()) {
-            return List.of();
+        if (domain == AccessDomain.PLATFORM && roles.stream().anyMatch(role -> Boolean.TRUE.equals(role.getAuthorityRole()))) {
+            permissionCodes.addAll(AUTHORITY_ROLE_PERMISSION_CODES);
         }
-        return permissionMapper.selectList(new LambdaQueryWrapper<PermissionEntity>()
-                .eq(PermissionEntity::getDomain, domain.name())
-                .in(PermissionEntity::getId, permissionIds)).stream()
-                .map(PermissionEntity::getPermissionCode)
-                .toList();
+        return List.copyOf(permissionCodes);
     }
 }

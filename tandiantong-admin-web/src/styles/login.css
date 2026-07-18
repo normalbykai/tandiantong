@@ -1,0 +1,84 @@
+/* 登录页以聚焦的悬浮面板承载操作，避免信息层级与表单竞争注意力。 */
+.login-page {
+  --login-accent: #1b4332;
+  --login-accent-hover: #143426;
+  position: relative;
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 28px 20px;
+  overflow: hidden;
+  background: #edf2ee;
+}
+
+.login-page.merchant { --login-accent: #155b56; --login-accent-hover: #10433f; }
+.login-page::before {
+  position: absolute;
+  top: -28vmax;
+  left: -17vmax;
+  width: 52vmax;
+  height: 52vmax;
+  border: 1px solid rgba(27, 67, 50, .09);
+  border-radius: 50%;
+  box-shadow: 0 0 0 54px rgba(27, 67, 50, .025), 0 0 0 108px rgba(27, 67, 50, .018);
+  content: '';
+}
+
+.login-page::after {
+  position: absolute;
+  right: -12vmax;
+  bottom: -26vmax;
+  width: 43vmax;
+  height: 43vmax;
+  border-radius: 50%;
+  background: rgba(116, 157, 132, .1);
+  content: '';
+}
+
+.login-page.merchant::before { border-color: rgba(21, 91, 86, .09); box-shadow: 0 0 0 54px rgba(21, 91, 86, .025), 0 0 0 108px rgba(21, 91, 86, .018); }
+.login-page.merchant::after { background: rgba(87, 157, 151, .1); }
+.login-panel { position: relative; z-index: 1; width: min(100%, 444px); }
+.login-card {
+  width: 100%;
+  padding: 30px 32px 25px;
+  border: 1px solid rgba(255, 255, 255, .88);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 24px 70px -28px rgba(23, 54, 37, .28), 0 2px 8px rgba(23, 54, 37, .06);
+  backdrop-filter: blur(12px);
+}
+
+.login-card::before { content: none; }
+.login-card { --floating-input-accent: var(--login-accent); --floating-input-label-background: rgba(255, 255, 255, .94); }
+.login-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 24px; }
+.login-mark-icon { display: grid; width: 38px; height: 38px; padding: 3px; border-radius: 10px; background: #eff5f0; }
+.login-mark-icon img { width: 100%; height: 100%; }
+.login-brand h1 { margin: 0; color: #1d3124; font-size: 20px; font-weight: 680; line-height: 1; letter-spacing: .08em; background: none; -webkit-text-fill-color: currentColor; }
+
+.domain-switch { display: flex; width: 100%; padding: 4px; margin-bottom: 20px; border: 1px solid #dfe7e1; border-radius: 11px; background: #f2f6f3; }
+.domain-switch .el-radio-button { flex: 1; }
+.domain-switch .el-radio-button__inner { display: grid; width: 100%; min-height: 40px; padding: 0 8px; place-items: center; border: 0 !important; border-radius: 8px !important; background: transparent !important; box-shadow: none !important; color: #6b766f; font-size: 13px; font-weight: 600; line-height: 1; }
+.domain-switch .el-radio-button__original-radio:checked + .el-radio-button__inner { background: #fff !important; color: var(--login-accent) !important; box-shadow: 0 2px 5px rgba(25, 54, 37, .11) !important; }
+
+.login-form .login-input-item { margin-bottom: 19px; }
+.login-form .el-alert { margin: -2px 0 12px; border-radius: 8px; }
+.login-options { display: flex; align-items: center; justify-content: space-between; margin: 3px 0 20px; font-size: 12px; }
+.login-options .el-checkbox { --el-checkbox-checked-bg-color: var(--login-accent); --el-checkbox-checked-input-border-color: var(--login-accent); color: #66726a; }
+.login-options .el-button { padding: 0; color: var(--login-accent); font-size: 12px; font-weight: 550; }
+.login-text-link { color: var(--login-accent); font-size: 12px; font-weight: 550; text-decoration: none; }
+.login-text-link:hover { color: var(--login-accent-hover); text-decoration: underline; }
+.login-submit.el-button { width: 100%; height: 46px; margin: 0; border: 1px solid var(--login-accent) !important; border-radius: 9px; color: #fff !important; font-size: 14px; font-weight: 650; letter-spacing: .18em; background: var(--login-accent) !important; box-shadow: 0 8px 14px -9px color-mix(in srgb, var(--login-accent) 74%, transparent) !important; transition: background-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+.login-submit.el-button:hover:not(.is-disabled) { background: var(--login-accent-hover) !important; box-shadow: 0 11px 18px -10px color-mix(in srgb, var(--login-accent) 78%, transparent) !important; transform: translateY(-1px); }
+.login-submit.el-button:active:not(.is-disabled) { transform: translateY(0); box-shadow: none !important; }
+.login-submit.el-button.is-loading { letter-spacing: 0; text-indent: 0; }
+.login-notice { margin: 19px 0 0; color: #929b95; font-size: 11px; text-align: center; letter-spacing: .03em; }
+.activation-card { padding-bottom: 28px; }
+.activation-description { margin: -5px 0 22px; color: #66726d; font-size: 13px; line-height: 1.7; text-align: center; }
+.activation-hint { margin: -3px 0 18px; color: #74817a; font-size: 12px; line-height: 1.6; }
+
+@media (max-width: 480px) {
+  .login-page { padding: 20px 16px; }
+  .login-card { padding: 26px 22px 22px; border-radius: 15px; }
+  .login-brand { margin-bottom: 22px; }
+  .domain-switch .el-radio-button__inner { font-size: 12px; }
+}

@@ -12,3 +12,14 @@ export function createTenant(command: CreateTenantCommand) {
 export function enableTenant(tenantId: number) {
   return request<void>(`/api/platform/v1/merchants/${tenantId}/enable`, { method: 'POST' })
 }
+
+export function disableTenant(tenantId: number) {
+  return request<void>(`/api/platform/v1/merchants/${tenantId}/disable`, { method: 'POST' })
+}
+
+export function reissueTenantInvitation(tenantId: number) {
+  return request<{ invitationCode: string; invitationExpiresAt: string }>(
+    `/api/platform/v1/merchants/${tenantId}/invitation/reissue`,
+    { method: 'POST' }
+  )
+}
