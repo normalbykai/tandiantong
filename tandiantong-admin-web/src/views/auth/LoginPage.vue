@@ -1,17 +1,17 @@
 <template>
-  <main class="login-page">
-    <div class="aurora aurora-one" /><div class="aurora aurora-two" />
+  <main class="login-page" :class="{ merchant: domain === 'TENANT' }">
+    <div class="login-band" /><div class="login-mark">摊</div><i v-for="dot in 18" :key="dot" class="login-particle" :style="particleStyle(dot)" />
     <section class="login-card">
-      <img src="/assets/tandiantong-logo-horizontal-reverse-v4.svg" alt="摊点通" class="login-logo" />
-      <div class="login-heading"><span>欢迎使用</span><h1>摊点通基础设施系统</h1><p>统一管理商户、账号、角色与权限</p></div>
-      <el-segmented v-model="domain" :options="domainOptions" block />
+      <div class="login-brand"><span class="login-mark-icon"><img src="/assets/tandiantong-logo-mark-v4.svg" alt="" /></span><div><h1>摊点通</h1><p>门店经营管理后台</p></div></div>
+      <el-radio-group v-model="domain" class="domain-switch" size="large"><el-radio-button label="PLATFORM">平台管理端</el-radio-button><el-radio-button label="TENANT">商户管理端</el-radio-button></el-radio-group>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="login-form" @submit.prevent="submit">
-        <el-form-item label="手机号" prop="mobile"><el-input v-model="form.mobile" placeholder="请输入手机号" autocomplete="username" /></el-form-item>
-        <el-form-item label="密码" prop="password"><el-input v-model="form.password" type="password" placeholder="请输入密码" show-password autocomplete="current-password" /></el-form-item>
+        <el-form-item label="账号" prop="mobile"><el-input v-model="form.mobile" placeholder="请输入手机号" autocomplete="username" /></el-form-item>
+        <el-form-item label="密码" prop="password"><el-input v-model="form.password" type="password" placeholder="请输入登录密码" show-password autocomplete="current-password" /></el-form-item>
         <el-alert v-if="errorMessage" :title="errorMessage" type="error" :closable="false" show-icon />
-        <el-button native-type="submit" type="primary" size="large" :loading="submitting" class="login-submit">登录</el-button>
+        <div class="login-options"><el-checkbox v-model="remember">7 天内自动登录</el-checkbox><el-button text>忘记密码？</el-button></div>
+        <el-button native-type="submit" type="primary" size="large" :loading="submitting" class="login-submit">登 录</el-button>
       </el-form>
-      <p class="login-notice">登录即表示你同意系统安全与审计规则</p>
+      <p class="login-notice">© 2026 摊点通</p>
     </section>
   </main>
 </template>
@@ -31,7 +31,7 @@ const domain = ref<AccessDomain>('PLATFORM')
 const form = reactive({ mobile: '', password: '' })
 const submitting = ref(false)
 const errorMessage = ref('')
-const domainOptions = [{ label: '平台管理', value: 'PLATFORM' }, { label: '商户管理', value: 'TENANT' }]
+const remember = ref(true)
 const rules: FormRules = { mobile: [{ required: true, message: '请输入手机号', trigger: 'blur' }, { pattern: /^1\d{10}$/, message: '请输入正确的手机号', trigger: 'blur' }], password: [{ required: true, message: '请输入密码', trigger: 'blur' }] }
 
 async function submit() {
@@ -48,5 +48,9 @@ async function submit() {
   } finally {
     submitting.value = false
   }
+}
+
+function particleStyle(index: number) {
+  return { left: `${(index * 37) % 94 + 3}%`, top: `${(index * 53) % 90 + 4}%`, animationDelay: `${index * -0.28}s` }
 }
 </script>

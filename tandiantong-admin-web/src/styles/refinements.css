@@ -1,0 +1,11 @@
+/* 登录卡在常见笔记本视口中保持完整可见。 */
+.login-card { padding: 32px 40px 26px; }
+.login-brand { margin-bottom: 18px; }
+.domain-switch { margin-bottom: 16px; }
+.login-form .el-form-item { margin-bottom: 10px; }
+.login-options { margin: 4px 0 16px; }
+.login-notice { margin-top: 16px; }
+
+@media (max-width: 560px) {
+  .login-card { padding: 28px 25px 24px; }
+}

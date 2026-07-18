@@ -6,5 +6,6 @@ import router from './router'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/admin.css'
+import './styles/refinements.css'
 
 createApp(App).use(ElementPlus).use(router).mount('#app')
