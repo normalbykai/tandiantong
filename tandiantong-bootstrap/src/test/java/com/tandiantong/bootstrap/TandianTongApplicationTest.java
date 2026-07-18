@@ -10,6 +10,7 @@ import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
 import com.tandiantong.analytics.app.AnalyticsPersistenceService;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
+import com.tandiantong.catalog.product.CatalogInventoryService;
 import com.tandiantong.order.app.PersistentOrderService;
 import com.tandiantong.reservation.app.ReservationPersistenceService;
 import com.tandiantong.security.auth.DatabaseAuthenticationService;
@@ -64,6 +65,7 @@ class TandianTongApplicationTest {
     @Test
     void shouldLoadSpringContext() {
         assertThat(applicationContext).isNotNull();
+        assertThat(applicationContext.getBean(CatalogInventoryService.class)).isNotNull();
     }
 
     @Test

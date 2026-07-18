@@ -12,8 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
 
 /** 商品、SKU、加料和库存领域服务。 */
+@Service
 public class CatalogInventoryService {
 
     private final AtomicLong idSequence = new AtomicLong(1000);
