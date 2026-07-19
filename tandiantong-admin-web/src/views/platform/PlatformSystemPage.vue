@@ -18,14 +18,91 @@
 
   <template v-else-if="activeSection === 'DICTIONARY'">
     <section class="content-card dictionary-page-card">
-      <div class="dictionary-page-heading"><div><span class="system-card-kicker">PLATFORM DICTIONARY</span><h2>平台字典</h2><p>按字典类型维护可复用选项。编码用于识别，存储值写入业务数据，名称用于页面展示。</p></div><el-button type="primary" @click="openCreate()">新增字典项</el-button></div>
-      <div class="dictionary-toolbar"><div class="dictionary-filter-field"><span>字典类型</span><el-input v-model="dictionaryTypeFilter" clearable placeholder="例如：ORDER_STATUS" @keyup.enter="loadDictionaries" /></div><el-button :icon="RefreshCw" :loading="dictionaryLoading" @click="loadDictionaries">刷新</el-button><span class="dictionary-result-hint">{{ dictionaryItems.length }} 个字典项 · {{ dictionaryGroups.length }} 个类型</span></div>
-      <div v-loading="dictionaryLoading" class="dictionary-groups">
-        <section v-for="group in dictionaryGroups" :key="group.dictionaryType" class="dictionary-group-card">
-          <div class="dictionary-group-heading"><div class="dictionary-group-title"><span class="dictionary-type-mark">字</span><div><strong>{{ group.dictionaryType }}</strong><span>{{ group.items.length }} 个选项 · {{ group.enabledCount }} 个启用</span></div></div><el-button link type="primary" @click="openCreate(group.dictionaryType)">在此类型下新增</el-button></div>
-          <el-table :data="group.items" class="data-table dictionary-group-table" empty-text="暂无字典项"><el-table-column prop="itemCode" label="字典项编码" min-width="150"><template #default="{ row }"><code>{{ row.itemCode }}</code></template></el-table-column><el-table-column prop="itemValue" label="业务存储值" min-width="180"><template #default="{ row }"><span class="dictionary-value">{{ row.itemValue }}</span></template></el-table-column><el-table-column prop="itemLabel" label="显示名称" min-width="150" /><el-table-column prop="sortOrder" label="排序" width="80" /><el-table-column label="状态" width="90"><template #default="{ row }"><el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'">{{ row.status === 'ENABLED' ? '启用' : '停用' }}</el-tag></template></el-table-column><el-table-column label="操作" width="150" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openEdit(row)">编辑</el-button><el-button link :type="row.status === 'ENABLED' ? 'danger' : 'primary'" @click="toggleStatus(row)">{{ row.status === 'ENABLED' ? '停用' : '启用' }}</el-button></template></el-table-column></el-table>
-        </section>
-        <el-empty v-if="!dictionaryLoading && dictionaryGroups.length === 0" description="暂无匹配的字典项" />
+      <div class="dictionary-page-heading"><div><span class="system-card-kicker">PLATFORM DICTIONARY</span><h2>平台字典</h2><p>按字典类型维护可复用选项。编码用于识别，存储值写入业务数据，名称用于页面展示。</p></div></div>
+      <div v-loading="dictionaryLoading" class="dictionary-workspace">
+        <!-- 左侧：字典类型列表 -->
+        <aside class="dictionary-type-panel">
+          <div class="dictionary-type-search">
+            <el-input v-model="dictionaryTypeFilter" clearable placeholder="搜索字典类型…" :prefix-icon="Search" size="default" @input="onTypeFilterChange" />
+          </div>
+          <nav class="dictionary-type-list">
+            <el-card
+              v-for="group in dictionaryGroups"
+              :key="group.dictionaryType"
+              :shadow="selectedType === group.dictionaryType ? 'always' : 'hover'"
+              class="dictionary-type-card"
+              :class="{ 'dictionary-type-card--active': selectedType === group.dictionaryType }"
+              :body-style="{ padding: '12px 14px' }"
+              @click="selectType(group.dictionaryType)"
+            >
+              <div class="dictionary-type-card__inner">
+                <span class="dictionary-type-item__icon">字</span>
+                <span class="dictionary-type-item__body">
+                  <strong class="dictionary-type-item__code">{{ group.dictionaryType }}</strong>
+                  <span class="dictionary-type-item__meta">{{ group.items.length }} 个选项 · {{ group.enabledCount }} 个启用</span>
+                </span>
+              </div>
+            </el-card>
+            <el-empty v-if="dictionaryGroups.length === 0" description="暂无字典类型" :image-size="64" />
+          </nav>
+          <div class="dictionary-type-footer">
+            <span>共 <b>{{ dictionaryGroups.length }}</b> 个类型</span>
+            <el-button link type="primary" :icon="RefreshCw" :loading="dictionaryLoading" @click="loadDictionaries">刷新</el-button>
+          </div>
+        </aside>
+
+        <!-- 右侧：字典项表格 -->
+        <main class="dictionary-item-panel">
+          <template v-if="selectedType">
+            <el-card shadow="never" class="dictionary-item-card" :body-style="{ padding: '0' }">
+              <div class="dictionary-item-toolbar">
+                <div class="dictionary-item-toolbar__left">
+                  <span class="dictionary-item-toolbar__title">{{ selectedType }}</span>
+                  <el-tag size="small" type="info">{{ selectedGroupItems.length }} 个字典项</el-tag>
+                </div>
+                <div class="dictionary-item-toolbar__right">
+                  <el-input v-model="itemSearchText" clearable placeholder="搜索字典项名称或编码…" size="default" style="width: 240px" />
+                  <el-button type="primary" @click="openCreate(selectedType)">新增字典项</el-button>
+                </div>
+              </div>
+              <el-table
+                :data="filteredSelectedItems"
+                class="data-table dictionary-item-table"
+                empty-text="暂无字典项，点击右上角「新增字典项」添加"
+                row-key="id"
+              >
+                <el-table-column prop="itemCode" label="字典项编码" min-width="140">
+                  <template #default="{ row }"><code>{{ row.itemCode }}</code></template>
+                </el-table-column>
+                <el-table-column prop="itemValue" label="业务存储值" min-width="160">
+                  <template #default="{ row }"><span class="dictionary-value">{{ row.itemValue }}</span></template>
+                </el-table-column>
+                <el-table-column prop="itemLabel" label="显示名称" min-width="140" />
+                <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
+                <el-table-column label="状态" width="90" align="center">
+                  <template #default="{ row }">
+                    <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
+                      {{ row.status === 'ENABLED' ? '启用' : '停用' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="150" fixed="right" align="center">
+                  <template #default="{ row }">
+                    <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
+                    <el-button link size="small" :type="row.status === 'ENABLED' ? 'danger' : 'primary'" @click="toggleStatus(row)">
+                      {{ row.status === 'ENABLED' ? '停用' : '启用' }}
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-card>
+          </template>
+          <div v-else class="dictionary-item-empty">
+            <span class="dictionary-item-empty__icon">字</span>
+            <strong>选择字典类型</strong>
+            <p>从左侧列表中选择一个字典类型，查看和管理其下的字典项。</p>
+          </div>
+        </main>
       </div>
     </section>
   </template>
@@ -46,7 +123,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
-import { RefreshCw } from 'lucide-vue-next'
+import { RefreshCw, Search } from 'lucide-vue-next'
 import PageHeader from '../../components/common/PageHeader.vue'
 import { createPlatformDictionaryItem, getPlatformSystemConfig, listPlatformDictionaryItems, updatePlatformDictionaryItem, updatePlatformDictionaryItemStatus, updatePlatformSystemConfig } from '../../api/platform/system'
 import type { CreatePlatformDictionaryItemCommand, PlatformDictionaryItem, UpdatePlatformSystemConfigCommand } from '../../types/platform-system'
@@ -69,6 +146,21 @@ const dictionaryGroups = computed(() => {
 const dictionaryLoading = ref(false)
 const dictionarySaving = ref(false)
 const dictionaryTypeFilter = ref('')
+const selectedType = ref('')
+const itemSearchText = ref('')
+const selectedGroupItems = computed(() => {
+  const group = dictionaryGroups.value.find(g => g.dictionaryType === selectedType.value)
+  return group?.items ?? []
+})
+const filteredSelectedItems = computed(() => {
+  if (!itemSearchText.value.trim()) return selectedGroupItems.value
+  const kw = itemSearchText.value.trim().toLowerCase()
+  return selectedGroupItems.value.filter(item =>
+    item.itemLabel.toLowerCase().includes(kw) ||
+    item.itemCode.toLowerCase().includes(kw) ||
+    item.itemValue.toLowerCase().includes(kw)
+  )
+})
 const dictionaryDialogVisible = ref(false)
 const dictionaryFormRef = ref<FormInstance>()
 const editingItem = ref<PlatformDictionaryItem>()
@@ -77,7 +169,9 @@ const dictionaryRules: FormRules = { dictionaryType: [{ required: true, message:
 
 async function loadConfig() { try { Object.assign(configForm, await getPlatformSystemConfig()) } catch (error) { message.error(error instanceof Error ? error.message : '平台设置加载失败') } }
 async function saveConfig() { if (!(await configFormRef.value?.validate().catch(() => false))) return; configSaving.value = true; try { Object.assign(configForm, await updatePlatformSystemConfig(configForm)); message.success('平台设置已保存') } catch (error) { message.error(error instanceof Error ? error.message : '平台设置保存失败') } finally { configSaving.value = false } }
-async function loadDictionaries() { dictionaryLoading.value = true; try { dictionaryItems.value = await listPlatformDictionaryItems(dictionaryTypeFilter.value.trim() || undefined) } catch (error) { message.error(error instanceof Error ? error.message : '平台字典加载失败') } finally { dictionaryLoading.value = false } }
+async function loadDictionaries() { dictionaryLoading.value = true; try { dictionaryItems.value = await listPlatformDictionaryItems(dictionaryTypeFilter.value.trim() || undefined); if (selectedType.value && !dictionaryGroups.value.some(g => g.dictionaryType === selectedType.value)) selectedType.value = dictionaryGroups.value[0]?.dictionaryType ?? ''; if (!selectedType.value && dictionaryGroups.value.length > 0) selectedType.value = dictionaryGroups.value[0].dictionaryType } catch (error) { message.error(error instanceof Error ? error.message : '平台字典加载失败') } finally { dictionaryLoading.value = false } }
+function selectType(dictionaryType: string) { selectedType.value = dictionaryType; itemSearchText.value = '' }
+function onTypeFilterChange() { loadDictionaries() }
 function openCreate(dictionaryType = '') { editingItem.value = undefined; Object.assign(dictionaryForm, { dictionaryType, itemCode: '', itemValue: '', itemLabel: '', sortOrder: 0 }); dictionaryDialogVisible.value = true }
 function openEdit(item: PlatformDictionaryItem) { editingItem.value = item; Object.assign(dictionaryForm, item); dictionaryDialogVisible.value = true }
 async function saveDictionary() { if (!(await dictionaryFormRef.value?.validate().catch(() => false))) return; dictionarySaving.value = true; try { if (editingItem.value) await updatePlatformDictionaryItem(editingItem.value.id, { itemLabel: dictionaryForm.itemLabel, sortOrder: dictionaryForm.sortOrder }); else await createPlatformDictionaryItem(dictionaryForm); message.success('平台字典项已保存'); dictionaryDialogVisible.value = false; await loadDictionaries() } catch (error) { message.error(error instanceof Error ? error.message : '平台字典项保存失败') } finally { dictionarySaving.value = false } }
@@ -89,11 +183,40 @@ onMounted(loadDictionaries)
 <style scoped>
 .system-workspace-nav { display: flex; align-items: center; justify-content: flex-start; gap: 12px; margin-bottom: 22px; padding: 0; }
 .system-card-kicker { color: var(--domain-600); font-family: ui-monospace, Consolas, monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.2px; }
-.system-section-switch { --el-segmented-color: #708077; --el-segmented-item-selected-color: var(--domain-700); --el-segmented-item-selected-bg-color: #fff; --el-segmented-item-hover-color: var(--domain-700); --el-segmented-item-hover-bg-color: rgba(255, 255, 255, .72); --el-segmented-bg-color: #eef4f0; --el-segmented-padding: 4px; min-height: 50px; flex: 0 1 auto; padding: 4px; border: 1px solid #d6e3da; border-radius: 999px; background: linear-gradient(135deg, #f3f7f4, #eaf2ed); box-shadow: inset 0 1px 2px rgba(24, 61, 43, .05), 0 4px 12px -6px rgba(27, 67, 50, .3); }
-.system-section-switch :deep(.el-segmented__group) { gap: 3px; }
-.system-section-switch :deep(.el-segmented__item) { position: relative; min-width: 126px; min-height: 40px; padding: 0 20px; border: 1px solid transparent; border-radius: 999px; color: #68776e; font-size: 14px; font-weight: 600; transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
-.system-section-switch :deep(.el-segmented__item:hover) { color: var(--domain-700); transform: translateY(-1px); }
-.system-section-switch :deep(.el-segmented__item-selected) { border-color: #cfe0d5; background: linear-gradient(180deg, #fff, #f9fcfa); box-shadow: 0 5px 12px -7px rgba(27, 67, 50, .46), 0 1px 3px rgba(27, 67, 50, .08); }
+
+.system-section-switch {
+  --el-segmented-color: #6b7b72;
+  --el-segmented-item-selected-color: #1b4332;
+  --el-segmented-item-selected-bg-color: #fff;
+  --el-segmented-item-hover-color: #1b4332;
+  --el-segmented-item-hover-bg-color: rgba(255,255,255,.6);
+  --el-segmented-bg-color: #f0f4f1;
+  --el-segmented-padding: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #f0f4f1;
+}
+.system-section-switch :deep(.el-segmented__group) { gap: 2px; }
+.system-section-switch :deep(.el-segmented__item) {
+  min-width: 110px;
+  min-height: 36px;
+  padding: 0 18px;
+  border-radius: 8px;
+  color: #6b7b72;
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: .1px;
+  transition: color 160ms ease, background-color 160ms ease, box-shadow 180ms ease;
+}
+.system-section-switch :deep(.el-segmented__item:hover) {
+  color: #1b4332;
+  background: rgba(255,255,255,.55);
+}
+.system-section-switch :deep(.el-segmented__item-selected) {
+  color: #1b4332;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+}
 .system-config-card { padding: 30px; }
 .security-settings-card { max-width: 860px; }
 .security-settings-card .system-card-heading { margin-bottom: 22px; }
@@ -119,28 +242,171 @@ onMounted(loadDictionaries)
 .dictionary-page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 24px 24px 20px; border-bottom: 1px solid #edf1ee; }
 .dictionary-page-heading h2 { margin: 5px 0 0; color: #25332c; font-size: 20px; font-weight: 650; }
 .dictionary-page-heading p { max-width: 720px; margin: 8px 0 0; color: #7b858d; font-size: 12px; line-height: 1.65; }
-.dictionary-toolbar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; padding: 16px 24px; border-bottom: 1px solid #edf1ee; background: #fbfcfb; }
-.dictionary-filter-field { display: grid; gap: 5px; min-width: min(300px, 100%); }
-.dictionary-filter-field > span { color: #738078; font-size: 11px; font-weight: 600; }
-.dictionary-filter-field .el-input { width: 300px; max-width: 100%; }
-.dictionary-result-hint { align-self: center; margin-left: auto; color: #8b9690; font-size: 11px; }
-.dictionary-groups { display: grid; gap: 16px; padding: 20px 24px 24px; }
-.dictionary-group-card { overflow: hidden; border: 1px solid #e1e9e3; border-radius: 12px; background: #fff; }
-.dictionary-group-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; background: linear-gradient(100deg, #f4f8f5, #fbfcfb); }
-.dictionary-group-title { display: flex; align-items: center; gap: 10px; }
-.dictionary-group-title > div { display: grid; gap: 3px; }
-.dictionary-group-title strong { color: #2e4337; font-family: ui-monospace, Consolas, monospace; font-size: 13px; letter-spacing: .2px; }
-.dictionary-group-title span:last-child { color: #8a968e; font-size: 11px; }
-.dictionary-type-mark { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 9px; background: #e5f0e8; color: var(--domain-700); font-size: 13px; font-weight: 700; }
-.dictionary-group-table :deep(.el-table__inner-wrapper::before) { display: none; }
-.dictionary-group-table :deep(.el-table__header th.el-table__cell) { background: #fff; color: #7b8780; font-size: 11px; font-weight: 600; }
-.dictionary-group-table :deep(.el-table__body td.el-table__cell) { padding: 13px 0; }
+
+/* === 主工作区：左右分栏 === */
+.dictionary-workspace { display: flex; min-height: 460px; }
+
+/* === 左侧：字典类型面板 === */
+.dictionary-type-panel {
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  min-width: 240px;
+  border-right: 1px solid #edf1ee;
+  background: #f9fbfa;
+}
+.dictionary-type-search { padding: 14px 14px 10px; }
+.dictionary-type-search :deep(.el-input__wrapper) { background: #fff; }
+.dictionary-type-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2px 10px 6px;
+}
+.dictionary-type-list::-webkit-scrollbar { width: 4px; }
+.dictionary-type-list::-webkit-scrollbar-thumb { border-radius: 2px; background: #c8d6cc; }
+
+/* === 左侧：字典类型卡片 === */
+.dictionary-type-card {
+  margin-bottom: 6px;
+  border: 1px solid #e3ebe5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 180ms ease;
+}
+.dictionary-type-card:hover {
+  transform: translateY(-1px);
+}
+.dictionary-type-card--active {
+  border-color: #a3c9b2 !important;
+  box-shadow: 0 0 0 1px rgba(27, 67, 50, .12), 0 4px 16px -6px rgba(27, 67, 50, .28), 0 2px 6px -2px rgba(27, 67, 50, .14) !important;
+}
+.dictionary-type-card--active .dictionary-type-item__code { color: #1b4332; }
+.dictionary-type-card__inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dictionary-type-item__icon {
+  display: grid;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 8px;
+  background: #e5f0e8;
+  color: var(--domain-700);
+  font-size: 13px;
+  font-weight: 700;
+}
+.dictionary-type-item__body { display: grid; gap: 2px; min-width: 0; }
+.dictionary-type-item__code {
+  overflow: hidden;
+  color: #3a5645;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: .2px;
+}
+.dictionary-type-item__meta { color: #8a968e; font-size: 11px; }
+.dictionary-type-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-top: 1px solid #edf1ee;
+  color: #8b9690;
+  font-size: 11px;
+}
+.dictionary-type-footer b { color: var(--domain-700); font-weight: 650; }
+
+/* === 右侧：字典项面板 === */
+.dictionary-item-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #fff; }
+.dictionary-item-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e3ebe5;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.dictionary-item-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.dictionary-item-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #edf1ee;
+  background: #fbfcfb;
+  flex-wrap: wrap;
+}
+.dictionary-item-toolbar__left { display: flex; align-items: center; gap: 10px; }
+.dictionary-item-toolbar__title {
+  color: #25332c;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.dictionary-item-toolbar__right { display: flex; align-items: center; gap: 10px; }
+.dictionary-item-table :deep(.el-table__inner-wrapper::before) { display: none; }
+.dictionary-item-table :deep(.el-table__header th.el-table__cell) { background: #f9fbfa; color: #7b8780; font-size: 11px; font-weight: 600; }
+.dictionary-item-table :deep(.el-table__body td.el-table__cell) { padding: 13px 0; }
 .dictionary-value { color: #2d6047; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+
+/* 空状态：未选择类型 */
+.dictionary-item-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 24px;
+  color: #9aa3aa;
+}
+.dictionary-item-empty__icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 14px;
+  background: #eef4f0;
+  color: #94a89a;
+  font-size: 24px;
+  font-weight: 700;
+}
+.dictionary-item-empty strong { color: #5e6b64; font-size: 15px; font-weight: 600; }
+.dictionary-item-empty p { margin: 0; font-size: 12px; line-height: 1.6; }
 .dictionary-dialog-intro { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; padding: 12px 14px; border: 1px solid #dcebe0; border-radius: 10px; background: #f5faf6; }
 .dictionary-dialog-intro p { margin: 1px 0 0; color: #617269; font-size: 12px; line-height: 1.6; }
 .dictionary-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
 .dictionary-form :deep(.el-form-item:nth-child(3)), .dictionary-form :deep(.el-form-item:nth-child(4)) { grid-column: span 1; }
 .dictionary-form :deep(.el-form-item__label) { color: #56645c; font-size: 12px; font-weight: 600; }
 .dictionary-form :deep(.el-input-number) { width: 100%; }
-@media (max-width: 720px) { .system-workspace-nav { align-items: stretch; flex-direction: column; gap: 8px; }.system-section-switch { width: 100%; }.system-section-switch :deep(.el-segmented__item) { flex: 1; min-width: 0; padding: 0 12px; }.system-config-card { padding: 18px; }.system-card-heading { flex-direction: column; margin-bottom: 20px; }.system-config-layout { grid-template-columns: 1fr; gap: 16px; }.dictionary-page-heading { flex-direction: column; padding: 20px 18px; }.dictionary-page-heading .el-button { width: 100%; }.dictionary-toolbar { align-items: stretch; padding: 14px 18px; }.dictionary-filter-field { width: 100%; }.dictionary-filter-field .el-input { width: 100%; }.dictionary-result-hint { width: 100%; margin-left: 0; }.dictionary-groups { padding: 16px 18px 20px; }.dictionary-group-heading { align-items: flex-start; flex-direction: column; }.dictionary-form { display: block; } }
+@media (max-width: 720px) {
+  .system-workspace-nav { align-items: stretch; flex-direction: column; gap: 8px; }
+  .system-section-switch { width: 100%; }
+  .system-section-switch :deep(.el-segmented__item) { flex: 1; min-width: 0; padding: 0 10px; }
+  .system-config-card { padding: 18px; }
+  .system-card-heading { flex-direction: column; margin-bottom: 20px; }
+  .system-config-layout { grid-template-columns: 1fr; gap: 16px; }
+  .dictionary-page-heading { flex-direction: column; padding: 20px 18px; }
+  .dictionary-page-heading .el-button { width: 100%; }
+  .dictionary-workspace { flex-direction: column; min-height: auto; }
+  .dictionary-type-panel { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid #edf1ee; max-height: 260px; }
+  .dictionary-type-card { margin-bottom: 4px; }
+  .dictionary-item-card { border-radius: 0; border-left: none; border-right: none; }
+  .dictionary-item-toolbar { flex-direction: column; align-items: stretch; }
+  .dictionary-item-toolbar__right { flex-direction: column; }
+  .dictionary-item-toolbar__right .el-input { width: 100% !important; }
+  .dictionary-item-toolbar__right .el-button { width: 100%; }
+  .dictionary-form { display: block; }
+}
 </style>

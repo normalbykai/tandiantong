@@ -61,5 +61,37 @@ onMounted(load)
 .tenant-filter-select { width: 150px; }
 .tenant-filter-result { margin-left: auto; color: #89958e; font-size: 12px; }
 .tenant-filter-result b { color: var(--domain-700); font-weight: 650; }
-@media (max-width: 680px) { .tenant-filter-field, .tenant-filter-select { width: 100%; }.tenant-filter-result { width: 100%; margin-left: 0; } }
+
+/* 表格舒适度优化 */
+:deep(.app-data-table) {
+  padding: 0 8px;
+}
+:deep(.el-table__header th.el-table__cell) {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5e6b64;
+}
+:deep(.el-table__header th.el-table__cell:first-child .cell) {
+  padding-left: 16px;
+}
+:deep(.el-table__body td.el-table__cell) {
+  font-size: 13.5px;
+  padding: 14px 0;
+  color: #2d3831;
+}
+:deep(.el-table__body td.el-table__cell:first-child .cell) {
+  padding-left: 16px;
+}
+:deep(.el-table__body td.el-table__cell .cell) {
+  line-height: 1.6;
+}
+
+@media (max-width: 680px) {
+  .tenant-filter-field, .tenant-filter-select { width: 100%; }
+  .tenant-filter-result { width: 100%; margin-left: 0; }
+  :deep(.el-table__header th.el-table__cell:first-child .cell),
+  :deep(.el-table__body td.el-table__cell:first-child .cell) {
+    padding-left: 12px;
+  }
+}
 </style>
