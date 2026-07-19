@@ -5,6 +5,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.tandiantong.security.context.CurrentUser;
 import com.tandiantong.security.context.SecurityContextHolder;
 import com.tandiantong.security.entity.PlatformDictionaryItemEntity;
+import com.tandiantong.security.entity.PlatformDictionaryTypeEntity;
 import com.tandiantong.security.entity.PlatformSystemConfigEntity;
 import com.tandiantong.security.platform.PlatformSystemManagementService;
 
@@ -75,6 +76,15 @@ public class PlatformSystemController {
             @RequestParam(value = "dictionaryType", required = false) String dictionaryType) {
         return service.listDictionaryItems(dictionaryType).stream()
                 .map(DictionaryResponse::from)
+                .toList();
+    }
+
+    @GetMapping("/dictionary-types")
+    @SaCheckPermission("platform:dictionary:read")
+    @Operation(summary = "查询平台字典类型", description = "查询全部已启用的字典类型及其中文名称和描述")
+    public List<DictionaryTypeResponse> listDictionaryTypes() {
+        return service.listDictionaryTypes().stream()
+                .map(DictionaryTypeResponse::from)
                 .toList();
     }
 
@@ -230,5 +240,31 @@ public class PlatformSystemController {
     @Schema(description = "启停状态请求")
     public static class StatusRequest {
         private boolean enabled;
+    }
+
+    @Getter
+    @Setter
+    @Schema(description = "字典类型响应")
+    public static class DictionaryTypeResponse {
+        @Schema(description = "字典类型编码", example = "TENANT_STATUS")
+        private String dictionaryType;
+
+        @Schema(description = "字典类型中文名称", example = "租户状态")
+        private String typeLabel;
+
+        @Schema(description = "字典类型描述说明", example = "商户租户的全生命周期状态")
+        private String description;
+
+        @Schema(description = "排序值")
+        private Integer sortOrder;
+
+        static DictionaryTypeResponse from(PlatformDictionaryTypeEntity source) {
+            DictionaryTypeResponse response = new DictionaryTypeResponse();
+            response.dictionaryType = source.getDictionaryType();
+            response.typeLabel = source.getTypeLabel();
+            response.description = source.getDescription();
+            response.sortOrder = source.getSortOrder();
+            return response;
+        }
     }
 }

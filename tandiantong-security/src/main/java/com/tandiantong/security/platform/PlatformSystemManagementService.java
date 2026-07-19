@@ -7,8 +7,10 @@ import com.tandiantong.security.audit.OperationAuditService;
 import com.tandiantong.security.auth.PasswordService;
 import com.tandiantong.security.context.CurrentUser;
 import com.tandiantong.security.entity.PlatformDictionaryItemEntity;
+import com.tandiantong.security.entity.PlatformDictionaryTypeEntity;
 import com.tandiantong.security.entity.PlatformSystemConfigEntity;
 import com.tandiantong.security.mapper.PlatformDictionaryItemMapper;
+import com.tandiantong.security.mapper.PlatformDictionaryTypeMapper;
 import com.tandiantong.security.mapper.PlatformSystemConfigMapper;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,16 +37,19 @@ public class PlatformSystemManagementService {
     private static final SecureRandom RANDOM_GENERATOR = new SecureRandom();
     private final PlatformSystemConfigMapper configMapper;
     private final PlatformDictionaryItemMapper dictionaryMapper;
+    private final PlatformDictionaryTypeMapper dictionaryTypeMapper;
     private final OperationAuditService auditService;
     private final PasswordService passwordService;
 
     public PlatformSystemManagementService(
             PlatformSystemConfigMapper configMapper,
             PlatformDictionaryItemMapper dictionaryMapper,
+            PlatformDictionaryTypeMapper dictionaryTypeMapper,
             OperationAuditService auditService,
             PasswordService passwordService) {
         this.configMapper = configMapper;
         this.dictionaryMapper = dictionaryMapper;
+        this.dictionaryTypeMapper = dictionaryTypeMapper;
         this.auditService = auditService;
         this.passwordService = passwordService;
     }
@@ -139,6 +144,14 @@ public class PlatformSystemManagementService {
         public String passwordHash() {
             return passwordHash;
         }
+    }
+
+    /** 查询全部已启用的字典类型，按排序值排列。 */
+    public List<PlatformDictionaryTypeEntity> listDictionaryTypes() {
+        return dictionaryTypeMapper.selectList(
+                new LambdaQueryWrapper<PlatformDictionaryTypeEntity>()
+                        .eq(PlatformDictionaryTypeEntity::getStatus, ENABLED)
+                        .orderByAsc(PlatformDictionaryTypeEntity::getSortOrder));
     }
 
     public List<PlatformDictionaryItemEntity> listDictionaryItems(String dictionaryType) {
