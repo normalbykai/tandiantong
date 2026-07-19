@@ -1,6 +1,7 @@
 package com.tandiantong.miniapi.order.dto;
 
 import com.tandiantong.order.app.PersistentOrderService;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /** 小程序商品订单处理结果。 */
@@ -42,11 +43,31 @@ public class OrderResponse {
         return new OrderResponse(result);
     }
 
-    public String getOrderNo() { return orderNo; }
-    public int getPayAmountCent() { return payAmountCent; }
-    public String getStatus() { return status; }
-    public String getPrepayId() { return prepayId; }
-    public String getPaymentParameters() { return paymentParameters; }
-    public String getPickupNo() { return pickupNo; }
-    public String getVerificationToken() { return verificationToken; }
+    public String getOrderNo() {
+        return orderNo;
+    }
+
+    public int getPayAmountCent() {
+        return payAmountCent;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public String getPrepayId() {
+        return prepayId;
+    }
+
+    public String getPaymentParameters() {
+        return paymentParameters;
+    }
+
+    public String getPickupNo() {
+        return pickupNo;
+    }
+
+    public String getVerificationToken() {
+        return verificationToken;
+    }
 }
