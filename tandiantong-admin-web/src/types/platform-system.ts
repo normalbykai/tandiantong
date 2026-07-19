@@ -22,6 +22,13 @@ export interface PlatformDictionaryItem {
   status: 'ENABLED' | 'DISABLED'
 }
 
+export interface PlatformDictionaryType {
+  dictionaryType: string
+  typeLabel: string
+  description?: string
+  sortOrder: number
+}
+
 export interface CreatePlatformDictionaryItemCommand {
   dictionaryType: string
   itemCode: string

@@ -36,9 +36,10 @@
               @click="selectType(group.dictionaryType)"
             >
               <div class="dictionary-type-card__inner">
-                <span class="dictionary-type-item__icon">字</span>
                 <span class="dictionary-type-item__body">
-                  <strong class="dictionary-type-item__code">{{ group.dictionaryType }}</strong>
+                  <strong class="dictionary-type-item__code">{{ dictionary.typeLabel(group.dictionaryType) }}</strong>
+                  <span v-if="dictionary.typeDescription(group.dictionaryType)" class="dictionary-type-item__desc">{{ dictionary.typeDescription(group.dictionaryType) }}</span>
+                  <code class="dictionary-type-item__tag">{{ group.dictionaryType }}</code>
                   <span class="dictionary-type-item__meta">{{ group.items.length }} 个选项 · {{ group.enabledCount }} 个启用</span>
                 </span>
               </div>
@@ -57,13 +58,17 @@
             <el-card shadow="never" class="dictionary-item-card" :body-style="{ padding: '0' }">
               <div class="dictionary-item-toolbar">
                 <div class="dictionary-item-toolbar__left">
-                  <span class="dictionary-item-toolbar__title">{{ selectedType }}</span>
+                  <span class="dictionary-item-toolbar__title">{{ dictionary.typeLabel(selectedType) }}</span>
                   <el-tag size="small" type="info">{{ selectedGroupItems.length }} 个字典项</el-tag>
                 </div>
                 <div class="dictionary-item-toolbar__right">
                   <el-input v-model="itemSearchText" clearable placeholder="搜索字典项名称或编码…" size="default" style="width: 240px" />
                   <el-button type="primary" @click="openCreate(selectedType)">新增字典项</el-button>
                 </div>
+              </div>
+              <div v-if="dictionary.typeDescription(selectedType)" class="dictionary-item-desc">
+                <span class="dictionary-item-desc__label">类型标识：<code>{{ selectedType }}</code></span>
+                <span>{{ dictionary.typeDescription(selectedType) }}</span>
               </div>
               <el-table
                 :data="filteredSelectedItems"
@@ -116,7 +121,39 @@
     </section>
   </template>
 
-  <el-dialog v-model="dictionaryDialogVisible" :title="editingItem ? '编辑字典项' : '新增字典项'" width="560px" class="dictionary-dialog"><div class="dictionary-dialog-intro"><span class="config-block-icon">值</span><p>同一字典类型可以配置多个选项。存储值会写入业务数据，请保持稳定且不要重复。</p></div><el-form ref="dictionaryFormRef" :model="dictionaryForm" :rules="dictionaryRules" label-position="top" class="dictionary-form"><el-form-item label="字典类型编码" prop="dictionaryType"><el-input v-model="dictionaryForm.dictionaryType" :disabled="Boolean(editingItem)" placeholder="例如：ORDER_STATUS" /></el-form-item><el-form-item label="字典项编码" prop="itemCode"><el-input v-model="dictionaryForm.itemCode" :disabled="Boolean(editingItem)" placeholder="例如：PENDING" /></el-form-item><el-form-item label="业务存储值" prop="itemValue"><el-input v-model="dictionaryForm.itemValue" :disabled="Boolean(editingItem)" maxlength="255" show-word-limit placeholder="例如：pending" /></el-form-item><el-form-item label="显示名称" prop="itemLabel"><el-input v-model="dictionaryForm.itemLabel" maxlength="128" show-word-limit placeholder="例如：待支付" /></el-form-item><el-form-item label="排序值" prop="sortOrder"><el-input-number v-model="dictionaryForm.sortOrder" :min="0" :max="9999" /></el-form-item></el-form><template #footer><el-button @click="dictionaryDialogVisible = false">取消</el-button><el-button type="primary" :loading="dictionarySaving" @click="saveDictionary">保存字典项</el-button></template></el-dialog>
+  <el-drawer
+    v-model="dictionaryDialogVisible"
+    :title="editingItem ? '编辑字典项' : '新增字典项'"
+    direction="rtl"
+    size="480px"
+    class="dictionary-drawer"
+  >
+    <div class="dictionary-drawer-intro">
+      <span class="config-block-icon">值</span>
+      <p>同一字典类型可以配置多个选项。存储值会写入业务数据，请保持稳定且不要重复。</p>
+    </div>
+    <el-form ref="dictionaryFormRef" :model="dictionaryForm" :rules="dictionaryRules" label-position="top" class="dictionary-form" require-asterisk-position="right">
+      <el-form-item label="字典类型编码" prop="dictionaryType" :required="true">
+        <el-input v-model="dictionaryForm.dictionaryType" :disabled="Boolean(editingItem)" placeholder="例如：ORDER_STATUS" />
+      </el-form-item>
+      <el-form-item label="字典项编码" prop="itemCode" :required="true">
+        <el-input v-model="dictionaryForm.itemCode" :disabled="Boolean(editingItem)" placeholder="例如：PENDING" />
+      </el-form-item>
+      <el-form-item label="业务存储值" prop="itemValue" :required="true">
+        <el-input v-model="dictionaryForm.itemValue" :disabled="Boolean(editingItem)" maxlength="255" show-word-limit placeholder="例如：pending" />
+      </el-form-item>
+      <el-form-item label="显示名称" prop="itemLabel" :required="true">
+        <el-input v-model="dictionaryForm.itemLabel" maxlength="128" show-word-limit placeholder="例如：待支付" />
+      </el-form-item>
+      <el-form-item label="排序值" prop="sortOrder">
+        <el-input-number v-model="dictionaryForm.sortOrder" :min="0" :max="9999" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="dictionaryDialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="dictionarySaving" @click="saveDictionary">保存字典项</el-button>
+    </template>
+  </el-drawer>
 </template>
 
 <script setup lang="ts">
@@ -128,6 +165,9 @@ import PageHeader from '../../components/common/PageHeader.vue'
 import { createPlatformDictionaryItem, getPlatformSystemConfig, listPlatformDictionaryItems, updatePlatformDictionaryItem, updatePlatformDictionaryItemStatus, updatePlatformSystemConfig } from '../../api/platform/system'
 import type { CreatePlatformDictionaryItemCommand, PlatformDictionaryItem, UpdatePlatformSystemConfigCommand } from '../../types/platform-system'
 import { message } from '../../utils/message'
+import { useDictionary } from '../../stores/dictionary'
+
+const dictionary = useDictionary()
 
 type SystemSection = 'BRAND' | 'DICTIONARY' | 'SECURITY'
 const sectionOptions: Array<{ label: string; value: SystemSection }> = [{ label: '平台设置', value: 'BRAND' }, { label: '字典管理', value: 'DICTIONARY' }, { label: '安全设置', value: 'SECURITY' }]
@@ -174,10 +214,10 @@ function selectType(dictionaryType: string) { selectedType.value = dictionaryTyp
 function onTypeFilterChange() { loadDictionaries() }
 function openCreate(dictionaryType = '') { editingItem.value = undefined; Object.assign(dictionaryForm, { dictionaryType, itemCode: '', itemValue: '', itemLabel: '', sortOrder: 0 }); dictionaryDialogVisible.value = true }
 function openEdit(item: PlatformDictionaryItem) { editingItem.value = item; Object.assign(dictionaryForm, item); dictionaryDialogVisible.value = true }
-async function saveDictionary() { if (!(await dictionaryFormRef.value?.validate().catch(() => false))) return; dictionarySaving.value = true; try { if (editingItem.value) await updatePlatformDictionaryItem(editingItem.value.id, { itemLabel: dictionaryForm.itemLabel, sortOrder: dictionaryForm.sortOrder }); else await createPlatformDictionaryItem(dictionaryForm); message.success('平台字典项已保存'); dictionaryDialogVisible.value = false; await loadDictionaries() } catch (error) { message.error(error instanceof Error ? error.message : '平台字典项保存失败') } finally { dictionarySaving.value = false } }
-async function toggleStatus(item: PlatformDictionaryItem) { const enabled = item.status !== 'ENABLED'; try { await ElMessageBox.confirm(`确认${enabled ? '启用' : '停用'}“${item.itemLabel}”吗？`, '字典项状态确认', { type: 'warning' }); await updatePlatformDictionaryItemStatus(item.id, enabled); message.success('字典项状态已更新'); await loadDictionaries() } catch (error) { if (error !== 'cancel') message.error(error instanceof Error ? error.message : '字典项状态更新失败') } }
+async function saveDictionary() { if (!(await dictionaryFormRef.value?.validate().catch(() => false))) return; dictionarySaving.value = true; try { if (editingItem.value) await updatePlatformDictionaryItem(editingItem.value.id, { itemLabel: dictionaryForm.itemLabel, sortOrder: dictionaryForm.sortOrder }); else await createPlatformDictionaryItem(dictionaryForm); message.success('平台字典项已保存'); dictionaryDialogVisible.value = false; await loadDictionaries(); await dictionary.refresh() } catch (error) { message.error(error instanceof Error ? error.message : '平台字典项保存失败') } finally { dictionarySaving.value = false } }
+async function toggleStatus(item: PlatformDictionaryItem) { const enabled = item.status !== 'ENABLED'; try { await ElMessageBox.confirm(`确认${enabled ? '启用' : '停用'}“${item.itemLabel}”吗？`, '字典项状态确认', { type: 'warning' }); await updatePlatformDictionaryItemStatus(item.id, enabled); message.success('字典项状态已更新'); await loadDictionaries(); await dictionary.refresh() } catch (error) { if (error !== 'cancel') message.error(error instanceof Error ? error.message : '字典项状态更新失败') } }
 onMounted(loadConfig)
-onMounted(loadDictionaries)
+onMounted(() => { dictionary.ensureLoaded(); loadDictionaries() })
 </script>
 
 <style scoped>
@@ -283,33 +323,40 @@ onMounted(loadDictionaries)
 .dictionary-type-card--active .dictionary-type-item__code { color: #1b4332; }
 .dictionary-type-card__inner {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 0;
 }
-.dictionary-type-item__icon {
-  display: grid;
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border-radius: 8px;
-  background: #e5f0e8;
-  color: var(--domain-700);
-  font-size: 13px;
-  font-weight: 700;
-}
-.dictionary-type-item__body { display: grid; gap: 2px; min-width: 0; }
+.dictionary-type-item__body { display: grid; gap: 3px; min-width: 0; }
 .dictionary-type-item__code {
   overflow: hidden;
-  color: #3a5645;
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 12px;
+  color: #25332c;
+  font-size: 13px;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
-  letter-spacing: .2px;
 }
-.dictionary-type-item__meta { color: #8a968e; font-size: 11px; }
+.dictionary-type-item__desc {
+  overflow: hidden;
+  color: #7b858d;
+  font-size: 11px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dictionary-type-item__tag {
+  display: inline-block;
+  width: fit-content;
+  color: #5a7a65;
+  background: #eaf2ed;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.dictionary-type-item__meta {
+  color: #8a968e;
+  font-size: 11px;
+}
 .dictionary-type-footer {
   display: flex;
   align-items: center;
@@ -355,6 +402,19 @@ onMounted(loadDictionaries)
   letter-spacing: .2px;
 }
 .dictionary-item-toolbar__right { display: flex; align-items: center; gap: 10px; }
+.dictionary-item-desc {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 20px 10px;
+  border-bottom: 1px solid #edf1ee;
+  background: #f8faf9;
+  color: #7b858d;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.dictionary-item-desc__label { flex-shrink: 0; color: #89958e; }
+.dictionary-item-desc__label code { color: var(--domain-700); font-size: 11px; }
 .dictionary-item-table :deep(.el-table__inner-wrapper::before) { display: none; }
 .dictionary-item-table :deep(.el-table__header th.el-table__cell) { background: #f9fbfa; color: #7b8780; font-size: 11px; font-weight: 600; }
 .dictionary-item-table :deep(.el-table__body td.el-table__cell) { padding: 13px 0; }
@@ -384,12 +444,24 @@ onMounted(loadDictionaries)
 }
 .dictionary-item-empty strong { color: #5e6b64; font-size: 15px; font-weight: 600; }
 .dictionary-item-empty p { margin: 0; font-size: 12px; line-height: 1.6; }
-.dictionary-dialog-intro { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; padding: 12px 14px; border: 1px solid #dcebe0; border-radius: 10px; background: #f5faf6; }
-.dictionary-dialog-intro p { margin: 1px 0 0; color: #617269; font-size: 12px; line-height: 1.6; }
-.dictionary-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
-.dictionary-form :deep(.el-form-item:nth-child(3)), .dictionary-form :deep(.el-form-item:nth-child(4)) { grid-column: span 1; }
+.dictionary-drawer-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid #dcebe0;
+  border-radius: 10px;
+  background: #f5faf6;
+}
+.dictionary-drawer-intro p { margin: 1px 0 0; color: #617269; font-size: 12px; line-height: 1.6; }
+.dictionary-form { display: block; }
+.dictionary-form :deep(.el-form-item) { margin-bottom: 20px; }
 .dictionary-form :deep(.el-form-item__label) { color: #56645c; font-size: 12px; font-weight: 600; }
 .dictionary-form :deep(.el-input-number) { width: 100%; }
+.dictionary-drawer :deep(.el-drawer__header) { margin-bottom: 0; padding: 18px 20px 14px; border-bottom: 1px solid #edf1ee; }
+.dictionary-drawer :deep(.el-drawer__body) { padding: 20px; }
+.dictionary-drawer :deep(.el-drawer__footer) { padding: 14px 20px; border-top: 1px solid #edf1ee; }
 @media (max-width: 720px) {
   .system-workspace-nav { align-items: stretch; flex-direction: column; gap: 8px; }
   .system-section-switch { width: 100%; }
