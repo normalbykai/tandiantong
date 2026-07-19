@@ -23,10 +23,6 @@ import org.springframework.stereotype.Service;
 public class PermissionAuthorizationService {
 
     private static final String ENABLED_STATUS = "ENABLED";
-    private static final Set<String> AUTHORITY_ROLE_PERMISSION_CODES = Set.of(
-            "platform:role:read", "platform:role:create", "platform:role:update",
-            "platform:role:status:update", "platform:role:permission:assign", "platform:permission:read");
-
     private final UserRoleMapper userRoleMapper;
     private final RoleMapper roleMapper;
     private final RolePermissionMapper rolePermissionMapper;
@@ -82,9 +78,6 @@ public class PermissionAuthorizationService {
                         .map(PermissionEntity::getPermissionCode)
                         .toList());
             }
-        }
-        if (domain == AccessDomain.PLATFORM && roles.stream().anyMatch(role -> Boolean.TRUE.equals(role.getAuthorityRole()))) {
-            permissionCodes.addAll(AUTHORITY_ROLE_PERMISSION_CODES);
         }
         return List.copyOf(permissionCodes);
     }

@@ -6,14 +6,19 @@ public record ApiResponse<T>(
         String code,
         String message,
         String traceId,
-        T data
+        T data,
+        String requiredPermission
 ) {
 
     public static <T> ApiResponse<T> success(String traceId, T data) {
-        return new ApiResponse<>(true, ErrorCode.SUCCESS.code(), ErrorCode.SUCCESS.message(), traceId, data);
+        return new ApiResponse<>(true, ErrorCode.SUCCESS.code(), ErrorCode.SUCCESS.message(), traceId, data, null);
     }
 
     public static <T> ApiResponse<T> failure(String traceId, ErrorCode errorCode, String message) {
-        return new ApiResponse<>(false, errorCode.code(), message, traceId, null);
+        return failure(traceId, errorCode, message, null);
+    }
+
+    public static <T> ApiResponse<T> failure(String traceId, ErrorCode errorCode, String message, String requiredPermission) {
+        return new ApiResponse<>(false, errorCode.code(), message, traceId, null, requiredPermission);
     }
 }

@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleNotPermissionException(NotPermissionException exception) {
         log.warn("当前账号权限不足，所需权限：{}", exception.getPermission());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.failure(TraceIdHolder.get(), ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN.message()));
+                .body(ApiResponse.failure(TraceIdHolder.get(), ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN.message(), exception.getPermission()));
     }
 
     @ExceptionHandler(Exception.class)

@@ -28,6 +28,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -172,10 +173,34 @@ public class MerchantProvisioningService {
     /**
      * 查询平台商户列表。
      */
-    public List<MerchantOverview> listMerchants() {
-        return tenantMapper.selectList(new LambdaQueryWrapper<TenantEntity>()
-                        .orderByDesc(TenantEntity::getId)
-                        .last("limit 200"))
+    public List<MerchantOverview> listMerchants(String keyword, String status, String adminStatus) {
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+        LambdaQueryWrapper<TenantEntity> query = new LambdaQueryWrapper<TenantEntity>()
+                .eq(status != null && !status.isBlank(), TenantEntity::getStatus, status)
+                .orderByDesc(TenantEntity::getId)
+                .last("limit 200");
+        if (!normalizedKeyword.isBlank()) {
+            Set<Long> invitationTenantIds = merchantInvitationMapper.selectList(new LambdaQueryWrapper<MerchantInvitationEntity>()
+                            .and(wrapper -> wrapper.like(MerchantInvitationEntity::getAdminName, normalizedKeyword)
+                                    .or().like(MerchantInvitationEntity::getAdminMobile, normalizedKeyword)))
+                    .stream().map(MerchantInvitationEntity::getTenantId).collect(java.util.stream.Collectors.toSet());
+            query.and(wrapper -> {
+                wrapper.like(TenantEntity::getName, normalizedKeyword);
+                if (!invitationTenantIds.isEmpty()) wrapper.or().in(TenantEntity::getId, invitationTenantIds);
+            });
+        }
+        if ("ACTIVATED".equals(adminStatus) || "PENDING".equals(adminStatus)) {
+            Set<Long> activatedTenantIds = adminUserMapper.selectList(new LambdaQueryWrapper<AdminUserEntity>()
+                            .eq(AdminUserEntity::getStatus, ENABLED_STATUS))
+                    .stream().map(AdminUserEntity::getTenantId).collect(java.util.stream.Collectors.toSet());
+            if ("ACTIVATED".equals(adminStatus)) {
+                if (activatedTenantIds.isEmpty()) return List.of();
+                query.in(TenantEntity::getId, activatedTenantIds);
+            } else if (!activatedTenantIds.isEmpty()) {
+                query.notIn(TenantEntity::getId, activatedTenantIds);
+            }
+        }
+        return tenantMapper.selectList(query)
                 .stream()
                 .map(this::toOverview)
                 .toList();

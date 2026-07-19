@@ -12,7 +12,13 @@ import com.tandiantong.security.entity.PlatformUserEntity;
 import com.tandiantong.security.entity.TenantEntity;
 import com.tandiantong.security.mapper.AdminUserMapper;
 import com.tandiantong.security.mapper.PlatformUserMapper;
+import com.tandiantong.security.mapper.RoleMapper;
 import com.tandiantong.security.mapper.TenantMapper;
+import com.tandiantong.security.mapper.UserRoleMapper;
+import com.tandiantong.security.entity.RoleEntity;
+import com.tandiantong.security.entity.UserRoleEntity;
+import com.tandiantong.security.rbac.PermissionAuthorizationService;
+import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -30,13 +36,20 @@ public class DatabaseAuthenticationService {
     private final PlatformUserMapper platformUserMapper;
     private final AdminUserMapper adminUserMapper;
     private final TenantMapper tenantMapper;
+    private final RoleMapper roleMapper;
+    private final UserRoleMapper userRoleMapper;
+    private final PermissionAuthorizationService permissionAuthorizationService;
     private final PasswordService passwordService = new PasswordService();
 
     public DatabaseAuthenticationService(PlatformUserMapper platformUserMapper, AdminUserMapper adminUserMapper,
-                                         TenantMapper tenantMapper) {
+                                         TenantMapper tenantMapper, RoleMapper roleMapper, UserRoleMapper userRoleMapper,
+                                         PermissionAuthorizationService permissionAuthorizationService) {
         this.platformUserMapper = platformUserMapper;
         this.adminUserMapper = adminUserMapper;
         this.tenantMapper = tenantMapper;
+        this.roleMapper = roleMapper;
+        this.userRoleMapper = userRoleMapper;
+        this.permissionAuthorizationService = permissionAuthorizationService;
     }
 
     /**
@@ -47,7 +60,9 @@ public class DatabaseAuthenticationService {
                 new LambdaQueryWrapper<PlatformUserEntity>().eq(PlatformUserEntity::getMobile, mobile)));
         verifyPassword(password, user.getPasswordHash());
         CurrentUser currentUser = CurrentUser.platform(user.getId(), user.getMobile(), user.getDisplayName());
-        return new LoginResult(issueSaToken(user.getId(), AccessDomain.PLATFORM, user.getTokenVersion(), rememberMe), currentUser);
+        List<String> roleNames = resolveRoleNames(AccessDomain.PLATFORM, user.getId(), null);
+        List<String> permissionCodes = permissionAuthorizationService.listPermissionCodes(AccessDomain.PLATFORM, null, user.getId());
+        return new LoginResult(issueSaToken(user.getId(), AccessDomain.PLATFORM, user.getTokenVersion(), rememberMe), currentUser, firstRoleName(roleNames, AccessDomain.PLATFORM), roleNames, permissionCodes);
     }
 
     /**
@@ -60,7 +75,9 @@ public class DatabaseAuthenticationService {
         ensureTenantEnabled(user.getTenantId());
         CurrentUser currentUser = CurrentUser.tenant(user.getId(), user.getTenantId(), user.getStoreId(),
                 user.getMobile(), user.getDisplayName());
-        return new LoginResult(issueSaToken(user.getId(), AccessDomain.TENANT, user.getTokenVersion(), rememberMe), currentUser);
+        List<String> roleNames = resolveRoleNames(AccessDomain.TENANT, user.getId(), user.getTenantId());
+        List<String> permissionCodes = permissionAuthorizationService.listPermissionCodes(AccessDomain.TENANT, user.getTenantId(), user.getId());
+        return new LoginResult(issueSaToken(user.getId(), AccessDomain.TENANT, user.getTokenVersion(), rememberMe), currentUser, firstRoleName(roleNames, AccessDomain.TENANT), roleNames, permissionCodes);
     }
 
     /**
@@ -136,6 +153,43 @@ public class DatabaseAuthenticationService {
         return StpUtil.getTokenValue();
     }
 
-    public record LoginResult(String accessToken, CurrentUser currentUser) {
+    /** 登录时返回全部有效角色名称，供管理端记录当前账号权限身份。 */
+    private List<String> resolveRoleNames(AccessDomain domain, Long userId, Long tenantId) {
+        String domainName = domain.name();
+        List<UserRoleEntity> relations = userRoleMapper.selectList(new LambdaQueryWrapper<UserRoleEntity>()
+                .eq(UserRoleEntity::getDomain, domainName)
+                .eq(UserRoleEntity::getUserId, userId)
+                .eq(tenantId != null, UserRoleEntity::getTenantId, tenantId)
+                .isNull(tenantId == null, UserRoleEntity::getTenantId)
+                .orderByAsc(UserRoleEntity::getId));
+        return relations.stream().map(UserRoleEntity::getRoleId).map(roleMapper::selectById)
+                .filter(role -> role != null && ENABLED_STATUS.equals(role.getStatus()))
+                .map(RoleEntity::getName).toList();
+    }
+
+    private String firstRoleName(List<String> roleNames, AccessDomain domain) {
+        return roleNames.stream().findFirst().orElse(domain == AccessDomain.PLATFORM ? "平台账号" : "商户账号");
+    }
+
+    public static class LoginResult {
+        private final String accessToken;
+        private final CurrentUser currentUser;
+        private final String roleName;
+        private final List<String> roleNames;
+        private final List<String> permissionCodes;
+
+        public LoginResult(String accessToken, CurrentUser currentUser, String roleName, List<String> roleNames, List<String> permissionCodes) {
+            this.accessToken = accessToken;
+            this.currentUser = currentUser;
+            this.roleName = roleName;
+            this.roleNames = List.copyOf(roleNames);
+            this.permissionCodes = List.copyOf(permissionCodes);
+        }
+
+        public String accessToken() { return accessToken; }
+        public CurrentUser currentUser() { return currentUser; }
+        public String roleName() { return roleName; }
+        public List<String> roleNames() { return roleNames; }
+        public List<String> permissionCodes() { return permissionCodes; }
     }
 }

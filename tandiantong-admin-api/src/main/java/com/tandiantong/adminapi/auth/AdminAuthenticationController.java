@@ -54,6 +54,6 @@ public class AdminAuthenticationController {
     }
 
     private LoginResponse responseOf(DatabaseAuthenticationService.LoginResult result) {
-        return new LoginResponse(result.accessToken(), result.currentUser().domain().name(), result.currentUser().displayName());
+        return new LoginResponse(result.accessToken(), result.currentUser().domain().name(), result.currentUser().displayName(), result.roleName(), result.roleNames(), result.permissionCodes());
     }
 }
