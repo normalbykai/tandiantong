@@ -4,4 +4,5 @@ export interface ApiResponse<T> {
   message: string
   traceId: string
   data: T
+  requiredPermission?: string | null
 }

@@ -8,22 +8,23 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { RefreshCw, Search } from 'lucide-vue-next'
 import PageHeader from '../../components/common/PageHeader.vue'
 import RoleFormDialog from '../../components/business/platform/RoleFormDialog.vue'
 import RolePermissionDialog from '../../components/business/platform/RolePermissionDialog.vue'
 import { createPlatformRole, listPlatformPermissions, listPlatformRolePermissionIds, listPlatformRoles, replacePlatformRolePermissions, updatePlatformRole, updatePlatformRoleStatus } from '../../api/platform/access'
 import type { PlatformPermission, PlatformRole, PlatformRoleCommand, UpdatePlatformRoleCommand } from '../../types/platform-access'
+import { message } from '../../utils/message'
 
 const roles = ref<PlatformRole[]>([]); const permissions = ref<PlatformPermission[]>([]); const loading = ref(false); const saving = ref(false); const savingPermissions = ref(false); const keyword = ref(''); const dialogVisible = ref(false); const editingRole = ref<PlatformRole>(); const permissionDialogVisible = ref(false); const permissionRole = ref<PlatformRole>(); const selectedPermissionIds = ref<number[]>([])
 const filteredRoles = computed(() => { const value = keyword.value.trim(); return value ? roles.value.filter(item => `${item.name}${item.roleCode}${item.description ?? ''}`.includes(value)) : roles.value })
-async function load() { loading.value = true; try { const [roleData, permissionData] = await Promise.all([listPlatformRoles(), listPlatformPermissions()]); roles.value = roleData; permissions.value = permissionData } catch (error) { ElMessage.error(error instanceof Error ? error.message : '平台角色加载失败') } finally { loading.value = false } }
+async function load() { loading.value = true; try { const [roleData, permissionData] = await Promise.all([listPlatformRoles(), listPlatformPermissions()]); roles.value = roleData; permissions.value = permissionData } catch (error) { message.error(error instanceof Error ? error.message : '平台角色加载失败') } finally { loading.value = false } }
 function openCreate() { editingRole.value = undefined; dialogVisible.value = true }
 function openEdit(role: PlatformRole) { editingRole.value = role; dialogVisible.value = true }
-async function save(command: PlatformRoleCommand) { saving.value = true; try { if (editingRole.value) { const updateCommand: UpdatePlatformRoleCommand = { name: command.name, description: command.description }; await updatePlatformRole(editingRole.value.id, updateCommand) } else await createPlatformRole(command); ElMessage.success('平台角色已保存'); dialogVisible.value = false; await load() } catch (error) { ElMessage.error(error instanceof Error ? error.message : '平台角色保存失败') } finally { saving.value = false } }
-async function toggleStatus(role: PlatformRole) { const enabled = role.status !== 'ENABLED'; try { await ElMessageBox.confirm(`确认${enabled ? '启用' : '停用'}“${role.name}”吗？`, '角色状态确认', { type: 'warning' }); await updatePlatformRoleStatus(role.id, enabled); ElMessage.success('角色状态已更新'); await load() } catch (error) { if (error !== 'cancel') ElMessage.error(error instanceof Error ? error.message : '角色状态更新失败') } }
-async function managePermissions(role: PlatformRole) { permissionRole.value = role; try { selectedPermissionIds.value = await listPlatformRolePermissionIds(role.id); permissionDialogVisible.value = true } catch (error) { ElMessage.error(error instanceof Error ? error.message : '角色权限加载失败') } }
-async function savePermissions(permissionIds: number[]) { if (!permissionRole.value) return; savingPermissions.value = true; try { await replacePlatformRolePermissions(permissionRole.value.id, permissionIds); selectedPermissionIds.value = permissionIds; ElMessage.success('角色权限已保存'); permissionDialogVisible.value = false } catch (error) { ElMessage.error(error instanceof Error ? error.message : '角色权限保存失败') } finally { savingPermissions.value = false } }
+async function save(command: PlatformRoleCommand) { saving.value = true; try { if (editingRole.value) { const updateCommand: UpdatePlatformRoleCommand = { name: command.name, description: command.description }; await updatePlatformRole(editingRole.value.id, updateCommand) } else await createPlatformRole(command); message.success('平台角色已保存'); dialogVisible.value = false; await load() } catch (error) { message.error(error instanceof Error ? error.message : '平台角色保存失败') } finally { saving.value = false } }
+async function toggleStatus(role: PlatformRole) { const enabled = role.status !== 'ENABLED'; try { await ElMessageBox.confirm(`确认${enabled ? '启用' : '停用'}“${role.name}”吗？`, '角色状态确认', { type: 'warning' }); await updatePlatformRoleStatus(role.id, enabled); message.success('角色状态已更新'); await load() } catch (error) { if (error !== 'cancel') message.error(error instanceof Error ? error.message : '角色状态更新失败') } }
+async function managePermissions(role: PlatformRole) { permissionRole.value = role; try { selectedPermissionIds.value = await listPlatformRolePermissionIds(role.id); permissionDialogVisible.value = true } catch (error) { message.error(error instanceof Error ? error.message : '角色权限加载失败') } }
+async function savePermissions(permissionIds: number[]) { if (!permissionRole.value) return; savingPermissions.value = true; try { await replacePlatformRolePermissions(permissionRole.value.id, permissionIds); selectedPermissionIds.value = permissionIds; message.success('角色权限已保存'); permissionDialogVisible.value = false } catch (error) { message.error(error instanceof Error ? error.message : '角色权限保存失败') } finally { savingPermissions.value = false } }
 onMounted(load)
 </script>

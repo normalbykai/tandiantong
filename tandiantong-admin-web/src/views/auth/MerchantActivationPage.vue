@@ -30,10 +30,10 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
-import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import FloatingLabelInput from '../../components/common/FloatingLabelInput.vue'
 import { activateMerchantAdmin } from '../../api/auth'
+import { message } from '../../utils/message'
 
 const router = useRouter()
 const route = useRoute()
@@ -61,7 +61,7 @@ async function submit() {
   errorMessage.value = ''
   try {
     await activateMerchantAdmin(form.invitationCode.trim(), form.password)
-    ElMessage.success('管理员账号已激活，请使用预留手机号和新密码登录')
+    message.success('管理员账号已激活，请使用预留手机号和新密码登录')
     await router.replace({ path: '/login', query: { domain: 'TENANT' } })
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '激活失败，请稍后再试'

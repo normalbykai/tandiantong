@@ -1,8 +1,13 @@
 import { request } from '../http'
 import type { CreateTenantCommand, MerchantProvisioning, TenantOverview } from '../../types/tenant'
 
-export function listTenants() {
-  return request<TenantOverview[]>('/api/platform/v1/merchants')
+export function listTenants(filters: { keyword?: string; status?: string; adminStatus?: string } = {}) {
+  const query = new URLSearchParams()
+  if (filters.keyword) query.set('keyword', filters.keyword)
+  if (filters.status) query.set('status', filters.status)
+  if (filters.adminStatus) query.set('adminStatus', filters.adminStatus)
+  const queryString = query.toString()
+  return request<TenantOverview[]>(`/api/platform/v1/merchants${queryString ? `?${queryString}` : ''}`)
 }
 
 export function createTenant(command: CreateTenantCommand) {

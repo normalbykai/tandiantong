@@ -55,10 +55,41 @@
 .login-mark-icon img { width: 100%; height: 100%; }
 .login-brand h1 { margin: 0; color: #1d3124; font-size: 20px; font-weight: 680; line-height: 1; letter-spacing: .08em; background: none; -webkit-text-fill-color: currentColor; }
 
-.domain-switch { display: flex; width: 100%; padding: 4px; margin-bottom: 20px; border: 1px solid #dfe7e1; border-radius: 11px; background: #f2f6f3; }
-.domain-switch .el-radio-button { flex: 1; }
-.domain-switch .el-radio-button__inner { display: grid; width: 100%; min-height: 40px; padding: 0 8px; place-items: center; border: 0 !important; border-radius: 8px !important; background: transparent !important; box-shadow: none !important; color: #6b766f; font-size: 13px; font-weight: 600; line-height: 1; }
-.domain-switch .el-radio-button__original-radio:checked + .el-radio-button__inner { background: #fff !important; color: var(--login-accent) !important; box-shadow: 0 2px 5px rgba(25, 54, 37, .11) !important; }
+.domain-switch {
+  --el-segmented-color: #718078;
+  --el-segmented-bg-color: rgba(238, 244, 241, .92);
+  --el-segmented-padding: 0;
+  --el-segmented-item-selected-color: #20352a;
+  --el-segmented-item-selected-bg-color: transparent;
+  --el-segmented-item-hover-color: #385343;
+  --el-segmented-item-hover-bg-color: rgba(255, 255, 255, .32);
+  width: 100%;
+  margin-bottom: 28px;
+  border: 1px solid rgba(212, 225, 216, .9);
+  border-radius: 9px;
+  box-shadow: inset 0 1px 2px rgba(27, 67, 50, .035);
+  overflow: hidden;
+}
+
+.domain-switch .el-segmented__item {
+  position: relative;
+  min-height: 42px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.domain-switch .el-segmented__item.is-selected {
+  background: transparent !important;
+}
+
+.domain-switch .el-segmented__item-selected {
+  top: auto;
+  bottom: 0;
+  height: 2px !important;
+  border-radius: 0;
+  background: var(--login-accent) !important;
+  box-shadow: 0 -1px 5px color-mix(in srgb, var(--login-accent) 28%, transparent);
+}
 
 .login-form .login-input-item { margin-bottom: 19px; }
 .login-form .el-alert { margin: -2px 0 12px; border-radius: 8px; }
@@ -80,5 +111,4 @@
   .login-page { padding: 20px 16px; }
   .login-card { padding: 26px 22px 22px; border-radius: 15px; }
   .login-brand { margin-bottom: 22px; }
-  .domain-switch .el-radio-button__inner { font-size: 12px; }
 }

@@ -7,7 +7,8 @@ export const listPlatformAccounts = () => request<PlatformAccount[]>(`${basePath
 export const createPlatformAccount = (command: CreatePlatformAccountCommand) => request<PlatformAccount>(`${basePath}/accounts`, { method: 'POST', body: JSON.stringify(command) })
 export const updatePlatformAccount = (id: number, command: UpdatePlatformAccountCommand) => request<void>(`${basePath}/accounts/${id}`, { method: 'PUT', body: JSON.stringify(command) })
 export const updatePlatformAccountStatus = (id: number, enabled: boolean) => request<void>(`${basePath}/accounts/${id}/status`, { method: 'POST', body: JSON.stringify({ enabled }) })
-export const resetPlatformAccountPassword = (id: number, password: string) => request<void>(`${basePath}/accounts/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ password }) })
+export interface ResetPlatformAccountPasswordResult { temporaryPassword: string | null; mode: 'RANDOM' | 'FIXED' }
+export const resetPlatformAccountPassword = (id: number) => request<ResetPlatformAccountPasswordResult>(`${basePath}/accounts/${id}/reset-password`, { method: 'POST' })
 
 export const listPlatformRoles = () => request<PlatformRole[]>(`${basePath}/roles`)
 export const createPlatformRole = (command: PlatformRoleCommand) => request<PlatformRole>(`${basePath}/roles`, { method: 'POST', body: JSON.stringify(command) })

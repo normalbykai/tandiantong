@@ -6,10 +6,7 @@
           <span class="login-mark-icon"><img src="/assets/tandiantong-logo-mark-v4.svg" alt="摊点通" /></span>
           <h1>摊点通</h1>
         </header>
-        <el-radio-group v-model="domain" class="domain-switch" aria-label="登录入口选择">
-          <el-radio-button label="PLATFORM">平台管理端</el-radio-button>
-          <el-radio-button label="TENANT">商户管理端</el-radio-button>
-        </el-radio-group>
+        <el-segmented v-model="domain" :options="domainOptions" block size="large" class="domain-switch" aria-label="登录入口选择" />
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="login-form" @submit.prevent="submit">
           <el-form-item prop="mobile" class="login-input-item">
             <FloatingLabelInput v-model="form.mobile" label="账号" autocomplete="username" />
@@ -41,6 +38,10 @@ const route = useRoute()
 const { signIn } = useSession()
 const formRef = ref<FormInstance>()
 const domain = ref<AccessDomain>(route.query.domain === 'TENANT' ? 'TENANT' : 'PLATFORM')
+const domainOptions: Array<{ label: string; value: AccessDomain }> = [
+  { label: '平台管理端', value: 'PLATFORM' },
+  { label: '商户管理端', value: 'TENANT' }
+]
 const form = reactive({ mobile: 'admin', password: 'admin' })
 const submitting = ref(false)
 const errorMessage = ref('')
@@ -54,7 +55,7 @@ async function submit() {
   errorMessage.value = ''
   try {
     const result = await login(domain.value, form.mobile, form.password, remember.value)
-    signIn(result.accessToken, result.domain, result.displayName, remember.value)
+    signIn(result.accessToken, result.domain, result.displayName, result.roleName, result.roleNames ?? [], result.permissionCodes ?? [], remember.value)
     await router.replace(result.domain === 'PLATFORM' ? '/platform/dashboard' : '/merchant/dashboard')
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '登录失败，请稍后再试'

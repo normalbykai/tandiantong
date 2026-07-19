@@ -5,15 +5,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import { RefreshCw, Search } from 'lucide-vue-next'
 import PageHeader from '../../components/common/PageHeader.vue'
 import { listPlatformPermissions } from '../../api/platform/access'
 import type { PlatformPermission } from '../../types/platform-access'
+import { message } from '../../utils/message'
 const permissions = ref<PlatformPermission[]>([]); const loading = ref(false); const keyword = ref(''); const typeFilter = ref<string>()
 const permissionTypes = computed(() => [...new Set(permissions.value.map(item => item.permissionType))])
 const filteredPermissions = computed(() => permissions.value.filter(item => { const value = keyword.value.trim(); return (!value || `${item.name}${item.permissionCode}`.includes(value)) && (!typeFilter.value || item.permissionType === typeFilter.value) }))
 function resetFilters() { keyword.value = ''; typeFilter.value = undefined }
-async function load() { loading.value = true; try { permissions.value = await listPlatformPermissions() } catch (error) { ElMessage.error(error instanceof Error ? error.message : '平台权限点加载失败') } finally { loading.value = false } }
+async function load() { loading.value = true; try { permissions.value = await listPlatformPermissions() } catch (error) { message.error(error instanceof Error ? error.message : '平台权限点加载失败') } finally { loading.value = false } }
 onMounted(load)
 </script>

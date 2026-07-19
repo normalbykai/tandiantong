@@ -72,7 +72,10 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     throw new Error('请求失败，服务响应格式异常')
   }
   if (!response.ok || !payload.success) {
-    throw new Error(`${payload.message || '请求失败'}${payload.traceId ? `（追踪号：${payload.traceId}）` : ''}`)
+    const permissionHint = payload.code === 'COMMON_FORBIDDEN' && payload.requiredPermission
+      ? `（缺少权限：${payload.requiredPermission}）`
+      : ''
+    throw new Error(`${payload.message || '请求失败'}${permissionHint}${payload.traceId ? `（追踪号：${payload.traceId}）` : ''}`)
   }
   return payload.data
 }
