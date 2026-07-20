@@ -22,6 +22,7 @@ import com.tandiantong.security.tenant.MerchantSceneService;
 import com.tandiantong.security.tenant.MerchantSceneService.MerchantSceneScope;
 import com.tandiantong.verification.app.VerificationPersistenceService;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
