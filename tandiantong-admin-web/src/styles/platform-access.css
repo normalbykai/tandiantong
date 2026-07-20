@@ -1,0 +1,28 @@
+/* 平台权限管理页与产品原型保持统一的筛选、表格和标签密度。 */
+.filter-panel { display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; margin-bottom:16px; padding:16px 20px; border:1px solid #e1e4e9; border-radius:12px; background:rgba(255,255,255,.86); box-shadow:0 1px 3px rgba(28,28,30,.06); }
+.filter-field { display:grid; gap:6px; min-width:172px; }
+.filter-field label { color:#5a5a5c; font-size:11px; font-weight:500; letter-spacing:.3px; }
+.filter-keyword { min-width:280px; }
+.filter-actions { display:flex; gap:8px; margin-left:auto; }
+.table-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:54px; padding:10px 20px; border-bottom:1px solid #ebeef1; color:#5a5a5c; font-size:12px; background:linear-gradient(180deg,#fafbfc,transparent); }
+.table-summary b { color:var(--domain-700); font-weight:600; }
+.table-summary-filter { display:flex; gap:8px; align-items:center; }
+.table-summary-filter .el-input { width:280px; }
+/* 数据表格恢复 Element Plus 默认样式，不在业务页面覆盖表头、行高和悬浮状态。 */
+.data-table .el-table__header th { height:auto; background:var(--el-table-header-bg-color)!important; color:var(--el-table-header-text-color)!important; font-size:var(--el-font-size-base); font-weight:var(--el-font-weight-primary); }
+.data-table .el-table__row td { height:auto!important; }
+.data-table .el-table__row:hover > td { background:var(--el-table-row-hover-bg-color)!important; }
+.status-tag,.role-kind,.type-tag { position:relative; border-radius:5px; padding:3px 10px; font-size:11px; font-weight:500; line-height:1.7; }
+.status-tag::before { content:""; position:absolute; left:0; top:4px; bottom:4px; width:2px; border-radius:1px; background:currentColor; box-shadow:0 0 6px currentColor; }
+.status-enabled { color:#2d7a4e; border-color:#c3d9ca; background:#edf5f0; }
+.status-disabled { color:#5a5a5c; border-color:#d9dde3; background:#f4f6f8; }
+.role-tag { margin:2px 4px 2px 0; color:var(--domain-700); border-color:#cfe0d7; background:var(--domain-50); font-size:11px; }
+.role-kind { border-color:#e1e4e9; background:#f4f6f8; color:#5a5a5c; }
+.role-system { color:#8b5a17; border-color:#ead3a8; background:#fbf3e4; }
+.role-custom { color:var(--domain-700); border-color:#cfe0d7; background:var(--domain-50); }
+.type-tag { color:#2a5687; border-color:#c5d5e4; background:#eef3f8; }
+.primary-cell { color:#303033; font-weight:500; }
+.data-table code { color:#5a5a5c; font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+.info-banner { margin-bottom:16px; padding:12px 16px; border:1px solid #c5d5e4; border-left:3px solid #3a6b9c; border-radius:9px; background:#eef3f8; color:#2a5078; font-size:12px; line-height:1.65; }
+.warning-banner { border-color:#e0cfa8; border-left-color:#a6762b; background:#f8f2e6; color:#7a5520; }
+@media (max-width: 760px) { .filter-actions { width:100%; margin-left:0; }.filter-keyword,.filter-field { width:100%; }.table-summary { align-items:flex-start; flex-direction:column; }.table-summary-filter,.table-summary-filter .el-input { width:100%; } }

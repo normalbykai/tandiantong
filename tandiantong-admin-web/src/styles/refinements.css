@@ -1,0 +1,45 @@
+/* 登录卡在常见笔记本视口中保持完整可见。 */
+.login-card { padding: 32px 40px 26px; }
+.login-brand { margin-bottom: 18px; }
+.login-form .el-form-item { margin-bottom: 10px; }
+.login-options { margin: 4px 0 16px; }
+.login-notice { margin-top: 16px; }
+
+@media (max-width: 560px) {
+  .login-card { padding: 28px 25px 24px; }
+}
+
+/* 页面内容随主区域铺开，避免宽屏下被固定最大宽度截断。 */
+.page-content { max-width: none; }
+
+/* 左侧菜单滚动条与深色导航保持一致，减少浏览器原生滚动条的突兀感。 */
+.app-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(144, 183, 163, .42) transparent;
+  scrollbar-gutter: stable;
+}
+.app-sidebar::-webkit-scrollbar { width: 7px; }
+.app-sidebar::-webkit-scrollbar-track { background: transparent; }
+.app-sidebar::-webkit-scrollbar-button,
+.app-sidebar::-webkit-scrollbar-button:single-button,
+.app-sidebar::-webkit-scrollbar-button:vertical:start:decrement,
+.app-sidebar::-webkit-scrollbar-button:vertical:end:increment,
+.app-sidebar::-webkit-scrollbar-button:horizontal:start:decrement,
+.app-sidebar::-webkit-scrollbar-button:horizontal:end:increment { display: none; width: 0; height: 0; border: 0; background: transparent; -webkit-appearance: none; }
+.app-sidebar::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: rgba(144, 183, 163, .38); background-clip: padding-box; }
+.app-sidebar::-webkit-scrollbar-thumb:hover { background: rgba(144, 183, 163, .7); background-clip: padding-box; }
+
+/* Toast 与产品原型保持一致：深色玻璃底、圆形状态图标和底部倒计时线。 */
+.app-message.el-message { top: 28px; min-width: 300px; max-width: min(520px, calc(100vw - 32px)); padding: 12px 22px 14px 15px; overflow: hidden; border: 1px solid rgba(255, 255, 255, .08); border-radius: 11px; background: linear-gradient(135deg, #1f2023, #16181b); color: #edebe6; box-shadow: 0 16px 40px -10px rgba(14, 16, 19, .55), 0 6px 16px -4px rgba(14, 16, 19, .28), inset 0 1px 0 rgba(255, 255, 255, .08); backdrop-filter: blur(12px); }
+.app-message::after { position: absolute; right: 0; bottom: 0; left: 0; height: 2px; content: ''; background: linear-gradient(90deg, currentColor, transparent); opacity: .65; animation: app-message-progress 2.6s linear forwards; }
+.app-message .el-message__icon { display: grid; width: 24px; height: 24px; flex: 0 0 24px; place-items: center; margin-right: 0; border-radius: 50%; color: #fff; font-size: 13px; }
+.app-message .el-message__content { color: #edebe6; font-size: 13px; line-height: 1.45; }
+.app-message--success { color: #58b879; }
+.app-message--success .el-message__icon { background: linear-gradient(135deg, #4ea96e, #236b3f); box-shadow: 0 0 0 3px rgba(45, 122, 78, .22), 0 2px 8px -2px rgba(45, 122, 78, .4); }
+.app-message--warning { color: #d0a04f; }
+.app-message--warning .el-message__icon { background: linear-gradient(135deg, #c7953a, #8a5f1f); box-shadow: 0 0 0 3px rgba(166, 118, 43, .22), 0 2px 8px -2px rgba(166, 118, 43, .4); }
+.app-message--error { color: #db6767; }
+.app-message--error .el-message__icon { background: linear-gradient(135deg, #c85151, #8e2a2a); box-shadow: 0 0 0 3px rgba(178, 58, 58, .22), 0 2px 8px -2px rgba(178, 58, 58, .4); }
+.app-message--info { color: #6ea1d4; }
+.app-message--info .el-message__icon { background: linear-gradient(135deg, #3a6b9c, #2a5586); box-shadow: 0 0 0 3px rgba(58, 107, 156, .22), 0 2px 8px -2px rgba(58, 107, 156, .4); }
+@keyframes app-message-progress { from { width: 100%; } to { width: 0; } }

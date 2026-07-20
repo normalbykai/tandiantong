@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>摊点通 · 平台角色</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body data-domain="platform">
+
+<div class="app-shell">
+  <!-- ===== 深墨侧边栏 ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="mark">摊</div>
+      <div class="txt"><b>摊点通</b><small>平台管理端</small></div>
+    </div>
+    <div class="sidebar-domain"><span class="ic"></span>当前权限域：平台管理</div>
+    <nav class="sidebar-menu">
+      <div class="menu-group-title">运营管理</div>
+      <a class="menu-item" href="平台-首页.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>工作台</a>
+      <a class="menu-item" href="平台-租户管理.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg></span>租户管理</a>
+      <div class="menu-group-title">权限管理</div>
+      <a class="menu-item" href="平台-账号管理.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>平台账号</a>
+      <a class="menu-item active" href="平台-角色管理.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></span>平台角色</a>
+      <a class="menu-item" href="平台-权限点列表.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>平台权限</a>
+      <div class="menu-group-title">系统</div>
+      <a class="menu-item" href="平台-操作日志.html"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>操作日志</a>
+      <a class="menu-item" href="javascript:void(0)" onclick="toast('info','系统配置功能将在后续阶段开放')"><span class="mi-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>系统配置</a>
+    </nav>
+    <div class="sidebar-foot"><span>摊点通 v1.2.0</span><span class="ver-tag">墨璃</span></div>
+  </aside>
+
+  <!-- ===== 主区域 ===== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="breadcrumb"><a href="平台-首页.html">工作台</a><span class="sep">/</span><span class="cur">平台角色</span></div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-actions">
+        <div class="tb-icon" title="搜索" onclick="toast('info','全局搜索功能开发中')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+        <div class="tb-icon" title="帮助" onclick="toast('info','帮助中心开发中')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg></div>
+        <div class="tb-icon" title="通知" onclick="toast('info','暂无新通知')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot"></span></div>
+        <div class="tb-divider"></div>
+        <div class="tb-user"><div class="avatar">周</div><div class="uinfo"><b>周建国</b><small>平台运营员</small></div><svg class="ic" style="width:12px;color:var(--text-tertiary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="tb-divider"></div>
+        <div class="tb-icon" title="退出登录" onclick="window.location.href='登录.html'"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <div class="breadcrumb"><a href="平台-首页.html">工作台</a><span class="sep">/</span><span class="cur">平台角色</span></div>
+          <div class="page-title"><span class="accent-bar"></span>平台角色</div>
+          <div class="page-desc">管理平台管理端的角色与权限配置。<b>平台角色与商户角色属于不同权限域，不能混用</b>；平台角色仅适用于平台账号。</div>
+        </div>
+        <div class="page-actions"><button class="btn btn-primary" onclick="window.location.href='平台-角色编辑.html'"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>新增角色</button></div>
+      </div>
+      <div class="info-banner"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span><div>平台角色用于平台管理端的权限控制；商户管理端使用独立的「商户角色」，两者权限点互不重叠。请勿将平台权限授予商户角色。</div></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>角色名称</th><th>角色编码</th><th>角色说明</th><th>账号数量</th><th>状态</th><th>创建时间</th><th class="col-actions">操作</th></tr></thead>
+          <tbody>
+            <tr><td><span class="primary-text">平台管理员</span></td><td class="mono">platform_admin</td><td class="secondary-text">拥有平台全部功能权限</td><td>2</td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2025-12-01</td><td class="col-actions"><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">编辑</button><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">配置权限</button><button class="btn-link danger" onclick="openModal('role-disable')">停用</button></td></tr>
+            <tr><td><span class="primary-text">平台运营</span></td><td class="mono">platform_ops</td><td class="secondary-text">负责租户管理与日常运营</td><td>8</td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2025-12-01</td><td class="col-actions"><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">编辑</button><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">配置权限</button><button class="btn-link danger" onclick="openModal('role-disable')">停用</button></td></tr>
+            <tr><td><span class="primary-text">客服专员</span></td><td class="mono">platform_service</td><td class="secondary-text">处理租户咨询与账号辅助操作</td><td>14</td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2026-01-10</td><td class="col-actions"><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">编辑</button><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">配置权限</button><button class="btn-link danger" onclick="openModal('role-disable')">停用</button></td></tr>
+            <tr><td><span class="primary-text">系统管理员</span></td><td class="mono">platform_sysadmin</td><td class="secondary-text">系统配置与权限点维护</td><td>3</td><td><span class="tag tag-success">启用</span></td><td class="secondary-text">2025-12-01</td><td class="col-actions"><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">编辑</button><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">配置权限</button><button class="btn-link danger" onclick="openModal('role-disable')">停用</button></td></tr>
+            <tr><td><span class="primary-text">财务查看员</span></td><td class="mono">platform_finance_view</td><td class="secondary-text">仅查看平台运营数据（第一阶段未开放）</td><td>0</td><td><span class="tag tag-gray">停用</span></td><td class="secondary-text">2026-02-15</td><td class="col-actions"><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">编辑</button><button class="btn-link" onclick="window.location.href='平台-角色编辑.html'">配置权限</button><button class="btn-link" onclick="openModal('role-enable')">启用</button></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination"><div class="info">共 5 条</div><div class="pager"><button class="page-btn disabled">‹</button><button class="page-btn active">1</button><button class="page-btn">›</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

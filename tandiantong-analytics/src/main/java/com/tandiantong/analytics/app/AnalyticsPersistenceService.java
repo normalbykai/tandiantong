@@ -7,6 +7,14 @@ import com.tandiantong.analytics.mapper.AnalyticsReservationFactMapper;
 import com.tandiantong.analytics.tenant.TenantStoreScope;
 import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
+
+import lombok.RequiredArgsConstructor;
+
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -14,18 +22,15 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 经营数据应用服务，负责租户经营指标查询、Excel 生成和导出审计记录。
- */
+/** 经营数据应用服务，负责租户经营指标查询、Excel 生成和导出审计记录。 */
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "tandiantong.security", name = "database-enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+        prefix = "tandiantong.security",
+        name = "database-enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class AnalyticsPersistenceService {
 
     private static final ZoneId BUSINESS_ZONE_ID = ZoneId.of("Asia/Shanghai");
@@ -35,34 +40,42 @@ public class AnalyticsPersistenceService {
     private final AnalyticsReservationFactMapper reservationFactMapper;
     private final AnalyticsExportTaskMapper exportTaskMapper;
 
-    /**
-     * 查询指定日期范围内的订单、预约和商品排行指标。
-     */
+    /** 查询指定日期范围内的订单、预约和商品排行指标。 */
     public Dashboard dashboard(TenantStoreScope scope, LocalDate start, LocalDate end) {
         validateDateRange(start, end);
-        Map<String, Object> order = orderFactMapper.selectOrderSummary(
-                scope.tenantId(), scope.storeId(), start, end);
-        Map<String, Object> reservation = reservationFactMapper.selectReservationSummary(
-                scope.tenantId(), scope.storeId(), start, end);
-        List<ProductMetric> products = orderFactMapper.selectProductRanking(
-                        scope.tenantId(), scope.storeId(), start, end)
-                .stream()
-                .map(row -> new ProductMetric(string(row, "product_name"),
-                        number(row, "quantity"), number(row, "amount_cent")))
-                .toList();
+        Map<String, Object> order =
+                orderFactMapper.selectOrderSummary(scope.tenantId(), scope.storeId(), start, end);
+        Map<String, Object> reservation =
+                reservationFactMapper.selectReservationSummary(
+                        scope.tenantId(), scope.storeId(), start, end);
+        List<ProductMetric> products =
+                orderFactMapper
+                        .selectProductRanking(scope.tenantId(), scope.storeId(), start, end)
+                        .stream()
+                        .map(
+                                row ->
+                                        new ProductMetric(
+                                                string(row, "product_name"),
+                                                number(row, "quantity"),
+                                                number(row, "amount_cent")))
+                        .toList();
         return new Dashboard(
-                new Summary(number(order, "order_count"), number(order, "gross_cent"),
-                        number(order, "refund_cent"), number(order, "pending_verification")),
-                new ReservationMetrics(number(reservation, "total"), number(reservation, "canceled"),
+                new Summary(
+                        number(order, "order_count"),
+                        number(order, "gross_cent"),
+                        number(order, "refund_cent"),
+                        number(order, "pending_verification")),
+                new ReservationMetrics(
+                        number(reservation, "total"),
+                        number(reservation, "canceled"),
                         number(reservation, "fulfilled")),
                 products);
     }
 
-    /**
-     * 生成经营数据 Excel，并保存包含脱敏联系方式的导出审计记录。
-     */
+    /** 生成经营数据 Excel，并保存包含脱敏联系方式的导出审计记录。 */
     @Transactional
-    public ExportFile export(TenantStoreScope scope, LocalDate start, LocalDate end, String contact) {
+    public ExportFile export(
+            TenantStoreScope scope, LocalDate start, LocalDate end, String contact) {
         Dashboard dashboard = dashboard(scope, start, end);
         String fileName = "经营数据-" + start + "-" + end + ".xlsx";
         byte[] content = workbook(dashboard);
@@ -84,15 +97,16 @@ public class AnalyticsPersistenceService {
     }
 
     private byte[] workbook(Dashboard data) {
-        try (var workbook = new XSSFWorkbook(); var output = new ByteArrayOutputStream()) {
+        try (var workbook = new XSSFWorkbook();
+                var output = new ByteArrayOutputStream()) {
             var summary = workbook.createSheet("经营概览");
             String[][] rows = {
-                    {"指标", "数值"},
-                    {"订单数", String.valueOf(data.order().orderCount())},
-                    {"实收金额（分）", String.valueOf(data.order().grossCent())},
-                    {"退款金额（分）", String.valueOf(data.order().refundCent())},
-                    {"待核销订单", String.valueOf(data.order().pendingVerification())},
-                    {"预约数", String.valueOf(data.reservation().total())}
+                {"指标", "数值"},
+                {"订单数", String.valueOf(data.order().orderCount())},
+                {"实收金额（分）", String.valueOf(data.order().grossCent())},
+                {"退款金额（分）", String.valueOf(data.order().refundCent())},
+                {"待核销订单", String.valueOf(data.order().pendingVerification())},
+                {"预约数", String.valueOf(data.reservation().total())}
             };
             for (int rowIndex = 0; rowIndex < rows.length; rowIndex++) {
                 var row = summary.createRow(rowIndex);
@@ -151,24 +165,20 @@ public class AnalyticsPersistenceService {
     }
 
     /** 订单经营指标。 */
-    public record Summary(int orderCount, int grossCent, int refundCent, int pendingVerification) {
-    }
+    public record Summary(int orderCount, int grossCent, int refundCent, int pendingVerification) {}
 
     /** 预约经营指标。 */
-    public record ReservationMetrics(int total, int canceled, int fulfilled) {
-    }
+    public record ReservationMetrics(int total, int canceled, int fulfilled) {}
 
     /** 商品销量排行指标。 */
-    public record ProductMetric(String name, int quantity, int amountCent) {
-    }
+    public record ProductMetric(String name, int quantity, int amountCent) {}
 
     /** 经营数据看板结果。 */
-    public record Dashboard(Summary order, ReservationMetrics reservation, List<ProductMetric> products) {
-    }
+    public record Dashboard(
+            Summary order, ReservationMetrics reservation, List<ProductMetric> products) {}
 
     /** 经营数据导出文件。 */
-    public record ExportFile(String fileName, byte[] content) {
-    }
+    public record ExportFile(String fileName, byte[] content) {}
 
     /** 导出业务类型。 */
     private enum ExportType {

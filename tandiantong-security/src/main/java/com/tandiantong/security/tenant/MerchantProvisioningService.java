@@ -18,6 +18,8 @@ import com.tandiantong.security.mapper.MiniProgramSceneMapper;
 import com.tandiantong.security.mapper.StoreMapper;
 import com.tandiantong.security.mapper.TenantMapper;
 import com.tandiantong.security.mapper.TenantPaymentConfigMapper;
+import com.tandiantong.security.audit.OperationAuditService;
+import com.tandiantong.security.context.CurrentUser;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
@@ -26,6 +28,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,18 +47,21 @@ public class MerchantProvisioningService {
     private final TenantPaymentConfigMapper tenantPaymentConfigMapper;
     private final MiniProgramSceneMapper miniProgramSceneMapper;
     private final AdminUserMapper adminUserMapper;
+    private final OperationAuditService auditService;
     private final PasswordService passwordService = new PasswordService();
 
     public MerchantProvisioningService(TenantMapper tenantMapper, StoreMapper storeMapper,
                                        MerchantInvitationMapper merchantInvitationMapper,
                                        TenantPaymentConfigMapper tenantPaymentConfigMapper,
-                                       MiniProgramSceneMapper miniProgramSceneMapper, AdminUserMapper adminUserMapper) {
+                                       MiniProgramSceneMapper miniProgramSceneMapper, AdminUserMapper adminUserMapper,
+                                       OperationAuditService auditService) {
         this.tenantMapper = tenantMapper;
         this.storeMapper = storeMapper;
         this.merchantInvitationMapper = merchantInvitationMapper;
         this.tenantPaymentConfigMapper = tenantPaymentConfigMapper;
         this.miniProgramSceneMapper = miniProgramSceneMapper;
         this.adminUserMapper = adminUserMapper;
+        this.auditService = auditService;
     }
 
     /**
@@ -110,10 +116,7 @@ public class MerchantProvisioningService {
      */
     @Transactional
     public void enableMerchant(Long tenantId) {
-        TenantEntity tenant = tenantMapper.selectById(tenantId);
-        if (tenant == null) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "商户不存在");
-        }
+        requireTenant(tenantId);
         tenantMapper.update(null, new LambdaUpdateWrapper<TenantEntity>()
                 .eq(TenantEntity::getId, tenantId)
                 .ne(TenantEntity::getStatus, TenantStatus.ENABLED.name())
@@ -121,12 +124,83 @@ public class MerchantProvisioningService {
     }
 
     /**
+     * 停用商户，后续商户登录和业务请求会被租户状态校验拦截。
+     */
+    @Transactional
+    public void disableMerchant(CurrentUser operator, Long tenantId) {
+        requireTenant(tenantId);
+        tenantMapper.update(null, new LambdaUpdateWrapper<TenantEntity>()
+                .eq(TenantEntity::getId, tenantId)
+                .ne(TenantEntity::getStatus, TenantStatus.DISABLED.name())
+                .set(TenantEntity::getStatus, TenantStatus.DISABLED.name()));
+        auditService.record(operator, "停用商户", "商户租户", tenantId.toString(), "停用商户后台访问和业务写操作");
+    }
+
+    /**
+     * 重新生成未激活商户的管理员邀请码，旧邀请码全部立即失效。
+     */
+    @Transactional
+    public ReissuedInvitation reissueInvitation(CurrentUser operator, Long tenantId) {
+        TenantEntity tenant = requireTenant(tenantId);
+        Long activeAdminCount = adminUserMapper.selectCount(new LambdaQueryWrapper<AdminUserEntity>()
+                .eq(AdminUserEntity::getTenantId, tenantId)
+                .eq(AdminUserEntity::getStatus, ENABLED_STATUS));
+        if (activeAdminCount > 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "商户管理员已激活，不能重新生成邀请码");
+        }
+        MerchantInvitationEntity latestInvitation = merchantInvitationMapper.selectOne(new LambdaQueryWrapper<MerchantInvitationEntity>()
+                .eq(MerchantInvitationEntity::getTenantId, tenantId)
+                .orderByDesc(MerchantInvitationEntity::getId)
+                .last("limit 1"));
+        if (latestInvitation == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "商户管理员邀请不存在");
+        }
+
+        LocalDateTime now = LocalDateTime.now(BUSINESS_ZONE);
+        merchantInvitationMapper.update(null, new LambdaUpdateWrapper<MerchantInvitationEntity>()
+                .eq(MerchantInvitationEntity::getTenantId, tenantId)
+                .isNull(MerchantInvitationEntity::getUsedAt)
+                .set(MerchantInvitationEntity::getExpiresAt, now.minusSeconds(1)));
+        String invitationCode = randomCode("invite");
+        Instant expiresAt = Instant.now().plus(7, ChronoUnit.DAYS);
+        insertInvitation(tenantId, latestInvitation.getStoreId(), latestInvitation.getAdminName(),
+                latestInvitation.getAdminMobile(), invitationCode, expiresAt);
+        auditService.record(operator, "重新生成商户邀请码", "商户租户", tenantId.toString(),
+                "商户：" + tenant.getName() + "，旧邀请码已失效");
+        return new ReissuedInvitation(invitationCode, expiresAt);
+    }
+
+    /**
      * 查询平台商户列表。
      */
-    public List<MerchantOverview> listMerchants() {
-        return tenantMapper.selectList(new LambdaQueryWrapper<TenantEntity>()
-                        .orderByDesc(TenantEntity::getId)
-                        .last("limit 200"))
+    public List<MerchantOverview> listMerchants(String keyword, String status, String adminStatus) {
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+        LambdaQueryWrapper<TenantEntity> query = new LambdaQueryWrapper<TenantEntity>()
+                .eq(status != null && !status.isBlank(), TenantEntity::getStatus, status)
+                .orderByDesc(TenantEntity::getId)
+                .last("limit 200");
+        if (!normalizedKeyword.isBlank()) {
+            Set<Long> invitationTenantIds = merchantInvitationMapper.selectList(new LambdaQueryWrapper<MerchantInvitationEntity>()
+                            .and(wrapper -> wrapper.like(MerchantInvitationEntity::getAdminName, normalizedKeyword)
+                                    .or().like(MerchantInvitationEntity::getAdminMobile, normalizedKeyword)))
+                    .stream().map(MerchantInvitationEntity::getTenantId).collect(java.util.stream.Collectors.toSet());
+            query.and(wrapper -> {
+                wrapper.like(TenantEntity::getName, normalizedKeyword);
+                if (!invitationTenantIds.isEmpty()) wrapper.or().in(TenantEntity::getId, invitationTenantIds);
+            });
+        }
+        if ("ACTIVATED".equals(adminStatus) || "PENDING".equals(adminStatus)) {
+            Set<Long> activatedTenantIds = adminUserMapper.selectList(new LambdaQueryWrapper<AdminUserEntity>()
+                            .eq(AdminUserEntity::getStatus, ENABLED_STATUS))
+                    .stream().map(AdminUserEntity::getTenantId).collect(java.util.stream.Collectors.toSet());
+            if ("ACTIVATED".equals(adminStatus)) {
+                if (activatedTenantIds.isEmpty()) return List.of();
+                query.in(TenantEntity::getId, activatedTenantIds);
+            } else if (!activatedTenantIds.isEmpty()) {
+                query.notIn(TenantEntity::getId, activatedTenantIds);
+            }
+        }
+        return tenantMapper.selectList(query)
                 .stream()
                 .map(this::toOverview)
                 .toList();
@@ -152,11 +226,16 @@ public class MerchantProvisioningService {
 
     private void insertInvitation(Long tenantId, Long storeId, MerchantOnboardingCommand command,
                                   String invitationCode, Instant expiresAt) {
+        insertInvitation(tenantId, storeId, command.adminName(), command.adminMobile(), invitationCode, expiresAt);
+    }
+
+    private void insertInvitation(Long tenantId, Long storeId, String adminName, String adminMobile,
+                                  String invitationCode, Instant expiresAt) {
         MerchantInvitationEntity invitation = new MerchantInvitationEntity();
         invitation.setTenantId(tenantId);
         invitation.setStoreId(storeId);
-        invitation.setAdminName(command.adminName());
-        invitation.setAdminMobile(command.adminMobile());
+        invitation.setAdminName(adminName);
+        invitation.setAdminMobile(adminMobile);
         invitation.setInvitationCodeHash(sha256(invitationCode));
         invitation.setExpiresAt(LocalDateTime.ofInstant(expiresAt, BUSINESS_ZONE));
         merchantInvitationMapper.insert(invitation);
@@ -202,6 +281,14 @@ public class MerchantProvisioningService {
                 scene == null ? "" : scene.getSceneKey());
     }
 
+    private TenantEntity requireTenant(Long tenantId) {
+        TenantEntity tenant = tenantMapper.selectById(tenantId);
+        if (tenant == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "商户不存在");
+        }
+        return tenant;
+    }
+
     private void validate(MerchantOnboardingCommand command) {
         if (command.merchantName() == null || command.merchantName().isBlank()
                 || command.adminName() == null || command.adminName().isBlank()) {
@@ -242,5 +329,24 @@ public class MerchantProvisioningService {
 
     public record MerchantOverview(Long tenantId, String merchantName, String adminName, String adminMobileMasked,
                                    String status, String paymentConfigStatus, String adminStatus, String sceneKey) {
+    }
+
+    /** 商户邀请码重置结果，仅在生成时返回明文邀请码。 */
+    public static class ReissuedInvitation {
+        private final String invitationCode;
+        private final Instant invitationExpiresAt;
+
+        public ReissuedInvitation(String invitationCode, Instant invitationExpiresAt) {
+            this.invitationCode = invitationCode;
+            this.invitationExpiresAt = invitationExpiresAt;
+        }
+
+        public String getInvitationCode() {
+            return invitationCode;
+        }
+
+        public Instant getInvitationExpiresAt() {
+            return invitationExpiresAt;
+        }
     }
 }

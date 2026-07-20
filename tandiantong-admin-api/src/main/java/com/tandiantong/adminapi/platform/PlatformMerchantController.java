@@ -1,10 +1,12 @@
 package com.tandiantong.adminapi.platform;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.tandiantong.adminapi.platform.dto.CreateMerchantRequest;
 import com.tandiantong.adminapi.platform.dto.MerchantProvisioningResponse;
 import com.tandiantong.adminapi.platform.dto.MerchantOverviewResponse;
 import com.tandiantong.security.tenant.MerchantOnboardingCommand;
 import com.tandiantong.security.tenant.MerchantProvisioningService;
+import com.tandiantong.security.context.SecurityContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,6 +36,7 @@ public class PlatformMerchantController {
 
     @Operation(summary = "开通商户", description = "创建租户、默认门店、管理员邀请和小程序入口码")
     @PostMapping
+    @SaCheckPermission("platform:merchant:create")
     @ResponseStatus(HttpStatus.CREATED)
     public MerchantProvisioningResponse create(@Valid @RequestBody CreateMerchantRequest request) {
         MerchantProvisioningService.ProvisionedMerchant merchant = merchantProvisioningService.provision(
@@ -44,16 +48,63 @@ public class PlatformMerchantController {
 
     @Operation(summary = "查询商户列表", description = "查询商户基础信息、管理员状态和支付配置状态")
     @GetMapping
-    public List<MerchantOverviewResponse> list() {
-        return merchantProvisioningService.listMerchants().stream().map(MerchantOverviewResponse::from).toList();
+    @SaCheckPermission("platform:merchant:read")
+    public List<MerchantOverviewResponse> list(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "adminStatus", required = false) String adminStatus) {
+        return merchantProvisioningService.listMerchants(keyword, status, adminStatus).stream().map(MerchantOverviewResponse::from).toList();
     }
 
     @Operation(summary = "启用商户", description = "启用已完成管理员激活的商户，使其可以进行业务写操作")
     @PostMapping("/{tenantId}/enable")
+    @SaCheckPermission("platform:merchant:enable")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void enable(
             @Parameter(description = "租户 ID", example = "1001", required = true)
             @PathVariable("tenantId") Long tenantId) {
         merchantProvisioningService.enableMerchant(tenantId);
+    }
+
+    @Operation(summary = "停用商户", description = "停用后商户后台登录和后续业务写操作都会被阻止，历史数据不删除")
+    @PostMapping("/{tenantId}/disable")
+    @SaCheckPermission("platform:merchant:disable")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void disable(
+            @Parameter(description = "租户 ID", example = "1001", required = true)
+            @PathVariable("tenantId") Long tenantId) {
+        merchantProvisioningService.disableMerchant(SecurityContextHolder.currentUser(), tenantId);
+    }
+
+    @Operation(summary = "重新生成管理员邀请码", description = "仅允许管理员尚未激活的商户使用，生成后所有旧邀请码立即失效")
+    @PostMapping("/{tenantId}/invitation/reissue")
+    @SaCheckPermission("platform:merchant:invitation:reissue")
+    public ReissuedInvitationResponse reissueInvitation(
+            @Parameter(description = "租户 ID", example = "1001", required = true)
+            @PathVariable("tenantId") Long tenantId) {
+        MerchantProvisioningService.ReissuedInvitation invitation = merchantProvisioningService.reissueInvitation(
+                SecurityContextHolder.currentUser(), tenantId);
+        return new ReissuedInvitationResponse(invitation.getInvitationCode(), invitation.getInvitationExpiresAt().toString());
+    }
+
+    /** 重新生成邀请码响应，明文邀请码仅在本次接口响应中返回。 */
+    public static class ReissuedInvitationResponse {
+        @io.swagger.v3.oas.annotations.media.Schema(description = "新的商户管理员邀请码", example = "invite-0fc8a0c90e3440b6aeeb1e31e279d0a5")
+        private final String invitationCode;
+        @io.swagger.v3.oas.annotations.media.Schema(description = "邀请码过期时间", example = "2026-07-25T10:00:00+08:00")
+        private final String invitationExpiresAt;
+
+        public ReissuedInvitationResponse(String invitationCode, String invitationExpiresAt) {
+            this.invitationCode = invitationCode;
+            this.invitationExpiresAt = invitationExpiresAt;
+        }
+
+        public String getInvitationCode() {
+            return invitationCode;
+        }
+
+        public String getInvitationExpiresAt() {
+            return invitationExpiresAt;
+        }
     }
 }

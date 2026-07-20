@@ -2,6 +2,7 @@ package com.tandiantong.bootstrap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -10,6 +11,7 @@ import com.tandiantong.common.api.ErrorCode;
 import com.tandiantong.common.exception.BusinessException;
 import com.tandiantong.analytics.app.AnalyticsPersistenceService;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
+import com.tandiantong.catalog.product.CatalogInventoryService;
 import com.tandiantong.order.app.PersistentOrderService;
 import com.tandiantong.reservation.app.ReservationPersistenceService;
 import com.tandiantong.security.auth.DatabaseAuthenticationService;
@@ -64,6 +66,7 @@ class TandianTongApplicationTest {
     @Test
     void shouldLoadSpringContext() {
         assertThat(applicationContext).isNotNull();
+        assertThat(applicationContext.getBean(CatalogInventoryService.class)).isNotNull();
     }
 
     @Test
@@ -88,6 +91,16 @@ class TandianTongApplicationTest {
                 .andExpect(jsonPath("$.code").value("COMMON_VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.message").value("手机号格式不正确"))
                 .andExpect(jsonPath("$.traceId").value("trace-business"));
+    }
+
+    @Test
+    void shouldAllowConfiguredAdminOriginForPreflightRequest() throws Exception {
+        mockMvc.perform(options("/api/admin/v1/auth/login")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "authorization,content-type"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
     }
 
     @TestConfiguration

@@ -1,0 +1,1 @@
+* { box-sizing:border-box; } body { margin:0; min-width:320px; background:var(--surface); } button,input { font:inherit; } a { color:inherit; text-decoration:none; } h1,h2,h3,p { margin:0; } .el-button--primary { --el-button-bg-color:var(--ink-800); --el-button-border-color:var(--ink-800); --el-button-hover-bg-color:var(--ink-900); --el-button-hover-border-color:var(--ink-900); }
