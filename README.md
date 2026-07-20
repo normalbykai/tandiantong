@@ -31,7 +31,8 @@ V1.1 已完成持久层与认证体系重构：数据库访问统一使用 MyBat
 
 ```text
 tandiantong-bootstrap/       应用启动、框架配置和 Flyway 迁移
-tandiantong-common/          统一响应、异常、错误码和请求追踪
+tandiantong-framework/       可复用框架组件、自动配置和基础设施 starter
+tandiantong-common/          旧包名兼容层，新代码应使用 tandiantong-framework-common
 tandiantong-security/        登录、用户、租户上下文、RBAC 和商户开通
 tandiantong-catalog/         商品、SKU、加料、库存和库存流水
 tandiantong-order/           商品订单、支付、退款和业务幂等

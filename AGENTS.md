@@ -44,7 +44,8 @@
 - Maven 模块职责必须遵循架构设计，模块应当只承担一个清晰的业务职责。
 - API 模块只负责协议适配、认证入口、参数校验和响应转换，禁止在 Controller 中编写核心业务规则。
 - 业务模块之间必须通过明确的应用服务或接口协作，禁止跨模块直接访问对方的 Mapper、Repository 或数据库访问实现。
-- `tandiantong-common` 只能保存稳定且真正通用的基础能力，禁止将业务模型、业务枚举或业务服务放入通用模块。
+- `tandiantong-framework` 保存稳定且可复用的基础能力，禁止将业务模型、业务枚举或业务服务放入框架模块。
+- `tandiantong-common` 只作为旧包名兼容层保留，新代码必须优先依赖 `tandiantong-framework-common`。
 - 微信登录、微信支付、对象存储等第三方适配必须集中在 `tandiantong-integration`，业务模块禁止直接依赖第三方 SDK。
 - 禁止形成循环 Maven 依赖；新增依赖必须说明用途，并优先复用项目已有能力。
 
