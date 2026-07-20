@@ -30,4 +30,8 @@ public enum ErrorCode {
     public String message() {
         return message;
     }
+
+    public com.tandiantong.framework.common.api.ErrorCode toFramework() {
+        return com.tandiantong.framework.common.api.ErrorCode.valueOf(name());
+    }
 }

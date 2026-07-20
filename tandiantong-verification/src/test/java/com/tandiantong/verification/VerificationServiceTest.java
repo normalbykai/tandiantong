@@ -1,6 +1,6 @@
 package com.tandiantong.verification;
 
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.verification.app.VerificationService;
 import com.tandiantong.verification.domain.BusinessType;
 import com.tandiantong.verification.domain.VerificationStatus;

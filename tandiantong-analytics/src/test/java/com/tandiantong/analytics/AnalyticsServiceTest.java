@@ -7,7 +7,7 @@ import com.tandiantong.analytics.domain.AnalyticsReservationFact;
 import com.tandiantong.analytics.domain.OrderFactStatus;
 import com.tandiantong.analytics.domain.ReservationFactStatus;
 import com.tandiantong.analytics.tenant.TenantStoreScope;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;

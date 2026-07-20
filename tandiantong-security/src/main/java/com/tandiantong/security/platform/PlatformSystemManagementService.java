@@ -1,8 +1,8 @@
 package com.tandiantong.security.platform;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.security.audit.OperationAuditService;
 import com.tandiantong.security.auth.PasswordService;
 import com.tandiantong.security.context.CurrentUser;

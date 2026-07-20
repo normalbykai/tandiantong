@@ -16,7 +16,7 @@
     <dependencies>
         <dependency>
             <groupId>com.tandiantong</groupId>
-            <artifactId>tandiantong-common</artifactId>
+            <artifactId>tandiantong-framework-common</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

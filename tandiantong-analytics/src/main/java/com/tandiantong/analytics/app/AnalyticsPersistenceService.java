@@ -5,8 +5,8 @@ import com.tandiantong.analytics.mapper.AnalyticsExportTaskMapper;
 import com.tandiantong.analytics.mapper.AnalyticsOrderFactMapper;
 import com.tandiantong.analytics.mapper.AnalyticsReservationFactMapper;
 import com.tandiantong.analytics.tenant.TenantStoreScope;
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 
 import lombok.RequiredArgsConstructor;
 

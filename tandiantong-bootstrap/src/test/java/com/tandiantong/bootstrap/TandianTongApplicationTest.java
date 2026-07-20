@@ -7,8 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.analytics.app.AnalyticsPersistenceService;
 import com.tandiantong.catalog.product.CatalogPersistenceService;
 import com.tandiantong.catalog.product.CatalogInventoryService;

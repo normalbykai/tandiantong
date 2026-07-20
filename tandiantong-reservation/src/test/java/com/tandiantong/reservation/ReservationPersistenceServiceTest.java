@@ -6,7 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.integration.wechatpay.LocalWechatPayClient;
 import com.tandiantong.integration.wechatpay.WechatPayClient;
 import com.tandiantong.reservation.app.ReservationPersistenceService;

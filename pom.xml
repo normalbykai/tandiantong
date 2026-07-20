@@ -13,6 +13,7 @@
     <description>摊点通 V1.1 模块化单体工程</description>
 
     <modules>
+        <module>tandiantong-framework</module>
         <module>tandiantong-common</module>
         <module>tandiantong-integration</module>
         <module>tandiantong-security</module>

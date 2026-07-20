@@ -97,7 +97,7 @@ class PlatformApiContractTest {
     @Test
     @WithMockUser(username = "platform-admin", roles = "PLATFORM")
     void shouldListMerchantsThroughPlatformApi() throws Exception {
-        given(merchantProvisioningService.listMerchants()).willReturn(List.of(
+        given(merchantProvisioningService.listMerchants(null, null, null)).willReturn(List.of(
                 new MerchantProvisioningService.MerchantOverview(1001L, "春风小铺", "张晓春", "138****8000",
                         "PENDING_ENABLE", "NOT_CONFIGURED", "ACTIVATED", "scene-test")));
 

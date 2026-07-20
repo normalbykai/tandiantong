@@ -4,8 +4,8 @@ import cn.dev33.satoken.stp.SaLoginModel;
 import cn.dev33.satoken.stp.StpUtil;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.security.context.AccessDomain;
 import com.tandiantong.security.context.CurrentUser;
 import com.tandiantong.security.entity.AdminUserEntity;

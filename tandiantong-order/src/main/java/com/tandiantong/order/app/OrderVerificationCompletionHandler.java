@@ -1,7 +1,7 @@
 package com.tandiantong.order.app;
 
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.order.mapper.SalesOrderMapper;
 import com.tandiantong.verification.app.VerificationBusinessCompletionHandler;
 import lombok.RequiredArgsConstructor;

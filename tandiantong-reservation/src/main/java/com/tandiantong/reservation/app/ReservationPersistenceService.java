@@ -1,8 +1,8 @@
 package com.tandiantong.reservation.app;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.integration.wechatpay.WechatPayClient;
 import com.tandiantong.integration.wechatpay.WechatPrepayResult;
 import com.tandiantong.reservation.entity.ReservationIdempotencyRecordEntity;

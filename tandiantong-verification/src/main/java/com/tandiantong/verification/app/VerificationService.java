@@ -1,7 +1,7 @@
 package com.tandiantong.verification.app;
 
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.verification.domain.BusinessType;
 import com.tandiantong.verification.domain.VerificationCredential;
 import com.tandiantong.verification.domain.VerificationRecord;

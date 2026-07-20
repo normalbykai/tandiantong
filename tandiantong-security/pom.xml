@@ -16,7 +16,22 @@
     <dependencies>
         <dependency>
             <groupId>com.tandiantong</groupId>
-            <artifactId>tandiantong-common</artifactId>
+            <artifactId>tandiantong-framework-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.tandiantong</groupId>
+            <artifactId>tandiantong-spring-boot-starter-biz-tenant</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.tandiantong</groupId>
+            <artifactId>tandiantong-spring-boot-starter-security</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.tandiantong</groupId>
+            <artifactId>tandiantong-spring-boot-starter-operate-log</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

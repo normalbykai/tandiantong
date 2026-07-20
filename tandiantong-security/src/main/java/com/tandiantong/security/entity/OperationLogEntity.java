@@ -47,6 +47,18 @@ public class OperationLogEntity {
     /** 请求追踪号。 */
     private String traceId;
 
+    /** 操作来源 IP。 */
+    private String userIp;
+
+    /** 操作来源客户端标识。 */
+    private String userAgent;
+
+    /** 请求方法。 */
+    private String requestMethod;
+
+    /** 请求路径。 */
+    private String requestUrl;
+
     /** 创建时间。 */
     private LocalDateTime createdAt;
 }

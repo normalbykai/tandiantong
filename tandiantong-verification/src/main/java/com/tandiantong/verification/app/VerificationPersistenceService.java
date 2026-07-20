@@ -1,8 +1,8 @@
 package com.tandiantong.verification.app;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.verification.entity.VerificationCredentialEntity;
 import com.tandiantong.verification.entity.VerificationRecordEntity;
 import com.tandiantong.verification.mapper.PickupNoSequenceMapper;

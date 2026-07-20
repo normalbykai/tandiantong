@@ -9,6 +9,7 @@ import com.tandiantong.security.tenant.MerchantProvisioningService;
 import com.tandiantong.security.context.SecurityContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -50,8 +51,11 @@ public class PlatformMerchantController {
     @GetMapping
     @SaCheckPermission("platform:merchant:read")
     public List<MerchantOverviewResponse> list(
+            @Parameter(description = "商户名称、管理员姓名或手机号关键字", example = "春风")
             @RequestParam(value = "keyword", required = false) String keyword,
+            @Parameter(description = "商户状态筛选，例如 ENABLED 或 DISABLED", example = "ENABLED")
             @RequestParam(value = "status", required = false) String status,
+            @Parameter(description = "管理员账号状态筛选，例如 PENDING_ACTIVATION 或 ACTIVATED", example = "ACTIVATED")
             @RequestParam(value = "adminStatus", required = false) String adminStatus) {
         return merchantProvisioningService.listMerchants(keyword, status, adminStatus).stream().map(MerchantOverviewResponse::from).toList();
     }
@@ -88,10 +92,11 @@ public class PlatformMerchantController {
     }
 
     /** 重新生成邀请码响应，明文邀请码仅在本次接口响应中返回。 */
+    @Schema(description = "重新生成商户管理员邀请码响应")
     public static class ReissuedInvitationResponse {
-        @io.swagger.v3.oas.annotations.media.Schema(description = "新的商户管理员邀请码", example = "invite-0fc8a0c90e3440b6aeeb1e31e279d0a5")
+        @Schema(description = "新的商户管理员邀请码", example = "invite-0fc8a0c90e3440b6aeeb1e31e279d0a5")
         private final String invitationCode;
-        @io.swagger.v3.oas.annotations.media.Schema(description = "邀请码过期时间", example = "2026-07-25T10:00:00+08:00")
+        @Schema(description = "邀请码过期时间", example = "2026-07-25T10:00:00+08:00")
         private final String invitationExpiresAt;
 
         public ReissuedInvitationResponse(String invitationCode, String invitationExpiresAt) {

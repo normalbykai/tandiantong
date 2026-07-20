@@ -10,7 +10,7 @@ import com.tandiantong.catalog.product.ProductStatus;
 import com.tandiantong.catalog.product.SkuDraft;
 import com.tandiantong.catalog.product.SpecificationValue;
 import com.tandiantong.catalog.tenant.TenantStoreScope;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

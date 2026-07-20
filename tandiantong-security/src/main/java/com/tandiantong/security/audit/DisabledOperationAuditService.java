@@ -1,6 +1,6 @@
 package com.tandiantong.security.audit;
 
-import com.tandiantong.security.context.CurrentUser;
+import com.tandiantong.framework.operatelog.core.model.OperationLogCommand;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +11,6 @@ public class DisabledOperationAuditService implements OperationAuditService {
 
     /** 无数据库测试环境不写入审计记录。 */
     @Override
-    public void record(CurrentUser currentUser, String operationType, String targetType, String targetId, String detail) {
+    public void record(OperationLogCommand command) {
     }
 }

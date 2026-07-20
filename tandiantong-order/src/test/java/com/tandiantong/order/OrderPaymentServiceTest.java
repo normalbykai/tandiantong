@@ -4,7 +4,7 @@ import com.tandiantong.catalog.product.CatalogInventoryService;
 import com.tandiantong.catalog.product.InventoryChangeType;
 import com.tandiantong.catalog.product.PaymentConfigStatus;
 import com.tandiantong.catalog.tenant.TenantStoreScope;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.integration.wechatpay.LocalWechatPayClient;
 import com.tandiantong.order.app.CreateOrderCommand;
 import com.tandiantong.order.app.OrderPaymentService;

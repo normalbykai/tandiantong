@@ -12,6 +12,7 @@ import com.tandiantong.security.context.CurrentUser;
 import com.tandiantong.security.entity.PlatformDictionaryItemEntity;
 import com.tandiantong.security.entity.PlatformSystemConfigEntity;
 import com.tandiantong.security.mapper.PlatformDictionaryItemMapper;
+import com.tandiantong.security.mapper.PlatformDictionaryTypeMapper;
 import com.tandiantong.security.mapper.PlatformSystemConfigMapper;
 import org.junit.jupiter.api.Test;
 
@@ -53,7 +54,11 @@ class PlatformSystemManagementServiceTest {
             return 1;
         }).when(dictionaryMapper).insert(any(PlatformDictionaryItemEntity.class));
         PlatformSystemManagementService service = new PlatformSystemManagementService(
-                mock(PlatformSystemConfigMapper.class), dictionaryMapper, mock(OperationAuditService.class), new PasswordService());
+                mock(PlatformSystemConfigMapper.class),
+                dictionaryMapper,
+                mock(PlatformDictionaryTypeMapper.class),
+                mock(OperationAuditService.class),
+                new PasswordService());
 
         PlatformDictionaryItemEntity item = service.createDictionaryItem(
                 CurrentUser.platform(1L, "demo@example.com", "平台管理员"), "ORDER_STATUS", "PENDING", "pending", "待支付", 10);
@@ -64,7 +69,12 @@ class PlatformSystemManagementServiceTest {
     }
 
     private PlatformSystemManagementService service(PlatformSystemConfigMapper configMapper) {
-        return new PlatformSystemManagementService(configMapper, mock(PlatformDictionaryItemMapper.class), mock(OperationAuditService.class), new PasswordService());
+        return new PlatformSystemManagementService(
+                configMapper,
+                mock(PlatformDictionaryItemMapper.class),
+                mock(PlatformDictionaryTypeMapper.class),
+                mock(OperationAuditService.class),
+                new PasswordService());
     }
 
     private PlatformSystemConfigEntity config(String mode, String hash) {

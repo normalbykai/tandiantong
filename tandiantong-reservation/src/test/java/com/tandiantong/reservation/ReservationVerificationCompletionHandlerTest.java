@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.reservation.app.ReservationVerificationCompletionHandler;
 import com.tandiantong.reservation.mapper.ServiceReservationMapper;
 import org.junit.jupiter.api.Test;

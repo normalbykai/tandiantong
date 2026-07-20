@@ -1,8 +1,8 @@
 package com.tandiantong.security.tenant;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.security.entity.MiniProgramSceneEntity;
 import com.tandiantong.security.mapper.MiniProgramSceneMapper;
 import lombok.RequiredArgsConstructor;

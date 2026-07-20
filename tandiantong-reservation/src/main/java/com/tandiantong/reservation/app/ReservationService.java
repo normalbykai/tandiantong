@@ -1,7 +1,7 @@
 package com.tandiantong.reservation.app;
 
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.reservation.domain.PaymentMode;
 import com.tandiantong.reservation.domain.ReservationRecord;
 import com.tandiantong.reservation.domain.ReservationStatus;

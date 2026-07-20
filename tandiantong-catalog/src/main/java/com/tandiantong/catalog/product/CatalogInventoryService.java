@@ -1,8 +1,8 @@
 package com.tandiantong.catalog.product;
 
 import com.tandiantong.catalog.tenant.TenantStoreScope;
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 
 import org.springframework.stereotype.Service;
 

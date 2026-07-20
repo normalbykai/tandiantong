@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.verification.app.VerificationBusinessCompletionHandler;
 import com.tandiantong.verification.app.VerificationPersistenceService;
 import com.tandiantong.verification.entity.VerificationCredentialEntity;

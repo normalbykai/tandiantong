@@ -10,7 +10,7 @@ import com.tandiantong.catalog.entity.InventoryRecordEntity;
 import com.tandiantong.catalog.entity.ProductSkuEntity;
 import com.tandiantong.catalog.mapper.InventoryRecordMapper;
 import com.tandiantong.catalog.mapper.ProductSkuMapper;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

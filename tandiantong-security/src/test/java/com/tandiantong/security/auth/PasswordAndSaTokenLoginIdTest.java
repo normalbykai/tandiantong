@@ -3,7 +3,7 @@ package com.tandiantong.security.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.security.context.AccessDomain;
 import org.junit.jupiter.api.Test;
 

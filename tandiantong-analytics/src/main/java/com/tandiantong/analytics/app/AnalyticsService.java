@@ -11,8 +11,8 @@ import com.tandiantong.analytics.domain.ReservationFactStatus;
 import com.tandiantong.analytics.domain.ReservationSummary;
 import com.tandiantong.analytics.domain.TransactionSummary;
 import com.tandiantong.analytics.tenant.TenantStoreScope;
-import com.tandiantong.common.api.ErrorCode;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.api.ErrorCode;
+import com.tandiantong.framework.common.exception.BusinessException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

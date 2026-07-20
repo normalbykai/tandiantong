@@ -1,6 +1,6 @@
 package com.tandiantong.reservation;
 
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.reservation.app.CreateReservationCommand;
 import com.tandiantong.reservation.app.ReservationService;
 import com.tandiantong.reservation.domain.PaymentMode;

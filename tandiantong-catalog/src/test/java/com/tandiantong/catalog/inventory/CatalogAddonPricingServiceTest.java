@@ -11,7 +11,7 @@ import com.tandiantong.catalog.entity.ProductAddonRelationEntity;
 import com.tandiantong.catalog.mapper.AddonGroupMapper;
 import com.tandiantong.catalog.mapper.AddonOptionMapper;
 import com.tandiantong.catalog.mapper.ProductAddonRelationMapper;
-import com.tandiantong.common.exception.BusinessException;
+import com.tandiantong.framework.common.exception.BusinessException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
