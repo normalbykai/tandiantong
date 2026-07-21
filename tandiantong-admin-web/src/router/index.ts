@@ -4,7 +4,6 @@ import type { AccessDomain } from '../types/auth'
 import AdminLayout from '../layouts/AdminLayout.vue'
 
 const infrastructurePages = [
-  ['platform-logs', '操作日志', '平台操作日志'],
   ['merchant-system', '系统管理', '商户系统管理功能将在商户权限域中逐步开放'],
   ['merchant-store', '门店信息', '商户门店信息'], ['merchant-staff', '员工账号', '商户员工账号'],
   ['merchant-roles', '商户角色', '商户角色管理'], ['merchant-permissions', '商户权限说明', '商户权限说明'],
@@ -22,6 +21,7 @@ const routes = [
       { path: 'platform/accounts', component: () => import('../views/platform/PlatformAccountPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:account:read' } },
       { path: 'platform/roles', component: () => import('../views/platform/PlatformRolePage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:role:read' } },
       { path: 'platform/permissions', component: () => import('../views/platform/PlatformPermissionPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:permission:read' } },
+      { path: 'platform/logs', component: () => import('../views/platform/PlatformOperationLogPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain } },
       { path: 'platform/system', component: () => import('../views/platform/PlatformSystemPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:system:config:read' } },
       { path: 'merchant/dashboard', component: () => import('../views/merchant/MerchantDashboardPage.vue'), meta: { domain: 'TENANT' satisfies AccessDomain } },
       ...infrastructurePages.map(([key, title, description]) => ({
