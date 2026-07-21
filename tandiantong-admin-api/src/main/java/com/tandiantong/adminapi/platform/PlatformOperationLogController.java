@@ -110,11 +110,13 @@ public class PlatformOperationLogController {
         private String operationType;
         private String targetType;
         private String targetId;
+        private boolean sensitive;
         private String detail;
         private String traceId;
         private String userIp;
         private String requestMethod;
         private String requestUrl;
+        private String userAgent;
         private LocalDateTime createdAt;
 
         static PlatformOperationLogItemResponse from(
@@ -127,11 +129,13 @@ public class PlatformOperationLogController {
             response.operationType = source.getOperationType();
             response.targetType = source.getTargetType();
             response.targetId = source.getTargetId();
+            response.sensitive = source.isSensitive();
             response.detail = source.getDetail();
             response.traceId = source.getTraceId();
             response.userIp = source.getUserIp();
             response.requestMethod = source.getRequestMethod();
             response.requestUrl = source.getRequestUrl();
+            response.userAgent = source.getUserAgent();
             response.createdAt = source.getCreatedAt();
             return response;
         }
@@ -164,6 +168,10 @@ public class PlatformOperationLogController {
             return targetId;
         }
 
+        public boolean isSensitive() {
+            return sensitive;
+        }
+
         public String getDetail() {
             return detail;
         }
@@ -182,6 +190,10 @@ public class PlatformOperationLogController {
 
         public String getRequestUrl() {
             return requestUrl;
+        }
+
+        public String getUserAgent() {
+            return userAgent;
         }
 
         public LocalDateTime getCreatedAt() {

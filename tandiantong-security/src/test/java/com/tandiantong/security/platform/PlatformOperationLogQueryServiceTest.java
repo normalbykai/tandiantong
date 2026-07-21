@@ -66,4 +66,31 @@ class PlatformOperationLogQueryServiceTest {
         assertThat(result.records().get(0).getOperatorName()).isEqualTo("系统管理员");
         assertThat(result.records().get(0).getRequestUrl()).isEqualTo("/api/platform/v1/system/config");
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldMarkDisableAndDeleteLogsAsSensitive() {
+        OperationLogMapper operationLogMapper = mock(OperationLogMapper.class);
+        PlatformUserMapper platformUserMapper = mock(PlatformUserMapper.class);
+
+        OperationLogEntity log = new OperationLogEntity();
+        log.setId(2L);
+        log.setDomain(AccessDomain.PLATFORM.name());
+        log.setOperationType("删除平台账号");
+        log.setTargetType("平台账号");
+
+        Page<OperationLogEntity> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(log));
+        when(operationLogMapper.selectPage(any(IPage.class), any(LambdaQueryWrapper.class))).thenReturn(page);
+        when(platformUserMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of());
+
+        PlatformOperationLogQueryService service =
+                new PlatformOperationLogQueryService(operationLogMapper, platformUserMapper);
+
+        PlatformOperationLogQueryService.PlatformOperationLogPage result =
+                service.listPlatformLogs(null, null, null, null, null, null, 1, 20);
+
+        assertThat(result.records().get(0).isSensitive()).isTrue();
+    }
 }

@@ -3,7 +3,7 @@ export interface TenantOverview {
   merchantName: string
   adminName: string
   adminMobileMasked: string
-  status: 'ENABLED' | 'DISABLED' | 'PENDING'
+  status: 'ENABLED' | 'DISABLED' | 'PENDING_ENABLE' | 'DRAFT' | 'NEEDS_REVISION' | 'PENDING_REVIEW'
   paymentConfigStatus: string
   adminStatus: string
   sceneKey: string

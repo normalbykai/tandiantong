@@ -68,7 +68,7 @@ public class MerchantProvisioningService {
      * 创建待启用商户，并生成首个管理员邀请和小程序入口码。
      */
     @Transactional
-    public ProvisionedMerchant provision(MerchantOnboardingCommand command) {
+    public ProvisionedMerchant provision(CurrentUser operator, MerchantOnboardingCommand command) {
         validate(command);
         TenantEntity tenant = insertTenant(command.merchantName());
         StoreEntity store = insertStore(tenant.getId(), command.merchantName() + "默认门店");
@@ -78,8 +78,16 @@ public class MerchantProvisioningService {
         insertInvitation(tenant.getId(), store.getId(), command, invitationCode, expiresAt);
         insertPaymentConfig(tenant.getId(), store.getId());
         insertMiniProgramScene(tenant.getId(), store.getId(), sceneKey);
-        return new ProvisionedMerchant(tenant.getId(), store.getId(), command.merchantName(), command.merchantName() + "默认门店",
+        ProvisionedMerchant merchant = new ProvisionedMerchant(tenant.getId(), store.getId(), command.merchantName(), command.merchantName() + "默认门店",
                 invitationCode, expiresAt, sceneKey, PaymentConfigStatus.NOT_CONFIGURED);
+        auditProvision(operator, merchant);
+        return merchant;
+    }
+
+    /** 记录商户开通结果，邀请码和入口码不写入审计日志。 */
+    private void auditProvision(CurrentUser operator, ProvisionedMerchant merchant) {
+        auditService.record(operator, "开通商户", "商户租户", merchant.tenantId().toString(),
+                "开通商户：" + merchant.merchantName() + "，初始状态为待启用");
     }
 
     /**
@@ -115,12 +123,14 @@ public class MerchantProvisioningService {
      * 启用商户，启用后才允许产生新的业务写操作。
      */
     @Transactional
-    public void enableMerchant(Long tenantId) {
-        requireTenant(tenantId);
+    public void enableMerchant(CurrentUser operator, Long tenantId) {
+        TenantEntity tenant = requireTenant(tenantId);
         tenantMapper.update(null, new LambdaUpdateWrapper<TenantEntity>()
                 .eq(TenantEntity::getId, tenantId)
                 .ne(TenantEntity::getStatus, TenantStatus.ENABLED.name())
                 .set(TenantEntity::getStatus, TenantStatus.ENABLED.name()));
+        auditService.record(operator, "启用商户", "商户租户", tenantId.toString(),
+                "启用商户：" + tenant.getName());
     }
 
     /**

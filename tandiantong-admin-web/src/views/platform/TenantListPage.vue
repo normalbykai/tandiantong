@@ -14,7 +14,7 @@
 
     <template #filters>
       <div class="tenant-filter-field"><el-input v-model="keywordInput" placeholder="搜索商户名称、管理员或联系电话" :prefix-icon="Search" clearable @keyup.enter="applyFilters" /></div>
-      <el-select v-model="tenantStatusFilter" class="tenant-filter-select" clearable placeholder="租户状态"><el-option label="已启用" value="ENABLED" /><el-option label="待启用" value="PENDING" /><el-option label="已停用" value="DISABLED" /></el-select>
+      <el-select v-model="tenantStatusFilter" class="tenant-filter-select" clearable placeholder="租户状态"><el-option label="已启用" value="ENABLED" /><el-option label="待启用" value="PENDING_ENABLE" /><el-option label="已停用" value="DISABLED" /></el-select>
       <el-select v-model="adminStatusFilter" class="tenant-filter-select" clearable placeholder="管理员状态"><el-option label="已激活" value="ACTIVATED" /><el-option label="待激活" value="PENDING" /></el-select>
       <el-button type="primary" :icon="Search" :loading="loading" @click="applyFilters">搜索</el-button>
       <span class="tenant-filter-result">查询结果 <b>{{ tenants.length }}</b> 条</span>
@@ -43,7 +43,7 @@ const hasPermission = useSession().hasPermission
 const dictionary = useDictionary()
 const pagedTenants = computed(() => tenants.value.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value))
 const enabledTenantCount = computed(() => tenants.value.filter(item => item.status === 'ENABLED').length)
-const pendingTenantCount = computed(() => tenants.value.filter(item => item.status === 'PENDING').length)
+const pendingTenantCount = computed(() => tenants.value.filter(item => item.status === 'PENDING_ENABLE').length)
 const disabledTenantCount = computed(() => tenants.value.filter(item => item.status === 'DISABLED').length)
 function statusLabel(value: string) { return dictionary.dictLabel('TENANT_STATUS', value) }
 function statusType(value: string) { return dictionary.dictTagType('TENANT_STATUS', value) }

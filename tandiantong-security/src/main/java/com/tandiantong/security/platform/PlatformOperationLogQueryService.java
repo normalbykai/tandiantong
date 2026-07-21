@@ -105,7 +105,9 @@ public class PlatformOperationLogQueryService {
         Map<Long, PlatformUserEntity> operatorMap = loadOperatorMap(result.getRecords());
         List<PlatformOperationLogItem> items =
                 result.getRecords().stream()
-                        .map(item -> PlatformOperationLogItem.from(item, operatorMap.get(item.getOperatorId())))
+                        .map(item -> PlatformOperationLogItem.from(
+                                item,
+                                item.getOperatorId() == null ? null : operatorMap.get(item.getOperatorId())))
                         .toList();
         return new PlatformOperationLogPage(result.getTotal(), result.getCurrent(), result.getSize(), items);
     }
@@ -180,11 +182,13 @@ public class PlatformOperationLogQueryService {
         private String operationType;
         private String targetType;
         private String targetId;
+        private boolean sensitive;
         private String detail;
         private String traceId;
         private String userIp;
         private String requestMethod;
         private String requestUrl;
+        private String userAgent;
         private LocalDateTime createdAt;
 
         static PlatformOperationLogItem from(OperationLogEntity source, PlatformUserEntity operator) {
@@ -196,11 +200,13 @@ public class PlatformOperationLogQueryService {
             item.operationType = source.getOperationType();
             item.targetType = source.getTargetType();
             item.targetId = source.getTargetId();
+            item.sensitive = PlatformOperationLogQueryService.isSensitive(source.getOperationType());
             item.detail = source.getDetail();
             item.traceId = source.getTraceId();
             item.userIp = source.getUserIp();
             item.requestMethod = source.getRequestMethod();
             item.requestUrl = source.getRequestUrl();
+            item.userAgent = source.getUserAgent();
             item.createdAt = source.getCreatedAt();
             return item;
         }
@@ -233,6 +239,10 @@ public class PlatformOperationLogQueryService {
             return targetId;
         }
 
+        public boolean isSensitive() {
+            return sensitive;
+        }
+
         public String getDetail() {
             return detail;
         }
@@ -253,8 +263,26 @@ public class PlatformOperationLogQueryService {
             return requestUrl;
         }
 
+        public String getUserAgent() {
+            return userAgent;
+        }
+
         public LocalDateTime getCreatedAt() {
             return createdAt;
         }
+    }
+
+    private static boolean isSensitive(String operationType) {
+        if (operationType == null) {
+            return false;
+        }
+        return operationType.contains("删除")
+                || operationType.contains("停用")
+                || operationType.contains("禁用")
+                || operationType.contains("启用")
+                || operationType.contains("重置")
+                || operationType.contains("权限")
+                || operationType.contains("退款")
+                || operationType.contains("核销");
     }
 }

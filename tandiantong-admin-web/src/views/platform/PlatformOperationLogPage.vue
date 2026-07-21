@@ -2,9 +2,9 @@
   <ListPageLayout title="操作日志" description="记录平台管理端的全部敏感操作，用于审计追溯。日志仅支持查看，不允许删除。" eyebrow="平台管理">
     <template #stats>
       <div class="list-stat"><span class="list-stat__label">日志总数</span><strong class="list-stat__value">{{ total }}</strong></div>
-      <div class="list-stat"><span class="list-stat__label">本页日志</span><strong class="list-stat__value is-muted">{{ logs.length }}</strong></div>
+      <div class="list-stat"><span class="list-stat__label">敏感日志</span><strong class="list-stat__value is-warning">{{ sensitiveCount }}</strong></div>
       <div class="list-stat"><span class="list-stat__label">涉及操作人</span><strong class="list-stat__value is-success">{{ operatorCount }}</strong></div>
-      <div class="list-stat"><span class="list-stat__label">最近追踪号</span><strong class="list-stat__value is-warning">{{ logs[0]?.traceId ?? '—' }}</strong></div>
+      <div class="list-stat"><span class="list-stat__label">最后记录</span><strong class="list-stat__value is-muted">{{ logs[0] ? formatTime(logs[0].createdAt) : '—' }}</strong></div>
     </template>
 
     <template #actions>
@@ -68,13 +68,16 @@
       <el-table-column prop="operationType" label="操作类型" min-width="160">
         <template #default="{ row }"><el-tag effect="plain">{{ row.operationType }}</el-tag></template>
       </el-table-column>
-      <el-table-column prop="targetType" label="对象类型" min-width="140" />
-      <el-table-column prop="targetId" label="对象标识" min-width="180" />
+      <el-table-column label="操作对象" min-width="220">
+        <template #default="{ row }"><div class="target-cell"><b>{{ row.targetType || '—' }}</b><code>{{ row.targetId ? `编号 ${row.targetId}` : '未指定对象' }}</code></div></template>
+      </el-table-column>
+      <el-table-column label="敏感操作" width="110" align="center"><template #default="{ row }"><el-tag v-if="row.sensitive" type="danger" effect="plain">敏感</el-tag><span v-else>普通</span></template></el-table-column>
+      <el-table-column prop="detail" label="操作明细" min-width="260" show-overflow-tooltip />
       <el-table-column prop="traceId" label="追踪号" min-width="180">
         <template #default="{ row }"><code>{{ row.traceId || '—' }}</code></template>
       </el-table-column>
-      <el-table-column label="来源" min-width="180">
-        <template #default="{ row }">{{ row.requestMethod || '—' }} {{ row.userIp || '—' }}</template>
+      <el-table-column label="访问环境" min-width="230">
+        <template #default="{ row }"><div class="environment-cell"><span>{{ row.requestMethod || '—' }} · {{ row.userIp || '—' }}</span><small>{{ row.userAgent || '客户端信息未知' }}</small></div></template>
       </el-table-column>
       <el-table-column label="操作" width="120" fixed="right" align="center">
         <template #default="{ row }">
@@ -105,8 +108,10 @@
         <div><span>手机号</span><strong>{{ currentLog.operatorMobile ?? '—' }}</strong></div>
         <div><span>操作时间</span><strong>{{ formatTime(currentLog.createdAt) }}</strong></div>
         <div><span>追踪号</span><strong><code>{{ currentLog.traceId || '—' }}</code></strong></div>
-        <div><span>来源</span><strong>{{ currentLog.requestMethod || '—' }} {{ currentLog.requestUrl || '—' }}</strong></div>
+        <div><span>请求</span><strong>{{ currentLog.requestMethod || '—' }} {{ currentLog.requestUrl || '—' }}</strong></div>
         <div><span>来源 IP</span><strong>{{ currentLog.userIp || '—' }}</strong></div>
+        <div><span>操作系统与客户端</span><strong>{{ currentLog.userAgent || '—' }}</strong></div>
+        <div><span>敏感操作</span><strong>{{ currentLog.sensitive ? '是' : '否' }}</strong></div>
         <div class="log-detail-grid__full"><span>操作详情</span><strong>{{ currentLog.detail || '—' }}</strong></div>
       </div>
     </template>
@@ -135,6 +140,7 @@ const currentLog = ref<PlatformOperationLogItem>()
 const operationTypeOptions = computed(() => [...new Set(logs.value.map(item => item.operationType))].filter(Boolean))
 const targetTypeOptions = computed(() => [...new Set(logs.value.map(item => item.targetType))].filter(Boolean))
 const operatorCount = computed(() => new Set(logs.value.map(item => item.operatorId)).size)
+const sensitiveCount = computed(() => logs.value.filter(item => item.sensitive).length)
 
 const formatTime = (value: string) =>
   value
@@ -209,6 +215,10 @@ onMounted(load)
 .operator-cell { display: grid; gap: 2px; }
 .operator-cell b { font-size: 14px; font-weight: 550; }
 .operator-cell span { color: #7f8a83; font-size: 12px; }
+.target-cell, .environment-cell { display: grid; gap: 3px; }
+.target-cell b { font-size: 13px; font-weight: 550; }
+.target-cell code, .environment-cell small { color: #7f8a83; font-size: 11px; }
+.environment-cell small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .log-summary { display: grid; gap: 10px; margin-bottom: 18px; padding: 14px; border: 1px solid #e3ebe5; border-radius: 12px; background: #fbfcfb; }
 .log-summary__item { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .log-summary__item span, .log-detail-grid span { color: #7c8981; font-size: 12px; }

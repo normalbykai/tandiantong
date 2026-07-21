@@ -20,11 +20,13 @@ export interface PlatformOperationLogItem {
   operationType: string
   targetType: string
   targetId?: string
+  sensitive: boolean
   detail?: string
   traceId?: string
   userIp?: string
   requestMethod?: string
   requestUrl?: string
+  userAgent?: string
   createdAt: string
 }
 

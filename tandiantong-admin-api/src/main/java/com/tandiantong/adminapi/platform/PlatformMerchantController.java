@@ -41,6 +41,7 @@ public class PlatformMerchantController {
     @ResponseStatus(HttpStatus.CREATED)
     public MerchantProvisioningResponse create(@Valid @RequestBody CreateMerchantRequest request) {
         MerchantProvisioningService.ProvisionedMerchant merchant = merchantProvisioningService.provision(
+                SecurityContextHolder.currentUser(),
                 new MerchantOnboardingCommand(request.merchantName(), request.storeAddress(), request.adminName(), request.adminMobile()));
         return new MerchantProvisioningResponse(merchant.tenantId(), merchant.storeId(), merchant.merchantName(),
                 merchant.storeName(), merchant.invitationCode(), merchant.invitationExpiresAt().toString(), merchant.sceneKey(),
@@ -67,7 +68,7 @@ public class PlatformMerchantController {
     public void enable(
             @Parameter(description = "租户 ID", example = "1001", required = true)
             @PathVariable("tenantId") Long tenantId) {
-        merchantProvisioningService.enableMerchant(tenantId);
+        merchantProvisioningService.enableMerchant(SecurityContextHolder.currentUser(), tenantId);
     }
 
     @Operation(summary = "停用商户", description = "停用后商户后台登录和后续业务写操作都会被阻止，历史数据不删除")

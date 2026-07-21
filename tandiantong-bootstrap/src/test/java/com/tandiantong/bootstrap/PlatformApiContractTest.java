@@ -82,7 +82,7 @@ class PlatformApiContractTest {
     @Test
     @WithMockUser(username = "platform-admin", roles = "PLATFORM")
     void shouldCreateMerchantThroughPlatformApi() throws Exception {
-        given(merchantProvisioningService.provision(org.mockito.ArgumentMatchers.any()))
+        given(merchantProvisioningService.provision(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .willReturn(new MerchantProvisioningService.ProvisionedMerchant(1001L, 1002L, "春风小铺", "春风小铺默认门店",
                         "invite-test", Instant.parse("2026-07-19T00:00:00Z"), "scene-test", PaymentConfigStatus.NOT_CONFIGURED));
         mockMvc.perform(post("/api/platform/v1/merchants")
