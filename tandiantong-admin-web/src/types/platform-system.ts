@@ -16,7 +16,7 @@ export interface PlatformDictionaryItem {
   id: number
   dictionaryType: string
   itemCode: string
-  itemValue: string
+  tagType: '' | 'success' | 'warning' | 'info' | 'danger'
   itemLabel: string
   sortOrder: number
   status: 'ENABLED' | 'DISABLED'
@@ -32,7 +32,7 @@ export interface PlatformDictionaryType {
 export interface CreatePlatformDictionaryItemCommand {
   dictionaryType: string
   itemCode: string
-  itemValue: string
+  tagType?: '' | 'success' | 'warning' | 'info' | 'danger'
   itemLabel: string
   sortOrder: number
 }

@@ -97,8 +97,8 @@ public class PlatformSystemController {
                         current(),
                         request.dictionaryType,
                         request.itemCode,
-                        request.itemValue,
                         request.itemLabel,
+                        request.tagType,
                         request.sortOrder));
     }
 
@@ -182,14 +182,13 @@ public class PlatformSystemController {
         private String itemCode;
 
         @NotBlank
-        @Size(max = 255)
-        @Schema(description = "业务实际存储值", example = "pending")
-        private String itemValue;
-
-        @NotBlank
         @Size(max = 128)
         @Schema(description = "字典项名称", example = "待处理")
         private String itemLabel;
+
+        @Size(max = 16)
+        @Schema(description = "字典项标签颜色类型，取值为success、info、warning或danger", example = "warning")
+        private String tagType;
 
         @NotNull
         @Schema(description = "排序值", example = "10")
@@ -217,7 +216,7 @@ public class PlatformSystemController {
         private Long id;
         private String dictionaryType;
         private String itemCode;
-        private String itemValue;
+        private String tagType;
         private String itemLabel;
         private Integer sortOrder;
         private String status;
@@ -227,7 +226,7 @@ public class PlatformSystemController {
             response.id = source.getId();
             response.dictionaryType = source.getDictionaryType();
             response.itemCode = source.getItemCode();
-            response.itemValue = source.getItemValue();
+            response.tagType = source.getTagType();
             response.itemLabel = source.getItemLabel();
             response.sortOrder = source.getSortOrder();
             response.status = source.getStatus();

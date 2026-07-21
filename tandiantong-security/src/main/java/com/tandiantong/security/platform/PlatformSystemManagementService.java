@@ -30,8 +30,13 @@ import java.util.List;
 public class PlatformSystemManagementService {
     private static final long CONFIG_ID = 1L;
     private static final String ENABLED = "ENABLED";
+    private static final String DISABLED = "DISABLED";
     private static final String RANDOM = "RANDOM";
     private static final String FIXED = "FIXED";
+    private static final String TAG_SUCCESS = "success";
+    private static final String TAG_INFO = "info";
+    private static final String TAG_DANGER = "danger";
+    private static final String TAG_WARNING = "warning";
     private static final String PASSWORD_ALPHABET =
             "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#";
     private static final SecureRandom RANDOM_GENERATOR = new SecureRandom();
@@ -170,16 +175,16 @@ public class PlatformSystemManagementService {
             CurrentUser operator,
             String dictionaryType,
             String itemCode,
-            String itemValue,
             String itemLabel,
+            String tagType,
             Integer sortOrder) {
         if (dictionaryMapper.selectOne(dictionaryQuery(dictionaryType, itemCode)) != null)
             throw error("字典项编码已存在");
         PlatformDictionaryItemEntity item = new PlatformDictionaryItemEntity();
         item.setDictionaryType(dictionaryType);
         item.setItemCode(itemCode);
-        item.setItemValue(itemValue);
         item.setItemLabel(itemLabel);
+        item.setTagType(resolveTagType(tagType, itemCode));
         item.setSortOrder(sortOrder);
         item.setStatus(ENABLED);
         dictionaryMapper.insert(item);
@@ -205,7 +210,7 @@ public class PlatformSystemManagementService {
     @Transactional
     public void updateDictionaryStatus(CurrentUser operator, Long id, boolean enabled) {
         PlatformDictionaryItemEntity item = requireDictionaryItem(id);
-        item.setStatus(enabled ? ENABLED : "DISABLED");
+        item.setStatus(enabled ? ENABLED : DISABLED);
         dictionaryMapper.updateById(item);
         auditService.record(
                 operator, enabled ? "启用平台字典项" : "停用平台字典项", "平台字典项", id.toString(), "更新字典项状态");
@@ -222,6 +227,42 @@ public class PlatformSystemManagementService {
         PlatformDictionaryItemEntity item = dictionaryMapper.selectById(id);
         if (item == null) throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "平台字典项不存在");
         return item;
+    }
+
+    private String resolveTagType(String tagType, String itemCode) {
+        if (tagType != null && !tagType.isBlank()) {
+            if (TAG_SUCCESS.equals(tagType)
+                    || TAG_INFO.equals(tagType)
+                    || TAG_DANGER.equals(tagType)
+                    || TAG_WARNING.equals(tagType)) {
+                return tagType;
+            }
+            throw error("字典项标签颜色类型不正确");
+        }
+        if (itemCode == null || itemCode.isBlank()) {
+            return TAG_INFO;
+        }
+        if (itemCode.equals("ENABLED")
+                || itemCode.equals("SUCCESS")
+                || itemCode.equals("VERIFIED")
+                || itemCode.equals("COMPLETED")
+                || itemCode.equals("FULFILLED")
+                || itemCode.equals("ON_SHELF")) {
+            return TAG_SUCCESS;
+        }
+        if (itemCode.equals("FAILED") || itemCode.equals("VERIFY_FAILED") || itemCode.equals("CANCELED")) {
+            return TAG_DANGER;
+        }
+        if (itemCode.equals("PROCESSING")
+                || itemCode.equals("REFUNDING")
+                || itemCode.equals("PENDING_PAYMENT")
+                || itemCode.equals("PENDING_VERIFY")
+                || itemCode.equals("PENDING_REVIEW")
+                || itemCode.equals("PENDING_ENABLE")
+                || itemCode.equals("PENDING")) {
+            return TAG_WARNING;
+        }
+        return TAG_INFO;
     }
 
     private BusinessException error(String message) {

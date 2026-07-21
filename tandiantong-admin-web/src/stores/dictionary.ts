@@ -18,11 +18,11 @@ export const useDictionary = defineStore('dictionary', {
       return map
     },
 
-    /** 按字典类型获取全部字典项。 */
-    itemsByType: (state) => {
-      const map: Record<string, PlatformDictionaryItem[]> = {}
+    /** 按字典类型和字典项编码构建索引。 */
+    itemMap: (state) => {
+      const map: Record<string, Record<string, PlatformDictionaryItem>> = {}
       for (const item of state.items) {
-        (map[item.dictionaryType] ??= []).push(item)
+        (map[item.dictionaryType] ??= {})[item.itemCode] = item
       }
       return map
     }
@@ -75,27 +75,17 @@ export const useDictionary = defineStore('dictionary', {
     /**
      * 根据字典类型和业务存储值获取显示标签。
      */
-    dictLabel(dictionaryType: string, itemValue: string): string {
-      const found = this.items.find(
-        item => item.dictionaryType === dictionaryType && item.itemValue === itemValue && item.status === 'ENABLED'
-      )
-      return found?.itemLabel ?? itemValue
+    dictLabel(dictionaryType: string, itemCode: string): string {
+      const found = this.itemMap[dictionaryType]?.[itemCode]
+      return found?.status === 'ENABLED' ? found.itemLabel : itemCode
     },
 
     /**
      * 根据字典类型和业务存储值获取 Element Plus 标签颜色类型。
      */
-    dictTagType(dictionaryType: string, itemValue: string): '' | 'success' | 'warning' | 'info' | 'danger' {
-      const item = this.items.find(
-        i => i.dictionaryType === dictionaryType && i.itemValue === itemValue && i.status === 'ENABLED'
-      )
-      if (!item) return ''
-      const code = item.itemCode
-      if (code === 'ENABLED' || code === 'SUCCESS' || code === 'VERIFIED' || code === 'COMPLETED' || code === 'FULFILLED' || code === 'ON_SHELF') return 'success'
-      if (code === 'DISABLED') return 'info'
-      if (code === 'FAILED' || code === 'VERIFY_FAILED' || code === 'CANCELED') return 'danger'
-      if (code === 'PROCESSING' || code === 'REFUNDING' || code === 'PENDING_PAYMENT' || code === 'PENDING_VERIFY' || code === 'PENDING_REVIEW' || code === 'PENDING_ENABLE' || code === 'PENDING') return 'warning'
-      return ''
+    dictTagType(dictionaryType: string, itemCode: string): '' | 'success' | 'warning' | 'info' | 'danger' {
+      const item = this.itemMap[dictionaryType]?.[itemCode]
+      return item?.status === 'ENABLED' ? item.tagType : ''
     }
   }
 })

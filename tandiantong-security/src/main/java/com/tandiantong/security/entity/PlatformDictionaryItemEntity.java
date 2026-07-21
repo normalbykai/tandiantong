@@ -23,8 +23,8 @@ public class PlatformDictionaryItemEntity {
     /** 字典项编码。 */
     private String itemCode;
 
-    /** 业务实际存储值。 */
-    private String itemValue;
+    /** 字典项标签颜色类型。 */
+    private String tagType;
 
     /** 字典项名称。 */
     private String itemLabel;

@@ -18,7 +18,7 @@
 
   <template v-else-if="activeSection === 'DICTIONARY'">
     <section class="content-card dictionary-page-card">
-      <div class="dictionary-page-heading"><div><span class="system-card-kicker">PLATFORM DICTIONARY</span><h2>平台字典</h2><p>按字典类型维护可复用选项。编码用于识别，存储值写入业务数据，名称用于页面展示。</p></div></div>
+      <div class="dictionary-page-heading"><div><span class="system-card-kicker">PLATFORM DICTIONARY</span><h2>平台字典</h2><p>按字典类型维护可复用选项。编码用于识别，颜色类型用于展示，名称用于页面展示。</p></div></div>
       <div v-loading="dictionaryLoading" class="dictionary-workspace">
         <!-- 左侧：字典类型列表 -->
         <aside class="dictionary-type-panel">
@@ -79,8 +79,8 @@
                 <el-table-column prop="itemCode" label="字典项编码" min-width="140">
                   <template #default="{ row }"><code>{{ row.itemCode }}</code></template>
                 </el-table-column>
-                <el-table-column prop="itemValue" label="业务存储值" min-width="160">
-                  <template #default="{ row }"><span class="dictionary-value">{{ row.itemValue }}</span></template>
+                <el-table-column prop="tagType" label="颜色类型" min-width="120">
+                  <template #default="{ row }"><code>{{ row.tagType || 'info' }}</code></template>
                 </el-table-column>
                 <el-table-column prop="itemLabel" label="显示名称" min-width="140" />
                 <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
@@ -130,7 +130,7 @@
   >
     <div class="dictionary-drawer-intro">
       <span class="config-block-icon">值</span>
-      <p>同一字典类型可以配置多个选项。存储值会写入业务数据，请保持稳定且不要重复。</p>
+      <p>同一字典类型可以配置多个选项。编码会写入业务数据，请保持稳定且不要重复。</p>
     </div>
     <el-form ref="dictionaryFormRef" :model="dictionaryForm" :rules="dictionaryRules" label-position="top" class="dictionary-form" require-asterisk-position="right">
       <el-form-item label="字典类型编码" prop="dictionaryType" :required="true">
@@ -139,8 +139,14 @@
       <el-form-item label="字典项编码" prop="itemCode" :required="true">
         <el-input v-model="dictionaryForm.itemCode" :disabled="Boolean(editingItem)" placeholder="例如：PENDING" />
       </el-form-item>
-      <el-form-item label="业务存储值" prop="itemValue" :required="true">
-        <el-input v-model="dictionaryForm.itemValue" :disabled="Boolean(editingItem)" maxlength="255" show-word-limit placeholder="例如：pending" />
+      <el-form-item label="颜色类型" prop="tagType">
+        <el-select v-model="dictionaryForm.tagType" placeholder="自动识别或手动指定">
+          <el-option label="自动识别" value="" />
+          <el-option label="成功" value="success" />
+          <el-option label="提示" value="info" />
+          <el-option label="警告" value="warning" />
+          <el-option label="危险" value="danger" />
+        </el-select>
       </el-form-item>
       <el-form-item label="显示名称" prop="itemLabel" :required="true">
         <el-input v-model="dictionaryForm.itemLabel" maxlength="128" show-word-limit placeholder="例如：待支付" />
@@ -198,22 +204,22 @@ const filteredSelectedItems = computed(() => {
   return selectedGroupItems.value.filter(item =>
     item.itemLabel.toLowerCase().includes(kw) ||
     item.itemCode.toLowerCase().includes(kw) ||
-    item.itemValue.toLowerCase().includes(kw)
+    item.tagType.toLowerCase().includes(kw)
   )
 })
 const dictionaryDialogVisible = ref(false)
 const dictionaryFormRef = ref<FormInstance>()
 const editingItem = ref<PlatformDictionaryItem>()
-const dictionaryForm = reactive<CreatePlatformDictionaryItemCommand>({ dictionaryType: '', itemCode: '', itemValue: '', itemLabel: '', sortOrder: 0 })
-const dictionaryRules: FormRules = { dictionaryType: [{ required: true, message: '请输入字典类型编码', trigger: 'blur' }], itemCode: [{ required: true, message: '请输入字典项编码', trigger: 'blur' }], itemValue: [{ required: true, message: '请输入业务存储值', trigger: 'blur' }, { max: 255, message: '业务存储值不能超过255个字符', trigger: 'blur' }], itemLabel: [{ required: true, message: '请输入显示名称', trigger: 'blur' }], sortOrder: [{ required: true, message: '请输入排序值', trigger: 'change' }] }
+const dictionaryForm = reactive<CreatePlatformDictionaryItemCommand>({ dictionaryType: '', itemCode: '', tagType: '', itemLabel: '', sortOrder: 0 })
+const dictionaryRules: FormRules = { dictionaryType: [{ required: true, message: '请输入字典类型编码', trigger: 'blur' }], itemCode: [{ required: true, message: '请输入字典项编码', trigger: 'blur' }], itemLabel: [{ required: true, message: '请输入显示名称', trigger: 'blur' }], sortOrder: [{ required: true, message: '请输入排序值', trigger: 'change' }] }
 
 async function loadConfig() { try { Object.assign(configForm, await getPlatformSystemConfig()) } catch (error) { message.error(error instanceof Error ? error.message : '平台设置加载失败') } }
 async function saveConfig() { if (!(await configFormRef.value?.validate().catch(() => false))) return; configSaving.value = true; try { Object.assign(configForm, await updatePlatformSystemConfig(configForm)); message.success('平台设置已保存') } catch (error) { message.error(error instanceof Error ? error.message : '平台设置保存失败') } finally { configSaving.value = false } }
 async function loadDictionaries() { dictionaryLoading.value = true; try { dictionaryItems.value = await listPlatformDictionaryItems(dictionaryTypeFilter.value.trim() || undefined); if (selectedType.value && !dictionaryGroups.value.some(g => g.dictionaryType === selectedType.value)) selectedType.value = dictionaryGroups.value[0]?.dictionaryType ?? ''; if (!selectedType.value && dictionaryGroups.value.length > 0) selectedType.value = dictionaryGroups.value[0].dictionaryType } catch (error) { message.error(error instanceof Error ? error.message : '平台字典加载失败') } finally { dictionaryLoading.value = false } }
 function selectType(dictionaryType: string) { selectedType.value = dictionaryType; itemSearchText.value = '' }
 function onTypeFilterChange() { loadDictionaries() }
-function openCreate(dictionaryType = '') { editingItem.value = undefined; Object.assign(dictionaryForm, { dictionaryType, itemCode: '', itemValue: '', itemLabel: '', sortOrder: 0 }); dictionaryDialogVisible.value = true }
-function openEdit(item: PlatformDictionaryItem) { editingItem.value = item; Object.assign(dictionaryForm, item); dictionaryDialogVisible.value = true }
+function openCreate(dictionaryType = '') { editingItem.value = undefined; Object.assign(dictionaryForm, { dictionaryType, itemCode: '', tagType: '', itemLabel: '', sortOrder: 0 }); dictionaryDialogVisible.value = true }
+function openEdit(item: PlatformDictionaryItem) { editingItem.value = item; Object.assign(dictionaryForm, { dictionaryType: item.dictionaryType, itemCode: item.itemCode, tagType: item.tagType, itemLabel: item.itemLabel, sortOrder: item.sortOrder }); dictionaryDialogVisible.value = true }
 async function saveDictionary() { if (!(await dictionaryFormRef.value?.validate().catch(() => false))) return; dictionarySaving.value = true; try { if (editingItem.value) await updatePlatformDictionaryItem(editingItem.value.id, { itemLabel: dictionaryForm.itemLabel, sortOrder: dictionaryForm.sortOrder }); else await createPlatformDictionaryItem(dictionaryForm); message.success('平台字典项已保存'); dictionaryDialogVisible.value = false; await loadDictionaries(); await dictionary.refresh() } catch (error) { message.error(error instanceof Error ? error.message : '平台字典项保存失败') } finally { dictionarySaving.value = false } }
 async function toggleStatus(item: PlatformDictionaryItem) { const enabled = item.status !== 'ENABLED'; try { await ElMessageBox.confirm(`确认${enabled ? '启用' : '停用'}“${item.itemLabel}”吗？`, '字典项状态确认', { type: 'warning' }); await updatePlatformDictionaryItemStatus(item.id, enabled); message.success('字典项状态已更新'); await loadDictionaries(); await dictionary.refresh() } catch (error) { if (error !== 'cancel') message.error(error instanceof Error ? error.message : '字典项状态更新失败') } }
 onMounted(loadConfig)
