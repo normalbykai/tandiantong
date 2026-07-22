@@ -41,6 +41,7 @@ public class AuditEvent {
             case PLATFORM_ACCOUNT_UPDATED -> "已修改平台账号：" + name + "的资料或角色";
             case PLATFORM_ACCOUNT_ENABLED -> "已启用平台账号：" + name;
             case PLATFORM_ACCOUNT_DISABLED -> "已停用平台账号：" + name;
+            case PLATFORM_ACCOUNT_UNLOCKED -> "已解除平台账号：" + name + "的临时登录锁定，并清零登录失败次数";
             case PLATFORM_ACCOUNT_PASSWORD_RESET -> "已按系统安全策略重置平台账号：" + name + "的密码，策略：" + policy;
             case PLATFORM_ROLE_CREATED -> "已新增平台角色：" + name;
             case PLATFORM_ROLE_UPDATED -> "已修改平台角色：" + name + "的名称或说明";

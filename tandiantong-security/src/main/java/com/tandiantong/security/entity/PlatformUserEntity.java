@@ -35,6 +35,15 @@ public class PlatformUserEntity {
     /** 令牌版本，用于批量失效历史登录态。 */
     private Integer tokenVersion;
 
+    /** 连续登录失败次数。 */
+    private Integer failedLoginCount;
+
+    /** 登录锁定截止时间。 */
+    private LocalDateTime lockedUntil;
+
+    /** 最近成功登录时间。 */
+    private LocalDateTime lastLoginAt;
+
     /** 创建时间。 */
     private LocalDateTime createdAt;
 

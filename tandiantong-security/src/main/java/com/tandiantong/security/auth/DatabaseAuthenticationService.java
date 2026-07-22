@@ -24,6 +24,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /** 数据库认证服务，负责登录校验和令牌用户解析。 */
 @Service
@@ -37,6 +39,7 @@ public class DatabaseAuthenticationService {
     private static final String ENABLED_STATUS = "ENABLED";
     private static final String TOKEN_VERSION_KEY = "tokenVersion";
     private static final long REMEMBER_ME_TIMEOUT_SECONDS = 7 * 24 * 60 * 60L;
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Shanghai");
 
     private final PlatformUserMapper platformUserMapper;
     private final AdminUserMapper adminUserMapper;
@@ -44,6 +47,7 @@ public class DatabaseAuthenticationService {
     private final RoleMapper roleMapper;
     private final UserRoleMapper userRoleMapper;
     private final PermissionAuthorizationService permissionAuthorizationService;
+    private final com.tandiantong.security.platform.PlatformSystemManagementService systemManagementService;
     private final PasswordService passwordService = new PasswordService();
 
     public DatabaseAuthenticationService(
@@ -52,13 +56,15 @@ public class DatabaseAuthenticationService {
             TenantMapper tenantMapper,
             RoleMapper roleMapper,
             UserRoleMapper userRoleMapper,
-            PermissionAuthorizationService permissionAuthorizationService) {
+            PermissionAuthorizationService permissionAuthorizationService,
+            com.tandiantong.security.platform.PlatformSystemManagementService systemManagementService) {
         this.platformUserMapper = platformUserMapper;
         this.adminUserMapper = adminUserMapper;
         this.tenantMapper = tenantMapper;
         this.roleMapper = roleMapper;
         this.userRoleMapper = userRoleMapper;
         this.permissionAuthorizationService = permissionAuthorizationService;
+        this.systemManagementService = systemManagementService;
     }
 
     /** 平台管理员登录。 */
@@ -68,7 +74,12 @@ public class DatabaseAuthenticationService {
                         platformUserMapper.selectOne(
                                 new LambdaQueryWrapper<PlatformUserEntity>()
                                         .eq(PlatformUserEntity::getMobile, mobile)));
-        verifyPassword(password, user.getPasswordHash());
+        var config = systemManagementService.getConfig();
+        ensureNotLocked(user, config);
+        verifyPlatformPassword(user, password);
+        resetLoginFailures(user);
+        user.setLastLoginAt(LocalDateTime.now(BUSINESS_ZONE));
+        platformUserMapper.updateById(user);
         CurrentUser currentUser =
                 CurrentUser.platform(user.getId(), user.getMobile(), user.getDisplayName());
         List<String> roleNames = resolveRoleNames(AccessDomain.PLATFORM, user.getId(), null);
@@ -163,6 +174,35 @@ public class DatabaseAuthenticationService {
         if (password == null || !passwordService.matches(password, passwordHash)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "账号或密码不正确");
         }
+    }
+
+    private void verifyPlatformPassword(PlatformUserEntity user, String password) {
+        if (password == null || !passwordService.matches(password, user.getPasswordHash())) {
+            var config = systemManagementService.getConfig();
+            int failures = user.getFailedLoginCount() == null ? 0 : user.getFailedLoginCount();
+            failures++;
+            user.setFailedLoginCount(failures);
+            if (Boolean.TRUE.equals(config.getLoginLockEnabled())
+                    && failures >= (config.getLoginFailureThreshold() == null ? 5 : config.getLoginFailureThreshold())) {
+                int minutes = config.getLoginLockMinutes() == null ? 15 : config.getLoginLockMinutes();
+                user.setLockedUntil(LocalDateTime.now(BUSINESS_ZONE).plusMinutes(minutes));
+            }
+            platformUserMapper.updateById(user);
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "账号或密码不正确");
+        }
+    }
+
+    private void ensureNotLocked(PlatformUserEntity user, com.tandiantong.security.entity.PlatformSystemConfigEntity config) {
+        if (!Boolean.TRUE.equals(config.getLoginLockEnabled())) return;
+        if (user.getLockedUntil() != null
+                && user.getLockedUntil().isAfter(LocalDateTime.now(BUSINESS_ZONE))) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "登录失败次数过多，账号已暂时锁定");
+        }
+    }
+
+    private void resetLoginFailures(PlatformUserEntity user) {
+        user.setFailedLoginCount(0);
+        user.setLockedUntil(null);
     }
 
     private void ensureTokenVersion(Integer tokenVersionInSession, Integer tokenVersionInDatabase) {

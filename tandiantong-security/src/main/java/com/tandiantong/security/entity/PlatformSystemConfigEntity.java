@@ -28,6 +28,27 @@ public class PlatformSystemConfigEntity {
     /** 固定重置密码的 BCrypt 哈希，禁止在接口和日志中输出。 */
     private String fixedResetPasswordHash;
 
+    /** 是否启用密码复杂度校验，默认关闭。 */
+    private Boolean passwordComplexityEnabled;
+
+    /** 密码复杂度启用时的最小长度。 */
+    private Integer passwordMinLength;
+
+    /** 是否启用登录失败锁定。 */
+    private Boolean loginLockEnabled;
+
+    /** 触发锁定的连续失败次数。 */
+    private Integer loginFailureThreshold;
+
+    /** 登录锁定时长，单位分钟。 */
+    private Integer loginLockMinutes;
+
+    /** 密码复杂度规则开关。 */
+    private Boolean requireUppercase;
+    private Boolean requireLowercase;
+    private Boolean requireDigit;
+    private Boolean requireSpecialCharacter;
+
     /** 最近修改时间。 */
     private LocalDateTime updatedAt;
 

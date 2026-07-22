@@ -3,6 +3,15 @@ export interface PlatformSystemConfig {
   description: string
   resetPasswordMode: 'RANDOM' | 'FIXED'
   fixedResetPasswordConfigured: boolean
+  passwordComplexityEnabled: boolean
+  passwordMinLength: number
+  loginLockEnabled: boolean
+  loginFailureThreshold: number
+  loginLockMinutes: number
+  requireUppercase: boolean
+  requireLowercase: boolean
+  requireDigit: boolean
+  requireSpecialCharacter: boolean
 }
 
 export interface UpdatePlatformSystemConfigCommand {
@@ -10,6 +19,15 @@ export interface UpdatePlatformSystemConfigCommand {
   description: string
   resetPasswordMode: 'RANDOM' | 'FIXED'
   fixedResetPassword?: string
+  passwordComplexityEnabled: boolean
+  passwordMinLength: number
+  loginLockEnabled: boolean
+  loginFailureThreshold: number
+  loginLockMinutes: number
+  requireUppercase: boolean
+  requireLowercase: boolean
+  requireDigit: boolean
+  requireSpecialCharacter: boolean
 }
 
 export interface PlatformDictionaryItem {

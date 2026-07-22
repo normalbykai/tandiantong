@@ -1,6 +1,7 @@
 package com.tandiantong.security.platform;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.tandiantong.framework.common.api.ErrorCode;
 import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.security.audit.OperationAuditService;
@@ -114,6 +115,7 @@ public class PlatformAccessManagementService {
                         new LambdaQueryWrapper<PlatformUserEntity>()
                                 .eq(PlatformUserEntity::getMobile, mobile))
                 != null) throw error("手机号已被平台注册");
+        systemManagementService.validatePlatformPassword(password);
         verifyAssignableRoles(operator, roleIds);
         PlatformUserEntity user = new PlatformUserEntity();
         user.setMobile(mobile);
@@ -151,6 +153,26 @@ public class PlatformAccessManagementService {
                 operator,
                 AuditEvent.of(
                         enabled ? AuditAction.PLATFORM_ACCOUNT_ENABLED : AuditAction.PLATFORM_ACCOUNT_DISABLED,
+                        AuditTarget.of("平台账号", userId, user.getDisplayName())));
+    }
+
+    @Transactional
+    public void unlockAccount(CurrentUser operator, Long userId) {
+        PlatformUserEntity user = requireAccount(userId);
+        // 显式更新空值，避免 MyBatis-Plus 按默认策略忽略 locked_until 的清空操作。
+        int updated = userMapper.update(
+                null,
+                new LambdaUpdateWrapper<PlatformUserEntity>()
+                        .eq(PlatformUserEntity::getId, userId)
+                        .set(PlatformUserEntity::getFailedLoginCount, 0)
+                        .set(PlatformUserEntity::getLockedUntil, null));
+        if (updated != 1) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "平台账号不存在或已被删除");
+        }
+        auditService.record(
+                operator,
+                AuditEvent.of(
+                        AuditAction.PLATFORM_ACCOUNT_UNLOCKED,
                         AuditTarget.of("平台账号", userId, user.getDisplayName())));
     }
 

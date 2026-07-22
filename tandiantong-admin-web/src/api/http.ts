@@ -53,10 +53,6 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
   const response = await fetch(`${baseUrl}${path}`, { ...init, headers })
-  if (response.status === 401) {
-    redirectToLogin()
-    throw new Error('登录状态已失效，请重新登录')
-  }
   if (response.status === 204) return undefined as T
 
   const responseText = await response.text()
@@ -75,6 +71,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     const permissionHint = payload.code === 'COMMON_FORBIDDEN' && payload.requiredPermission
       ? `（缺少权限：${payload.requiredPermission}）`
       : ''
+    if (response.status === 401) redirectToLogin()
     throw new Error(`${payload.message || '请求失败'}${permissionHint}${payload.traceId ? `（追踪号：${payload.traceId}）` : ''}`)
   }
   return payload.data

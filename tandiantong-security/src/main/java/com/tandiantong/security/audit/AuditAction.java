@@ -6,6 +6,7 @@ public enum AuditAction {
     PLATFORM_ACCOUNT_UPDATED("编辑平台账号"),
     PLATFORM_ACCOUNT_ENABLED("启用平台账号"),
     PLATFORM_ACCOUNT_DISABLED("停用平台账号"),
+    PLATFORM_ACCOUNT_UNLOCKED("解除平台账号锁定"),
     PLATFORM_ACCOUNT_PASSWORD_RESET("重置平台账号密码"),
     PLATFORM_ROLE_CREATED("新增平台角色"),
     PLATFORM_ROLE_UPDATED("编辑平台角色"),

@@ -74,9 +74,23 @@ public class PlatformSystemManagementService {
             String logoUrl,
             String description,
             String resetPasswordMode,
-            String fixedResetPassword) {
+            String fixedResetPassword,
+            Boolean passwordComplexityEnabled,
+            Integer passwordMinLength,
+            Boolean loginLockEnabled,
+            Integer loginFailureThreshold,
+            Integer loginLockMinutes,
+            Boolean requireUppercase,
+            Boolean requireLowercase,
+            Boolean requireDigit,
+            Boolean requireSpecialCharacter) {
         PlatformSystemConfigEntity config = getConfig();
         validatePasswordPolicy(config, resetPasswordMode, fixedResetPassword);
+        boolean complexityEnabled = Boolean.TRUE.equals(passwordComplexityEnabled);
+        int minimumLength = passwordMinLength == null ? 8 : passwordMinLength;
+        if (complexityEnabled && (minimumLength < 8 || minimumLength > 64)) {
+            throw error("密码最小长度必须介于8到64之间");
+        }
         config.setLogoUrl(logoUrl);
         config.setDescription(description);
         config.setResetPasswordMode(resetPasswordMode);
@@ -87,6 +101,15 @@ public class PlatformSystemManagementService {
         } else if (RANDOM.equals(resetPasswordMode)) {
             config.setFixedResetPasswordHash(null);
         }
+        config.setPasswordComplexityEnabled(complexityEnabled);
+        config.setPasswordMinLength(minimumLength);
+        config.setLoginLockEnabled(Boolean.TRUE.equals(loginLockEnabled));
+        config.setLoginFailureThreshold(loginFailureThreshold == null ? 5 : loginFailureThreshold);
+        config.setLoginLockMinutes(loginLockMinutes == null ? 15 : loginLockMinutes);
+        config.setRequireUppercase(requireUppercase == null || requireUppercase);
+        config.setRequireLowercase(requireLowercase == null || requireLowercase);
+        config.setRequireDigit(requireDigit == null || requireDigit);
+        config.setRequireSpecialCharacter(Boolean.TRUE.equals(requireSpecialCharacter));
         config.setUpdatedBy(operator.userId());
         configMapper.updateById(config);
         auditService.record(
@@ -174,6 +197,21 @@ public class PlatformSystemManagementService {
         if (dictionaryType != null && !dictionaryType.isBlank())
             query.eq(PlatformDictionaryItemEntity::getDictionaryType, dictionaryType);
         return dictionaryMapper.selectList(query);
+    }
+
+    /** 按平台配置校验新密码；复杂度开关关闭时保持现有密码规则。 */
+    public void validatePlatformPassword(String password) {
+        PlatformSystemConfigEntity config = getConfig();
+        if (Boolean.TRUE.equals(config.getPasswordComplexityEnabled())) {
+            int minimumLength = config.getPasswordMinLength() == null ? 8 : config.getPasswordMinLength();
+            if (password == null || password.length() < minimumLength
+                    || Boolean.TRUE.equals(config.getRequireUppercase()) && !password.matches(".*[A-Z].*")
+                    || Boolean.TRUE.equals(config.getRequireLowercase()) && !password.matches(".*[a-z].*")
+                    || Boolean.TRUE.equals(config.getRequireDigit()) && !password.matches(".*\\d.*")
+                    || Boolean.TRUE.equals(config.getRequireSpecialCharacter()) && !password.matches(".*[^A-Za-z0-9].*")) {
+                throw error("密码至少包含大小写字母和数字，且长度不少于" + minimumLength + "位");
+            }
+        }
     }
 
     @Transactional

@@ -91,6 +91,13 @@ public class PlatformAccessController {
         service.updateAccountStatus(current(), userId, request.enabled);
     }
 
+    @PostMapping("/accounts/{userId}/unlock")
+    @SaCheckPermission("platform:account:status:update")
+    @Operation(summary = "解除平台账号锁定", description = "清除登录失败次数和临时锁定状态，不改变账号启停状态")
+    public void unlockAccount(@PathVariable("userId") Long userId) {
+        service.unlockAccount(current(), userId);
+    }
+
     @PostMapping("/accounts/{userId}/reset-password")
     @SaCheckPermission("platform:account:password:reset")
     @Operation(summary = "重置平台账号密码", description = "重置密码并使该账号历史登录态失效")
@@ -277,6 +284,9 @@ public class PlatformAccessController {
         private String status;
         private List<Long> roleIds;
         private LocalDateTime createdAt;
+        private LocalDateTime lastLoginAt;
+        private Integer failedLoginCount;
+        private LocalDateTime lockedUntil;
 
         static AccountResponse from(PlatformUserEntity user, List<Long> roleIds) {
             AccountResponse response = new AccountResponse();
@@ -286,6 +296,9 @@ public class PlatformAccessController {
             response.status = user.getStatus();
             response.roleIds = roleIds;
             response.createdAt = user.getCreatedAt();
+            response.lastLoginAt = user.getLastLoginAt();
+            response.failedLoginCount = user.getFailedLoginCount();
+            response.lockedUntil = user.getLockedUntil();
             return response;
         }
     }

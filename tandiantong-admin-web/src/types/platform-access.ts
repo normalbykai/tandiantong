@@ -7,6 +7,9 @@ export interface PlatformAccount {
   status: EnableStatus
   roleIds: number[]
   createdAt: string
+  lastLoginAt?: string
+  failedLoginCount?: number
+  lockedUntil?: string
 }
 
 export interface PlatformRole {

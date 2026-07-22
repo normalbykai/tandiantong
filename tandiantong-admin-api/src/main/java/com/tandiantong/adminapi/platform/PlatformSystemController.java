@@ -66,7 +66,16 @@ public class PlatformSystemController {
                         request.logoUrl,
                         request.description,
                         request.resetPasswordMode,
-                        request.fixedResetPassword));
+                        request.fixedResetPassword,
+                        request.passwordComplexityEnabled,
+                        request.passwordMinLength,
+                        request.loginLockEnabled,
+                        request.loginFailureThreshold,
+                        request.loginLockMinutes,
+                        request.requireUppercase,
+                        request.requireLowercase,
+                        request.requireDigit,
+                        request.requireSpecialCharacter));
     }
 
     @GetMapping("/dictionaries")
@@ -144,6 +153,20 @@ public class PlatformSystemController {
         @Size(min = 8, max = 64)
         @Schema(description = "固定临时密码；随机策略无需填写", example = "Temp@123456")
         private String fixedResetPassword;
+
+        @Schema(description = "是否启用密码复杂度校验，默认关闭", example = "false", defaultValue = "false")
+        private Boolean passwordComplexityEnabled;
+
+        @Schema(description = "密码复杂度启用时的最小长度", example = "8", defaultValue = "8")
+        private Integer passwordMinLength;
+
+        private Boolean loginLockEnabled;
+        private Integer loginFailureThreshold;
+        private Integer loginLockMinutes;
+        private Boolean requireUppercase;
+        private Boolean requireLowercase;
+        private Boolean requireDigit;
+        private Boolean requireSpecialCharacter;
     }
 
     @Getter
@@ -154,6 +177,15 @@ public class PlatformSystemController {
         private String description;
         private String resetPasswordMode;
         private boolean fixedResetPasswordConfigured;
+        private boolean passwordComplexityEnabled;
+        private int passwordMinLength;
+        private boolean loginLockEnabled;
+        private int loginFailureThreshold;
+        private int loginLockMinutes;
+        private boolean requireUppercase;
+        private boolean requireLowercase;
+        private boolean requireDigit;
+        private boolean requireSpecialCharacter;
 
         static ConfigResponse from(PlatformSystemConfigEntity source) {
             ConfigResponse response = new ConfigResponse();
@@ -164,6 +196,15 @@ public class PlatformSystemController {
                             ? "RANDOM"
                             : source.getResetPasswordMode();
             response.fixedResetPasswordConfigured = source.getFixedResetPasswordHash() != null;
+            response.passwordComplexityEnabled = Boolean.TRUE.equals(source.getPasswordComplexityEnabled());
+            response.passwordMinLength = source.getPasswordMinLength() == null ? 8 : source.getPasswordMinLength();
+            response.loginLockEnabled = Boolean.TRUE.equals(source.getLoginLockEnabled());
+            response.loginFailureThreshold = source.getLoginFailureThreshold() == null ? 5 : source.getLoginFailureThreshold();
+            response.loginLockMinutes = source.getLoginLockMinutes() == null ? 15 : source.getLoginLockMinutes();
+            response.requireUppercase = !Boolean.FALSE.equals(source.getRequireUppercase());
+            response.requireLowercase = !Boolean.FALSE.equals(source.getRequireLowercase());
+            response.requireDigit = !Boolean.FALSE.equals(source.getRequireDigit());
+            response.requireSpecialCharacter = Boolean.TRUE.equals(source.getRequireSpecialCharacter());
             return response;
         }
     }
