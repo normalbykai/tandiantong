@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -155,9 +156,20 @@ public class PlatformAccessController {
 
     @GetMapping("/permissions")
     @SaCheckPermission("platform:permission:read")
-    @Operation(summary = "查询平台权限点", description = "只读查询系统维护的平台权限点，禁止通过接口创建或修改")
-    public List<PermissionResponse> listPermissions() {
-        return service.listPermissions().stream().map(PermissionResponse::from).toList();
+    @Operation(summary = "分页查询平台权限点", description = "分页查询系统维护的平台权限点，默认每页20条且最多20条，禁止通过接口创建或修改")
+    public PlatformPermissionPageResponse listPermissions(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "permissionType", required = false) String permissionType,
+            @RequestParam(value = "page", defaultValue = "1") long page,
+            @RequestParam(value = "pageSize", defaultValue = "20") long pageSize) {
+        return PlatformPermissionPageResponse.from(service.listPermissions(keyword, permissionType, page, pageSize));
+    }
+
+    @GetMapping("/permissions/options")
+    @SaCheckPermission("platform:role:read")
+    @Operation(summary = "查询角色授权权限选项", description = "返回平台角色授权所需的完整权限选项，不用于权限管理列表展示")
+    public List<PermissionResponse> listPermissionOptions() {
+        return service.listPermissionOptions().stream().map(PermissionResponse::from).toList();
     }
 
     private com.tandiantong.security.context.CurrentUser current() {
@@ -341,6 +353,26 @@ public class PlatformAccessController {
             response.permissionType = permission.getPermissionType();
             response.permissionCode = permission.getPermissionCode();
             response.name = permission.getName();
+            return response;
+        }
+    }
+
+    @Getter
+    @Setter
+    @Schema(description = "平台权限分页响应")
+    public static class PlatformPermissionPageResponse {
+        private long total;
+        private long current;
+        private long pageSize;
+        private List<PermissionResponse> records;
+
+        static PlatformPermissionPageResponse from(
+                PlatformAccessManagementService.PlatformPermissionPage source) {
+            PlatformPermissionPageResponse response = new PlatformPermissionPageResponse();
+            response.total = source.total();
+            response.current = source.current();
+            response.pageSize = source.pageSize();
+            response.records = source.records().stream().map(PermissionResponse::from).toList();
             return response;
         }
     }

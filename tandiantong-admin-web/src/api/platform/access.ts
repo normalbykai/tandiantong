@@ -1,5 +1,5 @@
 import { request } from '../http'
-import type { CreatePlatformAccountCommand, PlatformAccount, PlatformPermission, PlatformRole, PlatformRoleCommand, UpdatePlatformAccountCommand, UpdatePlatformRoleCommand } from '../../types/platform-access'
+import type { CreatePlatformAccountCommand, PlatformAccount, PlatformPermission, PlatformPermissionPage, PlatformRole, PlatformRoleCommand, UpdatePlatformAccountCommand, UpdatePlatformRoleCommand } from '../../types/platform-access'
 
 const basePath = '/api/platform/v1/access'
 
@@ -17,4 +17,13 @@ export const updatePlatformRole = (id: number, command: UpdatePlatformRoleComman
 export const updatePlatformRoleStatus = (id: number, enabled: boolean) => request<void>(`${basePath}/roles/${id}/status`, { method: 'POST', body: JSON.stringify({ enabled }) })
 export const listPlatformRolePermissionIds = (id: number) => request<number[]>(`${basePath}/roles/${id}/permission-ids`)
 export const replacePlatformRolePermissions = (id: number, permissionIds: number[]) => request<void>(`${basePath}/roles/${id}/permission-ids`, { method: 'PUT', body: JSON.stringify({ permissionIds }) })
-export const listPlatformPermissions = () => request<PlatformPermission[]>(`${basePath}/permissions`)
+export interface ListPlatformPermissionsQuery { keyword?: string; permissionType?: string; page?: number; pageSize?: number }
+export const listPlatformPermissions = (query: ListPlatformPermissionsQuery = {}) => {
+  const params = new URLSearchParams()
+  if (query.keyword) params.set('keyword', query.keyword)
+  if (query.permissionType) params.set('permissionType', query.permissionType)
+  params.set('page', String(query.page ?? 1))
+  params.set('pageSize', String(query.pageSize ?? 20))
+  return request<PlatformPermissionPage>(`${basePath}/permissions?${params.toString()}`)
+}
+export const listPlatformPermissionOptions = () => request<PlatformPermission[]>(`${basePath}/permissions/options`)

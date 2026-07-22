@@ -28,6 +28,13 @@ export interface PlatformPermission {
   name: string
 }
 
+export interface PlatformPermissionPage {
+  total: number
+  current: number
+  pageSize: number
+  records: PlatformPermission[]
+}
+
 export interface CreatePlatformAccountCommand {
   mobile: string
   displayName: string

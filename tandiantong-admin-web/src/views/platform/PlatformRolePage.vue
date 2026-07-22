@@ -55,7 +55,7 @@ import ListPageLayout from '../../components/common/ListPageLayout.vue'
 import AppDataTable from '../../components/common/AppDataTable.vue'
 import RoleFormDialog from '../../components/business/platform/RoleFormDialog.vue'
 import RolePermissionDialog from '../../components/business/platform/RolePermissionDialog.vue'
-import { createPlatformRole, listPlatformPermissions, listPlatformRolePermissionIds, listPlatformRoles, replacePlatformRolePermissions, updatePlatformRole, updatePlatformRoleStatus } from '../../api/platform/access'
+import { createPlatformRole, listPlatformPermissionOptions, listPlatformRolePermissionIds, listPlatformRoles, replacePlatformRolePermissions, updatePlatformRole, updatePlatformRoleStatus } from '../../api/platform/access'
 import type { PlatformPermission, PlatformRole, PlatformRoleCommand, UpdatePlatformRoleCommand } from '../../types/platform-access'
 import { message } from '../../utils/message'
 
@@ -63,7 +63,7 @@ const roles = ref<PlatformRole[]>([]); const permissions = ref<PlatformPermissio
 const systemRoleCount = computed(() => roles.value.filter(item => item.systemRole).length)
 const customRoleCount = computed(() => roles.value.filter(item => !item.systemRole).length)
 const filteredRoles = computed(() => { const value = keyword.value.trim(); return value ? roles.value.filter(item => `${item.name}${item.roleCode}${item.description ?? ''}`.includes(value)) : roles.value })
-async function load() { loading.value = true; try { const [roleData, permissionData] = await Promise.all([listPlatformRoles(), listPlatformPermissions()]); roles.value = roleData; permissions.value = permissionData } catch (error) { message.error(error instanceof Error ? error.message : '平台角色加载失败') } finally { loading.value = false } }
+async function load() { loading.value = true; try { const [roleData, permissionData] = await Promise.all([listPlatformRoles(), listPlatformPermissionOptions()]); roles.value = roleData; permissions.value = permissionData } catch (error) { message.error(error instanceof Error ? error.message : '平台角色加载失败') } finally { loading.value = false } }
 function openCreate() { editingRole.value = undefined; dialogVisible.value = true }
 function openEdit(role: PlatformRole) { editingRole.value = role; dialogVisible.value = true }
 async function save(command: PlatformRoleCommand) { saving.value = true; try { if (editingRole.value) { const updateCommand: UpdatePlatformRoleCommand = { name: command.name, description: command.description }; await updatePlatformRole(editingRole.value.id, updateCommand) } else await createPlatformRole(command); message.success('平台角色已保存'); dialogVisible.value = false; await load() } catch (error) { message.error(error instanceof Error ? error.message : '平台角色保存失败') } finally { saving.value = false } }

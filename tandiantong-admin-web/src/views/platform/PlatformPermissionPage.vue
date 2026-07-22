@@ -15,10 +15,10 @@
       <div class="page-filter-field"><el-input v-model="keyword" :prefix-icon="Search" clearable placeholder="搜索权限名称或编码" @keyup.enter="load" /></div>
       <el-select v-model="typeFilter" class="page-filter-select" clearable placeholder="权限类型"><el-option v-for="type in permissionTypes" :key="type" :label="type" :value="type" /></el-select>
       <el-button @click="resetFilters">重置</el-button>
-      <span class="page-filter-result">查询结果 <b>{{ filteredPermissions.length }}</b> 条</span>
+      <span class="page-filter-result">查询结果 <b>{{ total }}</b> 条</span>
     </template>
 
-    <AppDataTable :data="filteredPermissions" :loading="loading" row-key="id" empty-text="暂无平台权限点" :total="filteredPermissions.length">
+    <AppDataTable :data="permissions" :loading="loading" row-key="id" empty-text="暂无平台权限点" :total="total" :current-page="currentPage" :page-size="pageSize" :page-sizes="[20]" show-pagination @page-change="changePage" @page-size-change="changePageSize">
       <el-table-column label="权限名称" min-width="200">
         <template #default="{ row }"><b class="primary-cell">{{ row.name }}</b></template>
       </el-table-column>
@@ -41,12 +41,13 @@ import { listPlatformPermissions } from '../../api/platform/access'
 import type { PlatformPermission } from '../../types/platform-access'
 import { message } from '../../utils/message'
 
-const permissions = ref<PlatformPermission[]>([]); const loading = ref(false); const keyword = ref(''); const typeFilter = ref<string>()
-const permissionTypes = computed(() => [...new Set(permissions.value.map(item => item.permissionType))])
+const permissions = ref<PlatformPermission[]>([]); const loading = ref(false); const keyword = ref(''); const typeFilter = ref<string>(); const total = ref(0); const currentPage = ref(1); const pageSize = ref(20)
+const permissionTypes = ['API', 'VIEW']
 const typedCounts = computed(() => { const map: Record<string, number> = {}; for (const item of permissions.value) map[item.permissionType] = (map[item.permissionType] ?? 0) + 1; return map })
-const filteredPermissions = computed(() => permissions.value.filter(item => { const value = keyword.value.trim(); return (!value || `${item.name}${item.permissionCode}`.includes(value)) && (!typeFilter.value || item.permissionType === typeFilter.value) }))
-function resetFilters() { keyword.value = ''; typeFilter.value = undefined }
-async function load() { loading.value = true; try { permissions.value = await listPlatformPermissions() } catch (error) { message.error(error instanceof Error ? error.message : '平台权限点加载失败') } finally { loading.value = false } }
+function resetFilters() { keyword.value = ''; typeFilter.value = undefined; currentPage.value = 1; void load() }
+async function load() { loading.value = true; try { const result = await listPlatformPermissions({ keyword: keyword.value.trim() || undefined, permissionType: typeFilter.value, page: currentPage.value, pageSize: pageSize.value }); permissions.value = result.records; total.value = result.total } catch (error) { message.error(error instanceof Error ? error.message : '平台权限点加载失败') } finally { loading.value = false } }
+function changePage(page: number) { currentPage.value = page; void load() }
+function changePageSize(size: number) { pageSize.value = Math.min(size, 20); currentPage.value = 1; void load() }
 onMounted(load)
 </script>
 

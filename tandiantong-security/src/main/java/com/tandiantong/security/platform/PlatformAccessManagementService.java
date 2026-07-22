@@ -2,6 +2,7 @@ package com.tandiantong.security.platform;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tandiantong.framework.common.api.ErrorCode;
 import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.security.audit.OperationAuditService;
@@ -79,7 +80,33 @@ public class PlatformAccessManagementService {
         return roleMapper.selectList(platformRoleQuery().orderByAsc(RoleEntity::getId));
     }
 
-    public List<PermissionEntity> listPermissions() {
+    public PlatformPermissionPage listPermissions(
+            String keyword, String permissionType, long page, long pageSize) {
+        if (page < 1) {
+            throw error("页码必须大于0");
+        }
+        if (pageSize < 1 || pageSize > 20) {
+            throw error("每页条数必须介于1到20之间");
+        }
+        LambdaQueryWrapper<PermissionEntity> query = new LambdaQueryWrapper<PermissionEntity>()
+                .eq(PermissionEntity::getDomain, DOMAIN)
+                .orderByAsc(PermissionEntity::getPermissionCode);
+        if (keyword != null && !keyword.isBlank()) {
+            String trimmedKeyword = keyword.trim();
+            query.and(wrapper -> wrapper
+                    .like(PermissionEntity::getName, trimmedKeyword)
+                    .or()
+                    .like(PermissionEntity::getPermissionCode, trimmedKeyword));
+        }
+        if (permissionType != null && !permissionType.isBlank()) {
+            query.eq(PermissionEntity::getPermissionType, permissionType.trim());
+        }
+        Page<PermissionEntity> result = permissionMapper.selectPage(new Page<>(page, pageSize), query);
+        return new PlatformPermissionPage(
+                result.getTotal(), result.getCurrent(), result.getSize(), result.getRecords());
+    }
+
+    public List<PermissionEntity> listPermissionOptions() {
         return permissionMapper.selectList(
                 new LambdaQueryWrapper<PermissionEntity>()
                         .eq(PermissionEntity::getDomain, DOMAIN)
@@ -102,6 +129,26 @@ public class PlatformAccessManagementService {
                 .stream()
                 .map(RolePermissionEntity::getPermissionId)
                 .toList();
+    }
+
+    /** 平台权限管理页面的分页结果。 */
+    public static class PlatformPermissionPage {
+        private final long total;
+        private final long current;
+        private final long pageSize;
+        private final List<PermissionEntity> records;
+
+        public PlatformPermissionPage(long total, long current, long pageSize, List<PermissionEntity> records) {
+            this.total = total;
+            this.current = current;
+            this.pageSize = pageSize;
+            this.records = List.copyOf(records);
+        }
+
+        public long total() { return total; }
+        public long current() { return current; }
+        public long pageSize() { return pageSize; }
+        public List<PermissionEntity> records() { return records; }
     }
 
     @Transactional
