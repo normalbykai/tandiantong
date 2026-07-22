@@ -7,8 +7,12 @@ import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.security.context.AccessDomain;
 import com.tandiantong.security.entity.OperationLogEntity;
 import com.tandiantong.security.entity.PlatformUserEntity;
+import com.tandiantong.security.entity.RoleEntity;
+import com.tandiantong.security.entity.TenantEntity;
 import com.tandiantong.security.mapper.OperationLogMapper;
 import com.tandiantong.security.mapper.PlatformUserMapper;
+import com.tandiantong.security.mapper.RoleMapper;
+import com.tandiantong.security.mapper.TenantMapper;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -33,11 +37,18 @@ public class PlatformOperationLogQueryService {
     private static final int MAX_PAGE_SIZE = 100;
     private final OperationLogMapper operationLogMapper;
     private final PlatformUserMapper platformUserMapper;
+    private final RoleMapper roleMapper;
+    private final TenantMapper tenantMapper;
 
     public PlatformOperationLogQueryService(
-            OperationLogMapper operationLogMapper, PlatformUserMapper platformUserMapper) {
+            OperationLogMapper operationLogMapper,
+            PlatformUserMapper platformUserMapper,
+            RoleMapper roleMapper,
+            TenantMapper tenantMapper) {
         this.operationLogMapper = operationLogMapper;
         this.platformUserMapper = platformUserMapper;
+        this.roleMapper = roleMapper;
+        this.tenantMapper = tenantMapper;
     }
 
     public PlatformOperationLogPage listPlatformLogs(
@@ -103,11 +114,13 @@ public class PlatformOperationLogQueryService {
         Page<OperationLogEntity> result =
                 operationLogMapper.selectPage(new Page<>(page, pageSize), query);
         Map<Long, PlatformUserEntity> operatorMap = loadOperatorMap(result.getRecords());
+        Map<String, String> targetNameMap = loadTargetNameMap(result.getRecords());
         List<PlatformOperationLogItem> items =
                 result.getRecords().stream()
                         .map(item -> PlatformOperationLogItem.from(
                                 item,
-                                item.getOperatorId() == null ? null : operatorMap.get(item.getOperatorId())))
+                                item.getOperatorId() == null ? null : operatorMap.get(item.getOperatorId()),
+                                targetNameMap.get(targetKey(item))))
                         .toList();
         return new PlatformOperationLogPage(result.getTotal(), result.getCurrent(), result.getSize(), items);
     }
@@ -138,6 +151,47 @@ public class PlatformOperationLogQueryService {
                                 .in(PlatformUserEntity::getId, operatorIds))
                 .stream()
                 .collect(Collectors.toMap(PlatformUserEntity::getId, Function.identity()));
+    }
+
+    /** 为历史简略日志补充仍可查询到的角色或商户名称，不修改原始审计记录。 */
+    private Map<String, String> loadTargetNameMap(List<OperationLogEntity> logs) {
+        Set<Long> roleIds = targetIds(logs, "平台角色");
+        Set<Long> tenantIds = targetIds(logs, "商户租户");
+        Map<String, String> result = new java.util.HashMap<>();
+        if (!roleIds.isEmpty()) {
+            roleMapper.selectList(new LambdaQueryWrapper<RoleEntity>().in(RoleEntity::getId, roleIds))
+                    .forEach(role -> result.put(targetKey("平台角色", role.getId().toString()), role.getName()));
+        }
+        if (!tenantIds.isEmpty()) {
+            tenantMapper.selectList(new LambdaQueryWrapper<TenantEntity>().in(TenantEntity::getId, tenantIds))
+                    .forEach(tenant -> result.put(targetKey("商户租户", tenant.getId().toString()), tenant.getName()));
+        }
+        return result;
+    }
+
+    private Set<Long> targetIds(List<OperationLogEntity> logs, String targetType) {
+        return logs.stream()
+                .filter(log -> targetType.equals(log.getTargetType()))
+                .map(OperationLogEntity::getTargetId)
+                .map(this::parseTargetId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+    }
+
+    private Long parseTargetId(String targetId) {
+        try {
+            return targetId == null ? null : Long.valueOf(targetId);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static String targetKey(OperationLogEntity log) {
+        return targetKey(log.getTargetType(), log.getTargetId());
+    }
+
+    private static String targetKey(String targetType, String targetId) {
+        return targetType + ":" + targetId;
     }
 
     private BusinessException error(String message) {
@@ -182,6 +236,7 @@ public class PlatformOperationLogQueryService {
         private String operationType;
         private String targetType;
         private String targetId;
+        private String targetName;
         private boolean sensitive;
         private String detail;
         private String traceId;
@@ -191,7 +246,8 @@ public class PlatformOperationLogQueryService {
         private String userAgent;
         private LocalDateTime createdAt;
 
-        static PlatformOperationLogItem from(OperationLogEntity source, PlatformUserEntity operator) {
+        static PlatformOperationLogItem from(
+                OperationLogEntity source, PlatformUserEntity operator, String targetName) {
             PlatformOperationLogItem item = new PlatformOperationLogItem();
             item.id = source.getId();
             item.operatorId = source.getOperatorId();
@@ -200,8 +256,9 @@ public class PlatformOperationLogQueryService {
             item.operationType = source.getOperationType();
             item.targetType = source.getTargetType();
             item.targetId = source.getTargetId();
+            item.targetName = targetName;
             item.sensitive = PlatformOperationLogQueryService.isSensitive(source.getOperationType());
-            item.detail = source.getDetail();
+            item.detail = resolveDetail(source, targetName);
             item.traceId = source.getTraceId();
             item.userIp = source.getUserIp();
             item.requestMethod = source.getRequestMethod();
@@ -239,6 +296,10 @@ public class PlatformOperationLogQueryService {
             return targetId;
         }
 
+        public String getTargetName() {
+            return targetName;
+        }
+
         public boolean isSensitive() {
             return sensitive;
         }
@@ -269,6 +330,21 @@ public class PlatformOperationLogQueryService {
 
         public LocalDateTime getCreatedAt() {
             return createdAt;
+        }
+
+        private static String resolveDetail(OperationLogEntity source, String targetName) {
+            if (targetName == null || targetName.isBlank()) {
+                return source.getDetail();
+            }
+            if ("平台角色".equals(source.getTargetType())
+                    && "更新角色状态".equals(source.getDetail())) {
+                return source.getOperationType() + "：" + targetName;
+            }
+            if ("商户租户".equals(source.getTargetType())
+                    && "停用商户后台访问和业务写操作".equals(source.getDetail())) {
+                return "已停用商户：" + targetName + "；商户后台将无法登录，且不能发起新的业务操作";
+            }
+            return source.getDetail();
         }
     }
 

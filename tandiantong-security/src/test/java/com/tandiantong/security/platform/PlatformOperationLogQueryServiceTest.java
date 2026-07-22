@@ -11,6 +11,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tandiantong.security.context.AccessDomain;
 import com.tandiantong.security.entity.OperationLogEntity;
 import com.tandiantong.security.entity.PlatformUserEntity;
+import com.tandiantong.security.mapper.RoleMapper;
+import com.tandiantong.security.mapper.TenantMapper;
 import com.tandiantong.security.mapper.OperationLogMapper;
 import com.tandiantong.security.mapper.PlatformUserMapper;
 
@@ -54,7 +56,8 @@ class PlatformOperationLogQueryServiceTest {
         when(platformUserMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(operator));
 
         PlatformOperationLogQueryService service =
-                new PlatformOperationLogQueryService(operationLogMapper, platformUserMapper);
+                new PlatformOperationLogQueryService(
+                        operationLogMapper, platformUserMapper, mock(RoleMapper.class), mock(TenantMapper.class));
 
         PlatformOperationLogQueryService.PlatformOperationLogPage result =
                 service.listPlatformLogs(null, null, null, null, null, null, 1, 20);
@@ -86,7 +89,8 @@ class PlatformOperationLogQueryServiceTest {
         when(platformUserMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of());
 
         PlatformOperationLogQueryService service =
-                new PlatformOperationLogQueryService(operationLogMapper, platformUserMapper);
+                new PlatformOperationLogQueryService(
+                        operationLogMapper, platformUserMapper, mock(RoleMapper.class), mock(TenantMapper.class));
 
         PlatformOperationLogQueryService.PlatformOperationLogPage result =
                 service.listPlatformLogs(null, null, null, null, null, null, 1, 20);

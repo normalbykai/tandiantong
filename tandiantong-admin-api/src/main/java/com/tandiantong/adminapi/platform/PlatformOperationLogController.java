@@ -110,6 +110,7 @@ public class PlatformOperationLogController {
         private String operationType;
         private String targetType;
         private String targetId;
+        private String targetName;
         private boolean sensitive;
         private String detail;
         private String traceId;
@@ -129,6 +130,7 @@ public class PlatformOperationLogController {
             response.operationType = source.getOperationType();
             response.targetType = source.getTargetType();
             response.targetId = source.getTargetId();
+            response.targetName = source.getTargetName();
             response.sensitive = source.isSensitive();
             response.detail = source.getDetail();
             response.traceId = source.getTraceId();
@@ -166,6 +168,10 @@ public class PlatformOperationLogController {
 
         public String getTargetId() {
             return targetId;
+        }
+
+        public String getTargetName() {
+            return targetName;
         }
 
         public boolean isSensitive() {

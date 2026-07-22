@@ -20,6 +20,7 @@ export interface PlatformOperationLogItem {
   operationType: string
   targetType: string
   targetId?: string
+  targetName?: string
   sensitive: boolean
   detail?: string
   traceId?: string
