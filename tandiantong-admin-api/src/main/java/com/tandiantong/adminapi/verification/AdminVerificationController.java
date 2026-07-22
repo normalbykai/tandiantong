@@ -4,6 +4,9 @@ import com.tandiantong.adminapi.verification.dto.VerifyRequest;
 import com.tandiantong.adminapi.verification.dto.VerificationResponse;
 import com.tandiantong.security.context.SecurityContextHolder;
 import com.tandiantong.security.audit.OperationAuditService;
+import com.tandiantong.security.audit.AuditAction;
+import com.tandiantong.security.audit.AuditEvent;
+import com.tandiantong.security.audit.AuditTarget;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.tandiantong.verification.app.VerificationPersistenceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,7 +39,11 @@ public class AdminVerificationController {
         var user=SecurityContextHolder.currentUser();
         var result = verificationPersistenceService.verify(
                 user.tenantId(),user.storeId(),user.userId(),request.token(),request.reason());
-        operationAuditService.record(user, "业务核销", "核销凭证", result.businessNo(), "已完成业务凭证核销");
+        operationAuditService.record(
+                user,
+                AuditEvent.of(
+                        AuditAction.BUSINESS_CREDENTIAL_VERIFIED,
+                        AuditTarget.of("核销凭证", result.businessNo())));
         return VerificationResponse.from(result);
     }
 }

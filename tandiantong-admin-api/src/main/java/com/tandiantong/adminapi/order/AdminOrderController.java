@@ -4,6 +4,9 @@ import com.tandiantong.adminapi.order.dto.RefundRequest;
 import com.tandiantong.adminapi.order.dto.RefundResponse;
 import com.tandiantong.order.app.PersistentOrderService;
 import com.tandiantong.security.audit.OperationAuditService;
+import com.tandiantong.security.audit.AuditAction;
+import com.tandiantong.security.audit.AuditEvent;
+import com.tandiantong.security.audit.AuditTarget;
 import com.tandiantong.security.context.SecurityContextHolder;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,7 +43,11 @@ public class AdminOrderController {
             @PathVariable("orderNo") String orderNo, @Valid @RequestBody RefundRequest request) {
         var user = SecurityContextHolder.currentUser();
         var result = service.refund(user.tenantId(), user.storeId(), orderNo, request.idempotencyKey(), request.reason());
-        operationAuditService.record(user, "订单退款", "商品订单", orderNo, "已提交核销前整单退款申请");
+        operationAuditService.record(
+                user,
+                AuditEvent.of(
+                        AuditAction.ORDER_REFUND_REQUESTED,
+                        AuditTarget.of("商品订单", orderNo)));
         return RefundResponse.from(result);
     }
 }

@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import com.tandiantong.security.audit.OperationAuditService;
 import com.tandiantong.security.auth.PasswordService;
@@ -66,6 +67,37 @@ class PlatformSystemManagementServiceTest {
         assertThat(item.getItemCode()).isEqualTo("PENDING");
         assertThat(item.getItemLabel()).isEqualTo("待支付");
         assertThat(item.getTagType()).isEqualTo("warning");
+    }
+
+    @Test
+    void updateDictionaryItemShouldPersistTagType() {
+        PlatformDictionaryItemMapper dictionaryMapper = mock(PlatformDictionaryItemMapper.class);
+        PlatformDictionaryItemEntity item = new PlatformDictionaryItemEntity();
+        item.setId(1L);
+        item.setDictionaryType("ORDER_STATUS");
+        item.setItemCode("PENDING");
+        item.setItemLabel("待处理");
+        item.setTagType("info");
+        item.setSortOrder(10);
+        when(dictionaryMapper.selectById(1L)).thenReturn(item);
+        PlatformSystemManagementService service = new PlatformSystemManagementService(
+                mock(PlatformSystemConfigMapper.class),
+                dictionaryMapper,
+                mock(PlatformDictionaryTypeMapper.class),
+                mock(OperationAuditService.class),
+                new PasswordService());
+
+        service.updateDictionaryItem(
+                CurrentUser.platform(1L, "demo@example.com", "平台管理员"),
+                1L,
+                "待审核",
+                "warning",
+                20);
+
+        assertThat(item.getItemLabel()).isEqualTo("待审核");
+        assertThat(item.getTagType()).isEqualTo("warning");
+        assertThat(item.getSortOrder()).isEqualTo(20);
+        verify(dictionaryMapper).updateById(item);
     }
 
     private PlatformSystemManagementService service(PlatformSystemConfigMapper configMapper) {

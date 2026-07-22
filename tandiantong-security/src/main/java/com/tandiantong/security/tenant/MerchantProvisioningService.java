@@ -19,6 +19,9 @@ import com.tandiantong.security.mapper.StoreMapper;
 import com.tandiantong.security.mapper.TenantMapper;
 import com.tandiantong.security.mapper.TenantPaymentConfigMapper;
 import com.tandiantong.security.audit.OperationAuditService;
+import com.tandiantong.security.audit.AuditAction;
+import com.tandiantong.security.audit.AuditEvent;
+import com.tandiantong.security.audit.AuditTarget;
 import com.tandiantong.security.context.CurrentUser;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -86,8 +89,11 @@ public class MerchantProvisioningService {
 
     /** 记录商户开通结果，邀请码和入口码不写入审计日志。 */
     private void auditProvision(CurrentUser operator, ProvisionedMerchant merchant) {
-        auditService.record(operator, "开通商户", "商户租户", merchant.tenantId().toString(),
-                "开通商户：" + merchant.merchantName() + "，初始状态为待启用");
+        auditService.record(
+                operator,
+                AuditEvent.of(
+                        AuditAction.MERCHANT_PROVISIONED,
+                        AuditTarget.of("商户租户", merchant.tenantId(), merchant.merchantName())));
     }
 
     /**
@@ -129,8 +135,11 @@ public class MerchantProvisioningService {
                 .eq(TenantEntity::getId, tenantId)
                 .ne(TenantEntity::getStatus, TenantStatus.ENABLED.name())
                 .set(TenantEntity::getStatus, TenantStatus.ENABLED.name()));
-        auditService.record(operator, "启用商户", "商户租户", tenantId.toString(),
-                "启用商户：" + tenant.getName());
+        auditService.record(
+                operator,
+                AuditEvent.of(
+                        AuditAction.MERCHANT_ENABLED,
+                        AuditTarget.of("商户租户", tenantId, tenant.getName())));
     }
 
     /**
@@ -138,12 +147,16 @@ public class MerchantProvisioningService {
      */
     @Transactional
     public void disableMerchant(CurrentUser operator, Long tenantId) {
-        requireTenant(tenantId);
+        TenantEntity tenant = requireTenant(tenantId);
         tenantMapper.update(null, new LambdaUpdateWrapper<TenantEntity>()
                 .eq(TenantEntity::getId, tenantId)
                 .ne(TenantEntity::getStatus, TenantStatus.DISABLED.name())
                 .set(TenantEntity::getStatus, TenantStatus.DISABLED.name()));
-        auditService.record(operator, "停用商户", "商户租户", tenantId.toString(), "停用商户后台访问和业务写操作");
+        auditService.record(
+                operator,
+                AuditEvent.of(
+                        AuditAction.MERCHANT_DISABLED,
+                        AuditTarget.of("商户租户", tenantId, tenant.getName())));
     }
 
     /**
@@ -175,8 +188,11 @@ public class MerchantProvisioningService {
         Instant expiresAt = Instant.now().plus(7, ChronoUnit.DAYS);
         insertInvitation(tenantId, latestInvitation.getStoreId(), latestInvitation.getAdminName(),
                 latestInvitation.getAdminMobile(), invitationCode, expiresAt);
-        auditService.record(operator, "重新生成商户邀请码", "商户租户", tenantId.toString(),
-                "商户：" + tenant.getName() + "，旧邀请码已失效");
+        auditService.record(
+                operator,
+                AuditEvent.of(
+                        AuditAction.MERCHANT_INVITATION_REISSUED,
+                        AuditTarget.of("商户租户", tenantId, tenant.getName())));
         return new ReissuedInvitation(invitationCode, expiresAt);
     }
 

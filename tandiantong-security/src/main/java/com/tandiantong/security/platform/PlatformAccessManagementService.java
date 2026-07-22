@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.tandiantong.framework.common.api.ErrorCode;
 import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.security.audit.OperationAuditService;
+import com.tandiantong.security.audit.AuditAction;
+import com.tandiantong.security.audit.AuditEvent;
+import com.tandiantong.security.audit.AuditTarget;
 import com.tandiantong.security.auth.PasswordService;
 import com.tandiantong.security.context.AccessDomain;
 import com.tandiantong.security.context.CurrentUser;
@@ -121,7 +124,7 @@ public class PlatformAccessManagementService {
         userMapper.insert(user);
         replaceUserRoles(user.getId(), roleIds);
         auditService.record(
-                operator, "新增平台账号", "平台账号", user.getId().toString(), "新增账号：" + displayName);
+                operator, AuditEvent.of(AuditAction.PLATFORM_ACCOUNT_CREATED, AuditTarget.of("平台账号", user.getId(), displayName)));
         return user;
     }
 
@@ -133,7 +136,8 @@ public class PlatformAccessManagementService {
         user.setDisplayName(displayName);
         userMapper.updateById(user);
         replaceUserRoles(userId, roleIds);
-        auditService.record(operator, "编辑平台账号", "平台账号", userId.toString(), "修改账号资料和角色");
+        auditService.record(
+                operator, AuditEvent.of(AuditAction.PLATFORM_ACCOUNT_UPDATED, AuditTarget.of("平台账号", userId, user.getDisplayName())));
     }
 
     @Transactional
@@ -144,7 +148,10 @@ public class PlatformAccessManagementService {
         user.setTokenVersion(user.getTokenVersion() + 1);
         userMapper.updateById(user);
         auditService.record(
-                operator, enabled ? "启用平台账号" : "停用平台账号", "平台账号", userId.toString(), "更新账号状态");
+                operator,
+                AuditEvent.of(
+                        enabled ? AuditAction.PLATFORM_ACCOUNT_ENABLED : AuditAction.PLATFORM_ACCOUNT_DISABLED,
+                        AuditTarget.of("平台账号", userId, user.getDisplayName())));
     }
 
     @Transactional
@@ -158,10 +165,10 @@ public class PlatformAccessManagementService {
         userMapper.updateById(user);
         auditService.record(
                 operator,
-                "重置平台账号密码",
-                "平台账号",
-                userId.toString(),
-                "按系统安全策略重置密码，策略：" + password.mode());
+                AuditEvent.of(
+                                AuditAction.PLATFORM_ACCOUNT_PASSWORD_RESET,
+                                AuditTarget.of("平台账号", userId, user.getDisplayName()))
+                        .withPolicy(password.mode()));
         return password;
     }
 
@@ -182,10 +189,9 @@ public class PlatformAccessManagementService {
         roleMapper.insert(role);
         auditService.record(
                 operator,
-                "新增平台角色",
-                "平台角色",
-                role.getId().toString(),
-                "新增角色：" + name + "（" + roleCode + "）");
+                AuditEvent.of(
+                        AuditAction.PLATFORM_ROLE_CREATED,
+                        AuditTarget.of("平台角色", role.getId(), name, roleCode)));
         return role;
     }
 
@@ -198,7 +204,11 @@ public class PlatformAccessManagementService {
         role.setName(name);
         role.setDescription(description);
         roleMapper.updateById(role);
-        auditService.record(operator, "编辑平台角色", "平台角色", roleId.toString(), "修改角色资料");
+        auditService.record(
+                operator,
+                AuditEvent.of(
+                        AuditAction.PLATFORM_ROLE_UPDATED,
+                        AuditTarget.of("平台角色", roleId, role.getName(), role.getRoleCode())));
     }
 
     @Transactional
@@ -207,13 +217,16 @@ public class PlatformAccessManagementService {
         role.setStatus(enabled ? ENABLED : DISABLED);
         roleMapper.updateById(role);
         auditService.record(
-                operator, enabled ? "启用平台角色" : "停用平台角色", "平台角色", roleId.toString(), "更新角色状态");
+                operator,
+                AuditEvent.of(
+                        enabled ? AuditAction.PLATFORM_ROLE_ENABLED : AuditAction.PLATFORM_ROLE_DISABLED,
+                        AuditTarget.of("平台角色", roleId, role.getName(), role.getRoleCode())));
     }
 
     @Transactional
     public void replaceRolePermissions(
             CurrentUser operator, Long roleId, List<Long> permissionIds) {
-        requirePlatformRole(roleId);
+        RoleEntity role = requirePlatformRole(roleId);
         verifyAssignablePermissions(operator, permissionIds);
         rolePermissionMapper.delete(
                 platformRolePermissionQuery().eq(RolePermissionEntity::getRoleId, roleId));
@@ -226,10 +239,10 @@ public class PlatformAccessManagementService {
         }
         auditService.record(
                 operator,
-                "配置平台角色权限",
-                "平台角色",
-                roleId.toString(),
-                "更新角色权限数量：" + permissionIds.size());
+                AuditEvent.of(
+                                AuditAction.PLATFORM_ROLE_PERMISSIONS_UPDATED,
+                                AuditTarget.of("平台角色", roleId, role.getName(), role.getRoleCode()))
+                        .withItemCount(permissionIds.size()));
     }
 
     private void replaceUserRoles(Long userId, List<Long> roleIds) {

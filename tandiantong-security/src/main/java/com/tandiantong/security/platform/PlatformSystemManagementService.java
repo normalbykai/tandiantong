@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.tandiantong.framework.common.api.ErrorCode;
 import com.tandiantong.framework.common.exception.BusinessException;
 import com.tandiantong.security.audit.OperationAuditService;
+import com.tandiantong.security.audit.AuditAction;
+import com.tandiantong.security.audit.AuditEvent;
+import com.tandiantong.security.audit.AuditTarget;
 import com.tandiantong.security.auth.PasswordService;
 import com.tandiantong.security.context.CurrentUser;
 import com.tandiantong.security.entity.PlatformDictionaryItemEntity;
@@ -87,7 +90,10 @@ public class PlatformSystemManagementService {
         config.setUpdatedBy(operator.userId());
         configMapper.updateById(config);
         auditService.record(
-                operator, "更新平台系统配置", "平台系统配置", String.valueOf(CONFIG_ID), "更新平台 Logo 与描述信息");
+                operator,
+                AuditEvent.of(
+                        AuditAction.PLATFORM_SYSTEM_CONFIG_UPDATED,
+                        AuditTarget.of("平台系统配置", CONFIG_ID, "平台系统配置")));
         return config;
     }
 
@@ -190,21 +196,25 @@ public class PlatformSystemManagementService {
         dictionaryMapper.insert(item);
         auditService.record(
                 operator,
-                "新增平台字典项",
-                "平台字典项",
-                item.getId().toString(),
-                "新增字典项：" + dictionaryType + "/" + itemCode);
+                AuditEvent.of(
+                        AuditAction.PLATFORM_DICTIONARY_ITEM_CREATED,
+                        AuditTarget.of("平台字典项", item.getId(), itemLabel, dictionaryType + "/" + itemCode)));
         return item;
     }
 
     @Transactional
     public void updateDictionaryItem(
-            CurrentUser operator, Long id, String itemLabel, Integer sortOrder) {
+            CurrentUser operator, Long id, String itemLabel, String tagType, Integer sortOrder) {
         PlatformDictionaryItemEntity item = requireDictionaryItem(id);
         item.setItemLabel(itemLabel);
+        item.setTagType(resolveTagType(tagType, item.getItemCode()));
         item.setSortOrder(sortOrder);
         dictionaryMapper.updateById(item);
-        auditService.record(operator, "编辑平台字典项", "平台字典项", id.toString(), "修改字典项名称和排序");
+        auditService.record(
+                operator,
+                AuditEvent.of(
+                        AuditAction.PLATFORM_DICTIONARY_ITEM_UPDATED,
+                        AuditTarget.of("平台字典项", id, item.getItemLabel(), item.getDictionaryType() + "/" + item.getItemCode())));
     }
 
     @Transactional
@@ -213,7 +223,10 @@ public class PlatformSystemManagementService {
         item.setStatus(enabled ? ENABLED : DISABLED);
         dictionaryMapper.updateById(item);
         auditService.record(
-                operator, enabled ? "启用平台字典项" : "停用平台字典项", "平台字典项", id.toString(), "更新字典项状态");
+                operator,
+                AuditEvent.of(
+                        enabled ? AuditAction.PLATFORM_DICTIONARY_ITEM_ENABLED : AuditAction.PLATFORM_DICTIONARY_ITEM_DISABLED,
+                        AuditTarget.of("平台字典项", id, item.getItemLabel(), item.getDictionaryType() + "/" + item.getItemCode())));
     }
 
     private LambdaQueryWrapper<PlatformDictionaryItemEntity> dictionaryQuery(
