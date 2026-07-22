@@ -67,7 +67,7 @@
       <el-table-column label="操作" min-width="146">
         <template #default="{ row }">
           <div class="operation-cell">
-            <el-tag effect="plain">{{ row.operationType }}</el-tag>
+            <el-tag effect="plain" :class="{ 'operation-tag--sensitive': row.sensitive }">{{ row.operationType }}</el-tag>
             <span :class="{ 'is-sensitive': row.sensitive }">{{ row.sensitive ? '敏感操作' : '普通操作' }}</span>
           </div>
         </template>
@@ -268,6 +268,7 @@ onMounted(load)
 .operator-cell b { font-size: 14px; font-weight: 550; }
 .operator-cell span { color: #7f8a83; font-size: 12px; }
 .operation-cell { display: grid; justify-items: start; gap: 5px; }
+.operation-cell :deep(.operation-tag--sensitive) { color: #b23a3a; border-color: #e6bcbc; background: #fff4f4; }
 .operation-cell > span { color: #7f8a83; font-size: 11px; }
 .operation-cell > span.is-sensitive { color: #b23a3a; }
 .content-cell { display: grid; gap: 5px; min-width: 0; }
