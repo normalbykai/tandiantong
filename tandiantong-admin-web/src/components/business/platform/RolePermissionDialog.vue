@@ -14,8 +14,8 @@
         <div class="role-summary-tip"><b>授权规则</b><span>保存后将以当前勾选项完整替换该角色已有权限。</span></div>
       </aside>
       <section class="permission-config">
-        <header class="permission-config-header"><div><h3>权限范围</h3><p>按业务操作权限配置；菜单和按钮会复用对应权限码，接口始终由后端强制鉴权</p></div><div class="permission-actions"><el-button size="small" @click="selectAll">全选</el-button><el-button size="small" :disabled="selectedIds.length === 0" @click="clearAll">清空</el-button></div></header>
-        <div class="permission-legend"><span><i class="api" />业务操作权限（用于接口鉴权和界面控制）</span></div>
+        <header class="permission-config-header"><div><h3>权限范围</h3><p>菜单视图权限控制页面入口，接口业务权限控制具体接口和操作，保存后完整替换当前角色权限</p></div><div class="permission-actions"><el-button size="small" @click="selectAll">全选</el-button><el-button size="small" :disabled="selectedIds.length === 0" @click="clearAll">清空</el-button></div></header>
+        <div class="permission-legend"><span><i class="view" />菜单视图权限（VIEW）</span><span><i class="api" />接口业务权限（API）</span></div>
         <div class="permission-groups"><article v-for="group in groups" :key="group.key" class="permission-group"><div class="permission-group-head"><el-checkbox :model-value="isGroupChecked(group)" :indeterminate="isGroupIndeterminate(group)" @click.stop @change="toggleGroup(group, $event)" /><div class="permission-group-title" @click="toggleCollapsed(group.key)"><b>{{ group.label }}</b><small>已配置 {{ selectedGroupCount(group) }} / {{ group.permissions.length }} 项</small></div><el-button text class="collapse-button" @click="toggleCollapsed(group.key)">{{ isCollapsed(group.key) ? '展开' : '收起' }}<ChevronDown :size="15" :class="{ 'is-collapsed': isCollapsed(group.key) }" /></el-button></div><div v-show="!isCollapsed(group.key)" class="permission-columns"><section v-for="type in group.types" :key="type.key" class="permission-column"><header :class="type.key.toLowerCase()"><span>{{ typeLabel(type.key) }}</span><em>{{ type.permissions.length }} 项</em></header><SelectableList v-model="selectedIds" :items="type.permissions.map(permission => ({ value: permission.id, title: permission.name, description: permission.permissionCode }))" empty-text="暂无权限点" /></section></div></article></div>
       </section>
     </div>
@@ -34,10 +34,15 @@ const emit = defineEmits<{ 'update:modelValue': [value: boolean]; save: [ids: nu
 const selectedIds = ref<number[]>([])
 const collapsedGroupKeys = ref<string[]>([])
 const hasChanges = computed(() => selectedIds.value.length !== props.permissionIds.length || selectedIds.value.some(id => !props.permissionIds.includes(id)))
-const groups = computed(() => Object.entries(props.permissions.reduce<Record<string, PlatformPermission[]>>((result, permission) => { const [, rawModule = 'other'] = permission.permissionCode.split(':'); const module = ['system', 'dictionary'].includes(rawModule) ? 'system' : rawModule; (result[module] ??= []).push(permission); return result }, {})).map(([key, permissions]) => ({ key, label: moduleLabel(key), permissions, types: [{ key: 'READ', permissions: permissions.filter(isReadPermission) }, { key: 'ACTION', permissions: permissions.filter(permission => !isReadPermission(permission)) }] })))
-function moduleLabel(value: string) { return ({ account: '平台账号', role: '平台角色', permission: '平台权限', merchant: '租户管理', system: '系统管理' } as Record<string, string>)[value] ?? '其他权限' }
-function isReadPermission(permission: PlatformPermission) { return permission.permissionCode.endsWith(':read') }
-function typeLabel(value: string) { return value === 'READ' ? '查看权限' : '业务操作权限' }
+const groups = computed(() => Object.entries(props.permissions.reduce<Record<string, PlatformPermission[]>>((result, permission) => { const module = permissionModuleKey(permission); (result[module] ??= []).push(permission); return result }, {})).map(([key, permissions]) => ({ key, label: moduleLabel(key), permissions, types: [{ key: 'VIEW', permissions: permissions.filter(permission => permission.permissionType === 'VIEW') }, { key: 'API_READ', permissions: permissions.filter(permission => permission.permissionType === 'API' && permission.permissionCode.endsWith(':read')) }, { key: 'API_ACTION', permissions: permissions.filter(permission => permission.permissionType === 'API' && !permission.permissionCode.endsWith(':read')) }] })))
+function permissionModuleKey(permission: PlatformPermission) {
+  const parts = permission.permissionCode.split(':')
+  if (parts[1] === 'system' || parts[1] === 'dictionary') return 'system'
+  if (parts[1] === 'access') return parts[2] ?? 'access'
+  return parts[1] ?? 'other'
+}
+function moduleLabel(value: string) { return ({ account: '平台账号', role: '平台角色', permission: '平台权限', merchant: '租户管理', 'operation-log': '操作日志', system: '系统管理' } as Record<string, string>)[value] ?? '其他权限' }
+function typeLabel(value: string) { return ({ VIEW: '菜单视图权限', API_READ: '接口查询权限', API_ACTION: '接口业务权限' } as Record<string, string>)[value] ?? value }
 watch(() => [props.modelValue, props.permissionIds, groups.value] as const, () => { if (props.modelValue) { selectedIds.value = [...props.permissionIds]; collapsedGroupKeys.value = groups.value.map(group => group.key) } }, { immediate: true })
 function selectedGroupCount(group: { permissions: PlatformPermission[] }) { return group.permissions.filter(item => selectedIds.value.includes(item.id)).length }
 function isGroupChecked(group: { permissions: PlatformPermission[] }) { return group.permissions.length > 0 && selectedGroupCount(group) === group.permissions.length }

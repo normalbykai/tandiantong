@@ -12,13 +12,13 @@ export interface NavigationItem {
 export const navigationByDomain: Record<AccessDomain, NavigationItem[]> = {
   PLATFORM: [
     { label: '工作台', path: '/platform/dashboard', icon: 'MonitorDot', group: '运营管理' },
-    { label: '租户管理', path: '/platform/tenants', icon: 'Building2', group: '运营管理', permissionCode: 'platform:merchant:read' },
-    { label: '操作日志', path: '/platform/logs', icon: 'ScrollText', group: '系统' },
-    { label: '系统管理', path: '/platform/system', icon: 'Settings2', group: '系统', permissionCode: 'platform:system:config:read' },
+    { label: '租户管理', path: '/platform/tenants', icon: 'Building2', group: '运营管理', permissionCode: 'platform:merchant:view' },
+    { label: '操作日志', path: '/platform/logs', icon: 'ScrollText', group: '系统', permissionCode: 'platform:operation-log:view' },
+    { label: '系统管理', path: '/platform/system', icon: 'Settings2', group: '系统', permissionCode: 'platform:system:view' },
     { label: '权限管理', path: '', icon: 'ShieldCheck', group: '系统', children: [
-      { label: '平台账号', path: '/platform/accounts', icon: 'Users', group: '系统', permissionCode: 'platform:account:read' },
-      { label: '平台角色', path: '/platform/roles', icon: 'ShieldCheck', group: '系统', permissionCode: 'platform:role:read' },
-      { label: '平台权限', path: '/platform/permissions', icon: 'KeyRound', group: '系统', permissionCode: 'platform:permission:read' }
+      { label: '平台账号', path: '/platform/accounts', icon: 'Users', group: '系统', permissionCode: 'platform:access:account:view' },
+      { label: '平台角色', path: '/platform/roles', icon: 'ShieldCheck', group: '系统', permissionCode: 'platform:access:role:view' },
+      { label: '平台权限', path: '/platform/permissions', icon: 'KeyRound', group: '系统', permissionCode: 'platform:access:permission:view' }
     ] }
   ],
   TENANT: [

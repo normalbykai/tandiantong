@@ -17,12 +17,12 @@ const routes = [
     path: '/', component: AdminLayout, children: [
       { path: '', redirect: '/platform/dashboard' },
       { path: 'platform/dashboard', component: () => import('../views/platform/PlatformDashboardPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain } },
-      { path: 'platform/tenants', component: () => import('../views/platform/TenantListPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:merchant:read' } },
-      { path: 'platform/accounts', component: () => import('../views/platform/PlatformAccountPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:account:read' } },
-      { path: 'platform/roles', component: () => import('../views/platform/PlatformRolePage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:role:read' } },
-      { path: 'platform/permissions', component: () => import('../views/platform/PlatformPermissionPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:permission:read' } },
-      { path: 'platform/logs', component: () => import('../views/platform/PlatformOperationLogPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain } },
-      { path: 'platform/system', component: () => import('../views/platform/PlatformSystemPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:system:config:read' } },
+      { path: 'platform/tenants', component: () => import('../views/platform/TenantListPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:merchant:view' } },
+      { path: 'platform/accounts', component: () => import('../views/platform/PlatformAccountPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:access:account:view' } },
+      { path: 'platform/roles', component: () => import('../views/platform/PlatformRolePage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:access:role:view' } },
+      { path: 'platform/permissions', component: () => import('../views/platform/PlatformPermissionPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:access:permission:view' } },
+      { path: 'platform/logs', component: () => import('../views/platform/PlatformOperationLogPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:operation-log:view' } },
+      { path: 'platform/system', component: () => import('../views/platform/PlatformSystemPage.vue'), meta: { domain: 'PLATFORM' satisfies AccessDomain, permissionCode: 'platform:system:view' } },
       { path: 'merchant/dashboard', component: () => import('../views/merchant/MerchantDashboardPage.vue'), meta: { domain: 'TENANT' satisfies AccessDomain } },
       ...infrastructurePages.map(([key, title, description]) => ({
         path: key.startsWith('platform') ? `platform/${key.slice(9)}` : `merchant/${key.slice(9)}`,
