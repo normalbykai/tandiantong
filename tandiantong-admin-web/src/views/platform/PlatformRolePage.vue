@@ -31,7 +31,7 @@
       </el-table-column>
       <el-table-column label="状态" width="110">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'">{{ row.status === 'ENABLED' ? '启用' : '停用' }}</el-tag>
+          <el-tag class="status-tag" :class="row.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'">{{ row.status === 'ENABLED' ? '启用' : '停用' }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="250" fixed="right">

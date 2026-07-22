@@ -102,13 +102,12 @@ const pageSizeModel = computed(() => props.pageSize)
 .app-data-table :deep(.el-table__body tr:hover .el-table-fixed-column--right),
 .app-data-table :deep(.el-table__body tr.hover-row .el-table-fixed-column--right) { background: #f5faf7 !important; }
 .app-data-table :deep(.el-table__body tr:not(.hover-row):not(:hover) td) { transition: background-color 160ms ease, box-shadow 160ms ease; }
-.app-data-table :deep(.el-tag) { position: relative; display: inline-flex; align-items: center; min-height: 24px; padding: 3px 11px 3px 10px; border-radius: 5px; font-size: 11px; font-weight: 500; line-height: 1.55; letter-spacing: .3px; white-space: nowrap; }
-.app-data-table :deep(.el-tag)::before { content: ''; width: 2px; align-self: stretch; margin-right: 7px; border-radius: 1px; background: currentColor; box-shadow: 0 0 6px currentColor; }
-.app-data-table :deep(.el-tag--success) { color: #2d7a4e; border-color: #c3d9ca; background: #edf5f0; }
-.app-data-table :deep(.el-tag--warning) { color: #a6762b; border-color: #e0cfa8; background: #f8f2e6; }
-.app-data-table :deep(.el-tag--danger) { color: #b23a3a; border-color: #e0c6c6; background: #f7eeee; }
-.app-data-table :deep(.el-tag--info) { color: #3a6b9c; border-color: #c5d5e4; background: #eef3f8; }
-.app-data-table :deep(.el-tag--primary) { color: var(--domain-700); border-color: #cfe0d7; background: var(--domain-50); }
+.app-data-table :deep(.el-tag) { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 550; line-height: 1.45; letter-spacing: 0; white-space: nowrap; }
+.app-data-table :deep(.el-tag--success) { color: #217047; border-color: #d7eadf; background: #f1f8f4; }
+.app-data-table :deep(.el-tag--warning) { color: #93651d; border-color: #f0dfbc; background: #fdf8ed; }
+.app-data-table :deep(.el-tag--danger) { color: #a23e3e; border-color: #efd4d4; background: #fcf3f3; }
+.app-data-table :deep(.el-tag--info) { color: #596775; border-color: #dfe4e8; background: #f5f7f8; }
+.app-data-table :deep(.el-tag--primary) { color: #30654c; border-color: #d7e7de; background: #f1f7f3; }
 .app-data-table :deep(.el-table__empty-text) { color: #9aa3aa; font-size: 13px; }
 .app-data-table :deep(.el-pagination) { --el-pagination-font-size: 12px; }
 @media (max-width: 680px) {

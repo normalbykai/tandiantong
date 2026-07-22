@@ -107,7 +107,8 @@ public class PlatformSystemController {
     @Operation(summary = "编辑平台字典项", description = "修改字典项名称和排序，不修改字典类型及编码")
     public void updateDictionary(
             @PathVariable("id") Long id, @Valid @RequestBody DictionaryUpdateRequest request) {
-        service.updateDictionaryItem(current(), id, request.itemLabel, request.sortOrder);
+        service.updateDictionaryItem(
+                current(), id, request.itemLabel, request.tagType, request.sortOrder);
     }
 
     @PostMapping("/dictionaries/{id}/status")
@@ -199,6 +200,10 @@ public class PlatformSystemController {
     @Setter
     @Schema(description = "编辑平台字典项请求")
     public static class DictionaryUpdateRequest {
+        @Size(max = 16)
+        @Schema(description = "字典项标签颜色类型，取值为success、info、warning或danger", example = "warning")
+        private String tagType;
+
         @NotBlank
         @Size(max = 128)
         @Schema(description = "字典项名称", example = "待处理")

@@ -38,6 +38,7 @@ export interface CreatePlatformDictionaryItemCommand {
 }
 
 export interface UpdatePlatformDictionaryItemCommand {
+  tagType?: '' | 'success' | 'warning' | 'info' | 'danger'
   itemLabel: string
   sortOrder: number
 }
