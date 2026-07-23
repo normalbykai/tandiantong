@@ -17,6 +17,7 @@
           <el-alert v-if="errorMessage" :title="errorMessage" type="error" :closable="false" show-icon />
           <div class="login-options"><el-checkbox v-model="remember">7 天内自动登录</el-checkbox><RouterLink v-if="domain === 'TENANT'" class="login-text-link" to="/merchant/activate">首次开通？激活账号</RouterLink><el-button v-else text>忘记密码？</el-button></div>
           <el-button native-type="submit" type="primary" size="large" :loading="submitting" class="login-submit">登录</el-button>
+          <el-button v-if="domain === 'TENANT'" text class="quick-login" :loading="submitting" @click="quickMerchantLogin">使用系统预留测试商户快速登录</el-button>
         </el-form>
         <p class="login-notice">© 2026 摊点通</p>
       </div>
@@ -62,6 +63,12 @@ async function submit() {
   } finally {
     submitting.value = false
   }
+}
+
+async function quickMerchantLogin() {
+  form.mobile = '13900000001'
+  form.password = 'admin'
+  await submit()
 }
 
 </script>

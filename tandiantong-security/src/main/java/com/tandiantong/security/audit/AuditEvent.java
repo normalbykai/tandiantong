@@ -57,6 +57,16 @@ public class AuditEvent {
             case MERCHANT_ENABLED -> "已启用商户：" + name + "；商户后台可登录，并可发起新的业务操作";
             case MERCHANT_DISABLED -> "已停用商户：" + name + "；商户后台将无法登录，且不能发起新的业务操作";
             case MERCHANT_INVITATION_REISSUED -> "已为商户：" + name + "重新生成管理员邀请码；旧邀请码已失效";
+            case MERCHANT_STAFF_CREATED -> "已新增商户员工：" + name;
+            case MERCHANT_STAFF_UPDATED -> "已修改商户员工：" + name + "的资料或角色";
+            case MERCHANT_STAFF_ENABLED -> "已启用商户员工：" + name;
+            case MERCHANT_STAFF_DISABLED -> "已停用商户员工：" + name;
+            case MERCHANT_ROLE_CREATED -> "已新增商户角色：" + name;
+            case MERCHANT_ROLE_UPDATED -> "已修改商户角色：" + name + "的名称或说明";
+            case MERCHANT_ROLE_ENABLED -> "已启用商户角色：" + name;
+            case MERCHANT_ROLE_DISABLED -> "已停用商户角色：" + name;
+            case MERCHANT_ROLE_PERMISSIONS_UPDATED -> "已更新商户角色：" + name + "的权限，共 " + itemCount + " 项";
+            case MERCHANT_SYSTEM_CONFIG_UPDATED -> "已更新商户展示设置";
             case ORDER_REFUND_REQUESTED -> "已提交商品订单：" + name + "的核销前整单退款申请";
             case BUSINESS_CREDENTIAL_VERIFIED -> "已完成业务凭证：" + name + "的核销";
         };
